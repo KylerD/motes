@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CC0 Pixel Art Character Generator</title>
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --surface: #252525;
+      --surface-hover: #303030;
+      --border: #3a3a3a;
+      --text: #e0e0e0;
+      --text-dim: #888;
+      --accent: #c4956a;
+      --accent-hover: #d4a57a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Courier New", Courier, monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin-bottom: 0.25rem;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-bottom: 1.5rem;
+    }
+
+    .main-layout {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 800px;
+      width: 100%;
+    }
+
+    .preview-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #preview-canvas {
+      border: 2px solid var(--border);
+      image-rendering: pixelated;
+      background: #111;
+    }
+
+    .controls-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-width: 280px;
+    }
+
+    .control-group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .control-group label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .slot-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .slot-label {
+      font-size: 0.75rem;
+      text-transform: capitalize;
+      width: 90px;
+      flex-shrink: 0;
+    }
+
+    .slot-name {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.6rem;
+      font-family: inherit;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover {
+      background: var(--surface-hover);
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+      font-weight: bold;
+    }
+
+    button.primary:hover {
+      background: var(--accent-hover);
+    }
+
+    button.locked {
+      background: #5c3a1e;
+      border-color: var(--accent);
+    }
+
+    select, input[type="text"] {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.5rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      width: 100%;
+    }
+
+    .prompt-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .prompt-row input {
+      flex: 1;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .share-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #share-msg {
+      font-size: 0.7rem;
+      color: var(--accent);
+    }
+
+    .cc0-notice {
+      margin-top: 2rem;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .cc0-notice a {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <h1>CC0 Pixel Art Generator</h1>
+  <p class="subtitle">All characters are public domain. Use them for anything.</p>
+
+  <div class="main-layout">
+    <div class="preview-section">
+      <canvas id="preview-canvas" width="256" height="256"></canvas>
+      <div class="action-row">
+        <button id="randomise-btn" class="primary">Randomise</button>
+        <button id="dl-1x">PNG 1x</button>
+        <button id="dl-4x">PNG 4x</button>
+        <button id="dl-8x">PNG 8x</button>
+      </div>
+      <div class="share-row">
+        <button id="share-btn">Share Link</button>
+        <span id="share-msg"></span>
+      </div>
+    </div>
+
+    <div class="controls-section">
+      <div class="control-group">
+        <label>Archetype Filter</label>
+        <select id="archetype-filter">
+          <option value="any">Any</option>
+          <option value="wanderer">Wanderer</option>
+          <option value="merchant">Merchant</option>
+          <option value="militant">Militant</option>
+          <option value="scholar">Scholar</option>
+          <option value="outcast">Outcast</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Describe a Character</label>
+        <div class="prompt-row">
+          <input type="text" id="prompt-input" placeholder="e.g. hooded wanderer with a book" />
+          <button id="generate-btn" class="primary">Generate</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Trait Slots</label>
+
+        <div class="slot-row">
+          <span class="slot-label">Heads</span>
+          <span class="slot-name" id="slot-name-heads">-</span>
+          <button id="random-heads">Roll</button>
+          <button id="lock-heads">Lock</button>
+        </div>
+
+        <div class="slot-row">
+          <span class="slot-label">Bodies</span>
+          <span class="slot-name" id="slot-name-bodies">-</span>
+          <button id="random-bodies">Roll</button>
+          <button id="lock-bodies">Lock</button>
+        </div>
+
+        <div class="slot-row">
+          <span class="slot-label">Accessories</span>
+          <span class="slot-name" id="slot-name-accessories">-</span>
+          <button id="random-accessories">Roll</button>
+          <button id="lock-accessories">Lock</button>
+        </div>
+
+        <div class="slot-row">
+          <span class="slot-label">Eyes</span>
+          <span class="slot-name" id="slot-name-eyes">-</span>
+          <button id="random-eyes">Roll</button>
+          <button id="lock-eyes">Lock</button>
+        </div>
+
+        <div class="slot-row">
+          <span class="slot-label">Mouths</span>
+          <span class="slot-name" id="slot-name-mouths">-</span>
+          <button id="random-mouths">Roll</button>
+          <button id="lock-mouths">Lock</button>
+        </div>
+
+        <div class="slot-row">
+          <span class="slot-label">Backgrounds</span>
+          <span class="slot-name" id="slot-name-backgrounds">-</span>
+          <button id="random-backgrounds">Roll</button>
+          <button id="lock-backgrounds">Lock</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="cc0-notice">
+    All generated characters are released under
+    <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0 1.0</a>.
+    No rights reserved. Use them for anything, including commercial projects.
+  </p>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

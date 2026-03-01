@@ -1,0 +1,8 @@
+node_modules/
+generator/dist/
+generator/node_modules/
+*.pyc
+__pycache__/
+.env
+.DS_Store
+generate_all_traits.py
