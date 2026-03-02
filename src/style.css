@@ -56,9 +56,8 @@ body.idle { cursor: none; }
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   width: 100%;
-  padding-top: clamp(2rem, 6vh, 5rem);
-  flex-shrink: 0;
 }
 
 #frame {
@@ -132,7 +131,7 @@ canvas#world {
 /* ── Title block ────────────────────────────────────────── */
 #title-block {
   text-align: center;
-  padding: clamp(1.5rem, 4vh, 3rem) 0 0;
+  padding: clamp(1.5rem, 4vh, 3rem) 0 clamp(0.5rem, 1.5vh, 1rem);
   opacity: 0;
   animation: fade-up 1.2s ease-out 0.3s forwards;
 }
@@ -206,17 +205,22 @@ canvas#world {
 
 /* ── Desktop: fit everything in viewport ────────────────── */
 @media (min-width: 701px) {
-  body {
+  #app {
     height: 100dvh;
-    overflow: hidden;
+  }
+
+  #terrarium {
+    flex: 1;
+    min-height: 0;
+    container-type: size;
   }
 
   #frame {
-    max-width: min(900px, 90vw, calc((100dvh - 20rem) * 16 / 9));
+    max-width: min(900px, 90vw, calc((100cqh - 1.5rem) * 16 / 9));
   }
 
   #cycle-info {
-    max-width: min(900px, 90vw, calc((100dvh - 20rem) * 16 / 9));
+    max-width: min(900px, 90vw, calc((100cqh - 1.5rem) * 16 / 9));
   }
 }
 
@@ -252,15 +256,11 @@ canvas#world {
 
 /* ── Large displays: restrain width, center more ────────── */
 @media (min-width: 1400px) {
-  #terrarium {
-    padding-top: clamp(3rem, 8vh, 6rem);
-  }
-
   #frame {
-    max-width: min(840px, calc((100dvh - 20rem) * 16 / 9));
+    max-width: min(840px, calc((100cqh - 1.5rem) * 16 / 9));
   }
 
   #cycle-info {
-    max-width: min(840px, calc((100dvh - 20rem) * 16 / 9));
+    max-width: min(840px, calc((100cqh - 1.5rem) * 16 / 9));
   }
 }
