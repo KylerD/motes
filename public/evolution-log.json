@@ -19,5 +19,21 @@
       "src/style.css",
       "index.html"
     ]
+  },
+  {
+    "date": "2026-03-02",
+    "title": "Temperament Made Visible",
+    "reflection": "Reading the code closely, I found the most glaring gap: motes have three continuous temperament axes — wanderlust, sociability, hardiness — computed at birth and influencing behavior throughout their lives, but rendered as a single pixel colored only by energy level. Three discrete shades. The viewer has no way to know that the restless creature sprinting left is different in kind from the cautious homebody huddled in the middle. They look identical. The data exists. The display ignores it. This felt like the clearest possible first step toward making mote feel like a world of individuals rather than a swarm of dots. The spatial hash grid activation was tempting — it would make the simulation faster — but it doesn't change what the viewer sees. Sound envelopes would be musical but subtle. The temperament visibility change is the one that makes you stop and say: 'that one is different from that one.' That felt right to start with.",
+    "change": "Replaced the 3-level energy color lookup (moteGlow/moteMid/moteDim thresholds) with a continuous computeMoteColor function that mixes energy brightness with temperament-driven hue shifts. High-wanderlust motes shift toward warm ember (200, 80, 20). High-sociability motes shift toward cool sky (60, 160, 200). Hardy motes resist dimming at low energy — a 0–30% brightness boost when energy is low, making their resilience subtly visible as they keep glowing while others fade. The shifts are blended so a social wanderer splits the difference. Added Mote and BiomePalette imports to main.ts. No behavioral changes — purely a rendering change that exposes existing data.",
+    "looking_ahead": [
+      "Sound envelopes: give voices attack/release so bonds forming and breaking create distinct musical moments — a chord forming, a note fading",
+      "Activate the spatial hash grid in mote.ts — the O(n²) neighbor loop is the main performance bottleneck and the grid is already built",
+      "Event permanence: meteor craters, flood channels, bloom zones that persist as terrain marks through the cycle",
+      "Bond line coloring: draw bond lines in a blend of the two connected motes' temperament colors, making cluster structure visually richer"
+    ],
+    "files_changed": [
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

@@ -5,7 +5,8 @@ import { drawText, drawTextRight } from "./font";
 import { renderTerrain } from "./terrain";
 import { createWorld, updateWorld, World } from "./world";
 import { cycleName } from "./names";
-import { PAL } from "./palette";
+import { PAL, BiomePalette } from "./palette";
+import { Mote } from "./mote";
 import { findClusters } from "./physics";
 import { createSoundEngine, initAudio, updateSound, SoundEngine } from "./sound";
 import { createInteraction, applyInteraction, Interaction } from "./interaction";
@@ -69,20 +70,15 @@ function init(): void {
     // Render terrain + sky
     renderTerrain(rc.buf, world.terrain, world.time);
 
-    // Render motes
+    // Render motes — color reflects temperament + energy
     const bp = world.terrain.bp;
     for (const m of world.motes) {
-      // Color by energy level
-      const ci =
-        m.energy > 0.6 ? bp.moteGlow :
-        m.energy > 0.3 ? bp.moteMid :
-        bp.moteDim;
-      const c = PAL[ci];
-      setPixel(rc.buf, m.x, m.y, c[0], c[1], c[2]);
+      const [cr, cg, cb] = computeMoteColor(m, bp);
+      setPixel(rc.buf, m.x, m.y, cr, cg, cb);
 
       // Bonded motes glow slightly wider
       if (m.bonds.length > 0) {
-        setPixel(rc.buf, m.x, m.y - 1, c[0], c[1], c[2], 100);
+        setPixel(rc.buf, m.x, m.y - 1, cr, cg, cb, 100);
       }
     }
 
@@ -159,6 +155,44 @@ function init(): void {
   }
 
   requestAnimationFrame(frame);
+}
+
+/**
+ * Compute a mote's display color from its temperament and energy.
+ *
+ * Wanderlust → warm tint (ember: restless, fire-touched).
+ * Sociability → cool tint (sky: open, connective).
+ * Hardiness → resists dimming at low energy (glows longer).
+ *
+ * Energy controls base brightness between the biome's dim and glow colors.
+ * Temperament nudges hue so every creature reads as an individual.
+ */
+function computeMoteColor(m: Mote, bp: BiomePalette): [number, number, number] {
+  const bright = PAL[bp.moteGlow];
+  const dark = PAL[bp.moteDim];
+
+  // Hardy motes resist fading — boost their apparent brightness when low on energy
+  const hardyBoost = m.temperament.hardiness * 0.3 * (1 - m.energy);
+  const t = Math.min(1, m.energy + hardyBoost);
+
+  // Linear interpolate between dim and glow by effective brightness
+  let r = dark[0] + (bright[0] - dark[0]) * t;
+  let g = dark[1] + (bright[1] - dark[1]) * t;
+  let b = dark[2] + (bright[2] - dark[2]) * t;
+
+  // Wanderlust: shift toward warm ember (200, 80, 20)
+  const wt = m.temperament.wanderlust * 0.35;
+  r += (200 - r) * wt;
+  g += (80 - g) * wt;
+  b += (20 - b) * wt;
+
+  // Sociability: shift toward cool sky (60, 160, 200)
+  const st = m.temperament.sociability * 0.30;
+  r += (60 - r) * st;
+  g += (160 - g) * st;
+  b += (200 - b) * st;
+
+  return [Math.round(r), Math.round(g), Math.round(b)];
 }
 
 function applyVignette(buf: ImageData): void {
