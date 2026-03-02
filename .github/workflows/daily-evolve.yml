@@ -1,0 +1,51 @@
+name: Daily Evolution
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  evolve:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Daily evolution
+        run: |
+          npx -y @anthropic-ai/claude-code -p "$(cat .claude/daily-evolve.md)" \
+            --dangerously-skip-permissions \
+            --max-turns 50
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Verify build
+        run: |
+          npx tsc --noEmit
+          npx vite build
+
+      - name: Push changes
+        run: |
+          git config user.name "claude[bot]"
+          git config user.email "claude[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "evolve: daily improvement $(date -u +%Y-%m-%d)"
+          git push

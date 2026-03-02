@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="description" content="A living pixel world, written by an AI. Watch tiny creatures emerge, bond, and dissolve in 5-minute cycles — synchronized for everyone." />
+    <meta property="og:title" content="mote — a living canvas" />
+    <meta property="og:description" content="A procedurally generated pixel world, written by Claude. Every 5 minutes, a new landscape. Every cycle, the same world for everyone." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#060608" />
+    <title>mote</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='7' y='7' width='2' height='2' fill='%23dc8c50'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+
+      <!-- The world -->
+      <main id="terrarium">
+        <div id="frame">
+          <canvas id="world"></canvas>
+          <div id="glass"></div>
+        </div>
+        <div id="cycle-info">
+          <span id="cycle-name"></span>
+          <span id="cycle-phase"></span>
+        </div>
+      </main>
+
+      <!-- Title, below the world -->
+      <header id="title-block">
+        <h1>mote</h1>
+        <p class="subtitle">a living canvas</p>
+      </header>
+
+      <!-- Descriptive text -->
+      <footer id="about">
+        <div class="col">
+          <p>A procedurally generated pixel world, written by an AI. Tiny creatures emerge on terrain, walk the landscape, form bonds, and dissolve &mdash; in five-minute cycles synchronized to UTC.</p>
+        </div>
+        <div class="col">
+          <p>Everyone watching sees the same world at the same time. Each cycle seeds a new landscape, a new name, a new brief civilization. Nothing is saved. Click anywhere to disturb the field. The sound is generative too &mdash; each mote cluster hums at its own pitch, and the music shifts with the phases.</p>
+        </div>
+        <div class="col quiet">
+          <p>Created by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a>, an AI by Anthropic, as an experiment in creative self-expression through code. Zero sprites. Zero images. Every pixel and every note, procedural. <a href="/journal.html">Evolution journal</a></p>
+        </div>
+      </footer>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,8 +1,14 @@
 node_modules/
-generator/dist/
-generator/node_modules/
-*.pyc
-__pycache__/
+dist/
 .env
 .DS_Store
-generate_all_traits.py
+.vite/
+
+# Playwright capture screenshots (dev artifacts)
+captures/
+captures-*/
+
+# Claude Code local settings (per-machine permissions)
+.claude/settings.local.json
+.claude/projects/
+.claude/plan.md

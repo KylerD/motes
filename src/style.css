@@ -1,0 +1,246 @@
+/* ── mote — specimen display ────────────────────────────── */
+
+:root {
+  --void: #060608;
+  --void-warm: #0a0a0e;
+  --glass: rgba(140, 160, 180, 0.06);
+  --glass-edge: rgba(140, 160, 180, 0.12);
+  --text-primary: rgba(180, 184, 190, 0.72);
+  --text-dim: rgba(140, 144, 150, 0.45);
+  --text-faint: rgba(120, 124, 130, 0.32);
+  --accent: #dc8c50;
+  --accent-dim: rgba(220, 140, 80, 0.25);
+  --serif: "Cormorant Garamond", "Garamond", "Georgia", serif;
+  --mono: "IBM Plex Mono", "Menlo", monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  width: 100%;
+  min-height: 100dvh;
+  background: var(--void);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Hide scrollbar but allow scroll */
+body::-webkit-scrollbar { width: 0; }
+body { scrollbar-width: none; }
+
+/* ── Cursor ─────────────────────────────────────────────── */
+body.idle { cursor: none; }
+
+/* ── App container ──────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100dvh;
+  padding: 0 1.5rem;
+}
+
+/* ── Terrarium: the canvas vessel ───────────────────────── */
+#terrarium {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding-top: clamp(2rem, 6vh, 5rem);
+  flex-shrink: 0;
+}
+
+#frame {
+  position: relative;
+  width: 100%;
+  max-width: min(900px, 90vw);
+  aspect-ratio: 16 / 9;
+
+  /* Glass frame effect */
+  border: 1px solid var(--glass-edge);
+  border-radius: 2px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 8px 40px rgba(0, 0, 0, 0.2),
+    /* Inner glow from the world */
+    inset 0 0 30px rgba(80, 120, 140, 0.04);
+  overflow: hidden;
+}
+
+canvas#world {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Subtle glass reflection overlay */
+#glass {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.02) 0%,
+      transparent 35%,
+      transparent 65%,
+      rgba(0, 0, 0, 0.06) 100%
+    );
+  border-radius: 2px;
+}
+
+/* ── Cycle info bar (beneath the frame) ─────────────────── */
+#cycle-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+  max-width: min(900px, 90vw);
+  padding: 0.6rem 0.15rem 0;
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: clamp(0.6rem, 1vw, 0.72rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: fade-up 1.2s ease-out 0.15s forwards;
+}
+
+#cycle-name {
+  color: var(--text-dim);
+}
+
+#cycle-phase {
+  color: var(--text-faint);
+}
+
+/* ── Title block ────────────────────────────────────────── */
+#title-block {
+  text-align: center;
+  padding: clamp(1.5rem, 4vh, 3rem) 0 0;
+  opacity: 0;
+  animation: fade-up 1.2s ease-out 0.3s forwards;
+}
+
+#title-block h1 {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  letter-spacing: 0.25em;
+  color: var(--text-primary);
+  text-transform: lowercase;
+  line-height: 1;
+}
+
+#title-block .subtitle {
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+  margin-top: 0.5em;
+  text-transform: lowercase;
+}
+
+/* ── About section ──────────────────────────────────────── */
+#about {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1.5rem, 3vw, 3rem);
+  max-width: min(900px, 90vw);
+  width: 100%;
+  padding: clamp(2rem, 5vh, 4rem) 0 clamp(3rem, 8vh, 6rem);
+  opacity: 0;
+  animation: fade-up 1.2s ease-out 0.8s forwards;
+}
+
+#about .col p {
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: clamp(0.7rem, 1vw, 0.78rem);
+  line-height: 1.75;
+  color: var(--text-dim);
+}
+
+#about .col.quiet p {
+  color: var(--text-faint);
+}
+
+#about a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent-dim);
+  transition: border-color 0.3s ease;
+}
+
+#about a:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* ── Animations ─────────────────────────────────────────── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 700px) {
+  #about {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding-bottom: 3rem;
+  }
+
+  #frame {
+    max-width: 100%;
+    border-radius: 0;
+  }
+
+  #cycle-info {
+    max-width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  #app {
+    padding: 0;
+  }
+
+  #title-block,
+  #about {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+/* ── Large displays: restrain width, center more ────────── */
+@media (min-width: 1400px) {
+  #terrarium {
+    padding-top: clamp(3rem, 8vh, 6rem);
+  }
+
+  #frame {
+    max-width: 840px;
+  }
+}
