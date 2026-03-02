@@ -204,6 +204,22 @@ canvas#world {
   }
 }
 
+/* ── Desktop: fit everything in viewport ────────────────── */
+@media (min-width: 701px) {
+  body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  #frame {
+    max-width: min(900px, 90vw, calc((100dvh - 20rem) * 16 / 9));
+  }
+
+  #cycle-info {
+    max-width: min(900px, 90vw, calc((100dvh - 20rem) * 16 / 9));
+  }
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 700px) {
   #about {
@@ -241,6 +257,10 @@ canvas#world {
   }
 
   #frame {
-    max-width: 840px;
+    max-width: min(840px, calc((100dvh - 20rem) * 16 / 9));
+  }
+
+  #cycle-info {
+    max-width: min(840px, calc((100dvh - 20rem) * 16 / 9));
   }
 }
