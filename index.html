@@ -3,54 +3,90 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <meta name="description" content="A living pixel world, written by an AI. Watch tiny creatures emerge, bond, and dissolve in 5-minute cycles — synchronized for everyone." />
-    <meta property="og:title" content="mote — a living canvas" />
-    <meta property="og:description" content="A procedurally generated pixel world, written by Claude. Every 5 minutes, a new landscape. Every cycle, the same world for everyone." />
+    <meta name="description" content="Every five minutes, a new civilization. A living pixel world written entirely by an AI — synchronized for everyone watching." />
+    <meta property="og:title" content="mote — a living pixel world" />
+    <meta property="og:description" content="Every five minutes, a new civilization. 256x144 pixels of procedurally generated life, written by Claude. Everyone watching sees the same world." />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#060608" />
     <title>mote</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='7' y='7' width='2' height='2' fill='%23dc8c50'/></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <div id="app">
 
-      <!-- Title -->
-      <header id="title-block">
-        <h1>mote</h1>
-        <p class="subtitle">a living canvas</p>
-      </header>
+      <!-- ── Hero: the world fills the viewport ────────── -->
+      <section id="hero">
+        <h1 id="wordmark">mote</h1>
 
-      <!-- The world -->
-      <main id="terrarium">
-        <div id="frame">
-          <canvas id="world"></canvas>
-          <div id="glass"></div>
+        <div id="terrarium">
+          <div id="frame">
+            <canvas id="world"></canvas>
+            <div id="glass"></div>
+          </div>
+          <div id="cycle-info">
+            <span id="cycle-name"></span>
+            <span id="cycle-phase"></span>
+          </div>
         </div>
-        <div id="cycle-info">
-          <span id="cycle-name"></span>
-          <span id="cycle-phase"></span>
-        </div>
-      </main>
 
-      <!-- Descriptive text -->
-      <footer id="about">
-        <div class="col">
-          <p>A procedurally generated pixel world, written by an AI. Tiny creatures emerge on terrain, walk the landscape, form bonds, and dissolve &mdash; in five-minute cycles synchronized to UTC.</p>
+        <div id="scroll-cue" aria-hidden="true">
+          <span></span>
         </div>
-        <div class="col">
-          <p>Everyone watching sees the same world at the same time. Each cycle seeds a new landscape, a new name, a new brief civilization. Nothing is saved. Click anywhere to disturb the field. The sound is generative too &mdash; each mote cluster hums at its own pitch, and the music shifts with the phases.</p>
+      </section>
+
+      <!-- ── Story: below the fold ─────────────────────── -->
+      <section id="story">
+        <div class="story-inner">
+          <h2 class="headline reveal">Every five minutes,<br>a new civilization.</h2>
+
+          <div class="body-copy reveal">
+            <p>Mote is a living pixel world. Tiny creatures emerge on procedural terrain, form bonds, build settlements, and dissolve &mdash; in five-minute cycles synchronized to UTC. Everyone watching sees the same world at the same time.</p>
+            <p class="interaction-hint">Hover to attract. Swipe to scatter. Click to energize. Or just watch.</p>
+          </div>
+
+          <dl class="details reveal">
+            <div class="detail">
+              <dt>canvas</dt>
+              <dd>256 &times; 144 pixels</dd>
+            </div>
+            <div class="detail">
+              <dt>dependencies</dt>
+              <dd>zero</dd>
+            </div>
+            <div class="detail">
+              <dt>assets</dt>
+              <dd>none &mdash; every pixel procedural</dd>
+            </div>
+            <div class="detail">
+              <dt>sound</dt>
+              <dd>generative &mdash; bonded clusters hum</dd>
+            </div>
+          </dl>
+
+          <footer class="attribution reveal">
+            <p>An experiment in creative self-expression through code by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a>, an AI by Anthropic.</p>
+            <a href="/journal.html" class="journal-link">evolution journal &rarr;</a>
+          </footer>
         </div>
-        <div class="col quiet">
-          <p>Created by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a>, an AI by Anthropic, as an experiment in creative self-expression through code. Zero sprites. Zero images. Every pixel and every note, procedural. <a href="/journal.html">Evolution journal</a></p>
-        </div>
-      </footer>
+      </section>
 
     </div>
 
     <script type="module" src="/src/main.ts"></script>
+    <script>
+      var io = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      document.querySelectorAll('.reveal').forEach(function(el) { io.observe(el); });
+    </script>
   </body>
 </html>

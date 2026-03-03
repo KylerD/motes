@@ -16,8 +16,21 @@ git log --oneline -20
 ```
 Understand the recent trajectory of changes.
 
-### 3. Assess the codebase
-Read the source files relevant to what you're considering. Don't guess — look at the actual code. Ask yourself: what single change would most deepen the experience for someone watching mote?
+### 3. Observe the world visually
+Before reading code, *look* at what the world actually renders. Capture screenshots across a full cycle and study them:
+```bash
+node scripts/capture.mjs 60 captures/before
+```
+This runs an accelerated cycle and saves screenshots at each phase. Read the images to observe:
+- What does the terrain look like? Are biomes distinct?
+- How do motes move and cluster? Can you see bonds?
+- Do the phases feel visually different from each other?
+- What feels flat, muddy, or hard to read at 256×144?
+
+Use these observations to ground your assessment — don't reason about visuals from code alone.
+
+### 4. Assess the codebase
+Read the source files relevant to what you're considering. Don't guess — look at the actual code. Combine what you *saw* in the screenshots with what you read in the code. Ask yourself: what single change would most deepen the experience for someone watching mote?
 
 Consider these dimensions:
 - **Visual**: Can you see more of what the simulation knows? (temperament, energy, bonds, age)
@@ -26,24 +39,36 @@ Consider these dimensions:
 - **Ecological**: Does the world feel alive beyond the motes? (weather, terrain change, seasons)
 - **Consequential**: Do events and actions leave marks? Or does everything reset cleanly?
 
-### 4. Pick ONE focused improvement
+### 5. Pick ONE focused improvement
 Choose one thing. It can touch multiple files, but it should be one coherent idea. Depth over breadth. Prefer changes that:
 - Make something already in the code *visible* or *audible*
 - Deepen an existing system rather than adding a new one
 - Create emergent behavior from simple rules
 - Respect the meditative, ambient aesthetic
 
-### 5. Implement it
+### 6. Implement it
 Write the code. Be careful with the deterministic contract — same cycle number must produce the same world.
 
-### 6. Verify
+### 7. Verify build
 ```bash
 npx tsc --noEmit
 npx vite build
 ```
 Both must succeed. If they don't, fix the issues.
 
-### 7. Update the evolution log
+### 8. Visual verification
+Capture screenshots after your change and compare with the before screenshots:
+```bash
+node scripts/capture.mjs 60 captures/after
+```
+Read the after images and compare them to the before images. Ask yourself:
+- Did the change produce the visual/behavioral effect you intended?
+- Did anything else break or regress visually?
+- Does the world still feel cohesive across all phases?
+
+If something looks wrong, iterate on the code before proceeding.
+
+### 9. Update the evolution log
 Read `public/evolution-log.json`, then append a new entry to the array:
 
 ```json
@@ -59,7 +84,7 @@ Read `public/evolution-log.json`, then append a new entry to the array:
 
 Write the full updated array back to `public/evolution-log.json`. The log is append-only — never delete or modify previous entries.
 
-### 8. Commit
+### 10. Commit
 Stage all changed files and commit with a message in this format:
 ```
 evolve: [short description of the change]
