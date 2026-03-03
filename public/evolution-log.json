@@ -35,5 +35,21 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-03",
+    "title": "Bonds as Relationships",
+    "reflection": "Yesterday's work gave every mote a color that reflects its temperament. But the bond lines — the actual visible connections between creatures — were still rendered in a single flat biome-dim color for every pair. They looked like scaffolding, not relationships. If you can read a mote's character from its color, you should be able to read the nature of its bond from the line between them. Two restless wanderers bonded together should produce a warm amber thread. Two sociable motes hovering close should connect with a cool blue shimmer. A wanderer bonded to a social mote should show something in between — a negotiation of temperaments made visible. The change also removed a redundant per-bond call to computeMoteColor by pre-computing all mote colors into a Map before the render loops. Each mote's color is now computed once per frame regardless of how many bonds it has.",
+    "change": "Bond lines now blend the temperament colors of their two endpoints instead of using a fixed biome-dim color. Before each render loop, all mote colors are computed into a Map<Mote, [r, g, b]>. The bond drawing loop looks up both endpoints in this map and averages their colors, passing the result to drawLine with alpha 40 (up from 30). Every cluster now has a visual signature: warm clusters of wanderers, cool webs of social motes, and mixed-temperament clusters showing gradient coloring through their social fabric.",
+    "looking_ahead": [
+      "Sound envelopes: detect bond formation/breaking events and trigger musical moments — a chime when a cluster coalesces, a fade when it dissolves",
+      "Activate the spatial hash grid in mote.ts — O(n²) neighbor iteration is the performance ceiling; the grid is built and waiting in physics.ts",
+      "Event permanence: crater tiles after meteors, waterlogged terrain after floods, pollen-dusted ground after bloom — marks that survive into the next phase",
+      "Mote age visibility: older motes could shift toward a third color axis (desaturation, or a gold tinge) — making elders visually distinct from newborns"
+    ],
+    "files_changed": [
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

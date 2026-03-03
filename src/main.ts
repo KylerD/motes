@@ -70,10 +70,16 @@ function init(): void {
     // Render terrain + sky
     renderTerrain(rc.buf, world.terrain, world.time);
 
-    // Render motes — color reflects temperament + energy
+    // Pre-compute mote colors (reused for both mote pixels and bond lines)
     const bp = world.terrain.bp;
+    const moteColors = new Map<Mote, [number, number, number]>();
     for (const m of world.motes) {
-      const [cr, cg, cb] = computeMoteColor(m, bp);
+      moteColors.set(m, computeMoteColor(m, bp));
+    }
+
+    // Render motes — color reflects temperament + energy
+    for (const m of world.motes) {
+      const [cr, cg, cb] = moteColors.get(m)!;
       setPixel(rc.buf, m.x, m.y, cr, cg, cb);
 
       // Bonded motes glow slightly wider
@@ -82,7 +88,10 @@ function init(): void {
       }
     }
 
-    // Draw bond lines (subtle, only when motes are close)
+    // Draw bond lines — blend the temperament colors of the two endpoints.
+    // A wanderer-to-wanderer bond glows warm amber; social-to-social shimmers
+    // cool blue; mixed pairs show a midpoint hue. Each bond reads as a
+    // relationship between two distinct individuals.
     const drawn = new Set<string>();
     for (const m of world.motes) {
       for (const bonded of m.bonds) {
@@ -94,8 +103,13 @@ function init(): void {
           : `${bonded.x},${bonded.y}-${m.x},${m.y}`;
         if (drawn.has(key)) continue;
         drawn.add(key);
-        const c = PAL[bp.moteDim];
-        drawLine(rc.buf, m.x, m.y, bonded.x, bonded.y, c[0], c[1], c[2], 30);
+        const [r1, g1, b1] = moteColors.get(m)!;
+        const [r2, g2, b2] = moteColors.get(bonded)!;
+        drawLine(rc.buf, m.x, m.y, bonded.x, bonded.y,
+          Math.round((r1 + r2) / 2),
+          Math.round((g1 + g2) / 2),
+          Math.round((b1 + b2) / 2),
+          40);
       }
     }
 
