@@ -178,6 +178,242 @@ export function updateSound(
     const m = loners[Math.floor(Math.random() * loners.length)];
     ping(engine, m.x / W, 1 - m.y / H, m.energy, scale);
   }
+
+  // Bond formation sounds
+  for (const m of motes) {
+    if (m.bondFlash > 0.9) { // just formed
+      playBondForm(engine, 1 - m.y / H, scale);
+      break; // max 1 bond sound per update
+    }
+  }
+}
+
+/** Two-note ascending chime on bond formation */
+export function playBondForm(engine: SoundEngine, yNorm: number, scale: number[]): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+
+  const freq1 = mapToScale(yNorm, scale);
+  // Next scale step up
+  const idx = Math.floor(yNorm * scale.length) % scale.length;
+  const nextIdx = Math.min(idx + 1, scale.length - 1);
+  const freq2 = semitonesToFreq(scale[nextIdx]);
+
+  // First note
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  osc1.type = "sine";
+  osc1.frequency.value = freq1;
+  gain1.gain.setValueAtTime(0.03, now);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+  osc1.connect(gain1);
+  gain1.connect(engine.compressor);
+  osc1.start(now);
+  osc1.stop(now + 0.5);
+
+  // Second note, 50ms later
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.type = "sine";
+  osc2.frequency.value = freq2;
+  gain2.gain.setValueAtTime(0.001, now + 0.05);
+  gain2.gain.linearRampToValueAtTime(0.03, now + 0.06);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+  osc2.connect(gain2);
+  gain2.connect(engine.compressor);
+  osc2.start(now + 0.05);
+  osc2.stop(now + 0.5);
+}
+
+/** Low sine tone on mote death */
+export function playDeath(engine: SoundEngine, yNorm: number): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = 80 + yNorm * 40; // 80-120Hz
+  gain.gain.setValueAtTime(0.02, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+  osc.connect(gain);
+  gain.connect(engine.compressor);
+  osc.start(now);
+  osc.stop(now + 0.4);
+}
+
+/** Different sound per event type */
+export function playEventSound(engine: SoundEngine, eventType: string): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+
+  switch (eventType) {
+    case "meteor": {
+      // Noise burst through lowpass filter
+      const bufferSize = Math.floor(ctx.sampleRate * 0.5);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 150;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(engine.compressor);
+      src.start(now);
+      src.stop(now + 0.5);
+      break;
+    }
+    case "flood": {
+      // White noise with bandpass sweep
+      const bufferSize = Math.floor(ctx.sampleRate * 1.5);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(2000, now);
+      filter.frequency.exponentialRampToValueAtTime(200, now + 1.5);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(engine.compressor);
+      src.start(now);
+      src.stop(now + 1.5);
+      break;
+    }
+    case "bloom": {
+      // Bright chord: root, major third, fifth
+      const root = BASE_FREQ * 2;
+      const freqs = [root, root * Math.pow(2, 4 / 12), root * Math.pow(2, 7 / 12)];
+      for (const freq of freqs) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.04, now + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+        osc.connect(gain);
+        gain.connect(engine.compressor);
+        osc.start(now);
+        osc.stop(now + 1.4);
+      }
+      break;
+    }
+    case "earthquake": {
+      // Low sawtooth through lowpass
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.value = 50;
+      filter.type = "lowpass";
+      filter.frequency.value = 100;
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(engine.compressor);
+      osc.start(now);
+      osc.stop(now + 0.7);
+      break;
+    }
+    case "plague": {
+      // 3 detuned sines (dissonant cluster)
+      const freqs = [200, 213, 227];
+      for (const freq of freqs) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(engine.compressor);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+      break;
+    }
+    case "aurora": {
+      // Ethereal chord: root, fifth, octave
+      const freqs = [BASE_FREQ, BASE_FREQ * Math.pow(2, 7 / 12), BASE_FREQ * 2];
+      for (const freq of freqs) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.05, now + 1);
+        gain.gain.linearRampToValueAtTime(0.05, now + 1.5);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 4.5);
+        osc.connect(gain);
+        gain.connect(engine.compressor);
+        osc.start(now);
+        osc.stop(now + 5);
+      }
+      break;
+    }
+    case "drought": {
+      // Duck master gain to 50% then restore over 2s
+      engine.masterGain.gain.linearRampToValueAtTime(
+        engine.masterGain.gain.value * 0.5, now + 0.1,
+      );
+      engine.masterGain.gain.linearRampToValueAtTime(
+        engine.masterGain.gain.value, now + 2,
+      );
+      break;
+    }
+    case "migration": {
+      // Quick ascending arpeggio — 3 notes 100ms apart
+      const scale = PHASE_SCALES[1]; // use exploration scale
+      for (let i = 0; i < 3; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        const idx = Math.min(2 + i * 2, scale.length - 1);
+        osc.frequency.value = semitonesToFreq(scale[idx]);
+        const t = now + i * 0.1;
+        gain.gain.setValueAtTime(0.03, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.connect(gain);
+        gain.connect(engine.compressor);
+        osc.start(t);
+        osc.stop(t + 0.4);
+      }
+      break;
+    }
+    case "eclipse": {
+      // Low drone
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = BASE_FREQ / 2;
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.04, now + 0.5);
+      gain.gain.linearRampToValueAtTime(0.04, now + 2.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 4);
+      osc.connect(gain);
+      gain.connect(engine.compressor);
+      osc.start(now);
+      osc.stop(now + 4.5);
+      break;
+    }
+  }
 }
 
 function ping(

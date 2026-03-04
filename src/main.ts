@@ -8,7 +8,7 @@ import { cycleName } from "./names";
 import { PAL, BiomePalette } from "./palette";
 import { Mote } from "./mote";
 import { findClusters } from "./physics";
-import { createSoundEngine, initAudio, updateSound, SoundEngine } from "./sound";
+import { createSoundEngine, initAudio, updateSound, SoundEngine, playDeath, playEventSound } from "./sound";
 import { createInteraction, applyInteraction, Interaction } from "./interaction";
 import { isEventActive, isEclipseActive, getMeteorPosition } from "./events";
 
@@ -73,6 +73,22 @@ function init(): void {
     updateWorld(world, dt);
     applyInteraction(input, world.motes);
 
+    // Event sound triggering
+    if (world.pendingEventSound && sound.initialized) {
+      playEventSound(sound, world.pendingEventSound);
+      world.pendingEventSound = null;
+    }
+
+    // Death sounds
+    for (const d of world.deaths) {
+      if (world.time - d.time < 0.02) { // just died this frame
+        if (sound.initialized) {
+          playDeath(sound, 1 - d.y / H);
+        }
+        break; // max 1 death sound per frame
+      }
+    }
+
     // Render terrain + sky
     renderTerrain(rc.buf, world.terrain, world.time, world.cycleProgress);
 
@@ -83,24 +99,50 @@ function init(): void {
       moteColors.set(m, computeMoteColor(m, bp));
     }
 
+    // Check if plague is active (for mote tinting)
+    const plagueActive = world.event && world.event.type === 'plague' && isEventActive(world.event, world.time);
+    const plaguePulse = plagueActive ? Math.sin(world.time * 6) : 0;
+
     // Render motes — multi-pixel so you can actually see them
     for (const m of world.motes) {
-      const [cr, cg, cb] = moteColors.get(m)!;
+      let [cr, cg, cb] = moteColors.get(m)!;
 
-      // Center pixel — always full brightness
-      setPixel(rc.buf, m.x, m.y, cr, cg, cb);
+      // Plague visual: bonded motes flash with sickly green tint
+      if (plagueActive && m.bonds.length > 0 && plaguePulse > 0.3) {
+        const tint = (plaguePulse - 0.3) * 0.4;
+        cr = Math.round(cr * (1 - tint));
+        cg = Math.round(Math.min(255, cg + 40 * tint));
+        cb = Math.round(cb * (1 - tint * 0.5));
+      }
+
+      const isElder = m.age > 20;
+      const isMature = m.age > 8;
+
+      // Center pixel — always full brightness (elders get brightness boost)
+      if (isElder) {
+        setPixel(rc.buf, m.x, m.y, Math.min(255, cr + 20), Math.min(255, cg + 20), Math.min(255, cb + 20));
+      } else {
+        setPixel(rc.buf, m.x, m.y, cr, cg, cb);
+      }
 
       // Cross pixels — scale alpha with energy so dying motes shrink to 1px
       if (m.energy > 0.15) {
-        const ea = Math.round(60 + m.energy * 160); // 60–220
+        // Elders: full alpha cross; Mature: slightly higher alpha; Normal: energy-based
+        const ea = isElder ? 255 : isMature ? Math.round(100 + m.energy * 140) : Math.round(60 + m.energy * 160);
         setPixel(rc.buf, m.x - 1, m.y, cr, cg, cb, ea);
         setPixel(rc.buf, m.x + 1, m.y, cr, cg, cb, ea);
         setPixel(rc.buf, m.x, m.y - 1, cr, cg, cb, ea);
         setPixel(rc.buf, m.x, m.y + 1, cr, cg, cb, ea);
       }
 
-      // Bonded motes get corner pixels — reads as a 3x3 blob
-      if (m.bonds.length > 0) {
+      // Elders: full 3×3 filled block regardless of bonds
+      if (isElder) {
+        setPixel(rc.buf, m.x - 1, m.y - 1, cr, cg, cb, 200);
+        setPixel(rc.buf, m.x + 1, m.y - 1, cr, cg, cb, 200);
+        setPixel(rc.buf, m.x - 1, m.y + 1, cr, cg, cb, 200);
+        setPixel(rc.buf, m.x + 1, m.y + 1, cr, cg, cb, 200);
+      } else if (m.bonds.length > 0) {
+        // Bonded motes get corner pixels — reads as a 3x3 blob
         const ba = Math.round(30 + m.bonds.length * 30); // 60–120
         setPixel(rc.buf, m.x - 1, m.y - 1, cr, cg, cb, ba);
         setPixel(rc.buf, m.x + 1, m.y - 1, cr, cg, cb, ba);
@@ -141,6 +183,20 @@ function init(): void {
           Math.round((b1 + b2) / 2),
           bondAlpha);
       }
+    }
+
+    // Death particles — fading ghosts
+    for (const d of world.deaths) {
+      const age = world.time - d.time;
+      const alpha = Math.round((1 - age / 0.8) * 150);
+      if (alpha <= 0) continue;
+      // Expanding outward pattern
+      const spread = age * 15;
+      setPixel(rc.buf, d.x, d.y, d.r, d.g, d.b, alpha);
+      setPixel(rc.buf, d.x - spread, d.y - spread, d.r, d.g, d.b, Math.round(alpha * 0.5));
+      setPixel(rc.buf, d.x + spread, d.y - spread, d.r, d.g, d.b, Math.round(alpha * 0.5));
+      setPixel(rc.buf, d.x - spread, d.y + spread, d.r, d.g, d.b, Math.round(alpha * 0.3));
+      setPixel(rc.buf, d.x + spread, d.y + spread, d.r, d.g, d.b, Math.round(alpha * 0.3));
     }
 
     // Meteor visual — bright head + long trail
@@ -198,6 +254,16 @@ function init(): void {
         d[i] = d[i] * 0.4;
         d[i + 1] = d[i + 1] * 0.35;
         d[i + 2] = d[i + 2] * 0.5; // shift blue
+      }
+    }
+
+    // Aurora visual — boost blue-green channels
+    if (world.event && world.event.type === 'aurora' && isEventActive(world.event, world.time)) {
+      const d = rc.buf.data;
+      for (let i = 0; i < d.length; i += 4) {
+        d[i] = Math.min(255, d[i] * 1.12);
+        d[i + 1] = Math.min(255, d[i + 1] * 1.15);
+        d[i + 2] = Math.min(255, d[i + 2] * 1.2);
       }
     }
 
@@ -287,15 +353,25 @@ function init(): void {
 function computeMoteColor(m: Mote, bp: BiomePalette): [number, number, number] {
   const bright = PAL[bp.moteGlow];
   const dark = PAL[bp.moteDim];
+  const mid = PAL[bp.moteMid];
 
   // Hardy motes resist fading — boost their apparent brightness when low on energy
   const hardyBoost = m.temperament.hardiness * 0.3 * (1 - m.energy);
   const t = Math.min(1, m.energy + hardyBoost);
 
-  // Linear interpolate between dim and glow by effective brightness
-  let r = dark[0] + (bright[0] - dark[0]) * t;
-  let g = dark[1] + (bright[1] - dark[1]) * t;
-  let b = dark[2] + (bright[2] - dark[2]) * t;
+  // Three-point blend: dim → mid → glow
+  let r, g, b;
+  if (t < 0.5) {
+    const st = t * 2; // 0-1 within dim→mid range
+    r = dark[0] + (mid[0] - dark[0]) * st;
+    g = dark[1] + (mid[1] - dark[1]) * st;
+    b = dark[2] + (mid[2] - dark[2]) * st;
+  } else {
+    const st = (t - 0.5) * 2; // 0-1 within mid→glow range
+    r = mid[0] + (bright[0] - mid[0]) * st;
+    g = mid[1] + (bright[1] - mid[1]) * st;
+    b = mid[2] + (bright[2] - mid[2]) * st;
+  }
 
   // Wanderlust: shift toward warm ember (200, 80, 20)
   const wt = m.temperament.wanderlust * 0.35;

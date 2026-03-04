@@ -1,7 +1,7 @@
 // mote.ts — Terrain-aware creatures with temperaments.
 // Motes walk on the landscape, form bonds, deplete resources, leave settlements.
 
-import { Terrain, getSurfaceY, getTile, Tile, isWalkable } from "./terrain";
+import { Terrain, getSurfaceY, getTile, getTileEnergy, Tile, isWalkable } from "./terrain";
 import { W, H } from "./render";
 import { SpatialGrid, getNeighbors } from "./physics";
 
@@ -78,11 +78,30 @@ export function updateMote(
   rng: () => number,
 ): void {
   m.age += dt;
+
+  // Age lifecycle modifiers
+  const ageMature = m.age > 8;   // ~8 seconds
+  const ageElder = m.age > 20;   // ~20 seconds
+  const ageMod = ageElder ? 0.82 : ageMature ? 0.92 : 1.0;
+
   m.bondFlash = Math.max(0, m.bondFlash - dt * 3);
 
-  // Energy decay (modified by hardiness)
-  const decayRate = energyDecay * (1.2 - m.temperament.hardiness * 0.4);
+  // Tile the mote is standing on (used for both energy and movement)
+  const standingTile = getTile(terrain, m.x, m.y + 1);
+
+  // Energy decay (modified by hardiness and wanderlust)
+  const decayRate = energyDecay * (1.2 - m.temperament.hardiness * 0.4) * (1 + m.temperament.wanderlust * 0.3);
   m.energy -= decayRate * dt;
+
+  // Terrain energy: gain from nutrient tiles, drain from hazards
+  const tileEnergy = getTileEnergy(standingTile);
+  if (tileEnergy > 0) {
+    m.energy = Math.min(1, m.energy + tileEnergy * 0.02 * dt);
+  } else if (tileEnergy < 0) {
+    const hardResist = 1 - m.temperament.hardiness * 0.4;
+    m.energy += tileEnergy * 0.03 * dt * hardResist;
+  }
+
   if (m.energy <= 0) {
     m.energy = 0;
     cleanupBonds(m);
@@ -95,8 +114,16 @@ export function updateMote(
     m.vy = Math.min(m.vy, MAX_FALL);
   }
 
-  // Walking behavior
-  const walkSpeed = WALK_SPEED * (0.5 + m.temperament.wanderlust * 0.8);
+  // Walking behavior (age slows movement)
+  const walkSpeed = WALK_SPEED * (0.5 + m.temperament.wanderlust * 0.8) * ageMod;
+
+  // Terrain-dependent movement speed
+  let speedMod = 1.0;
+  if (standingTile === Tile.Sand) speedMod = 0.7;
+  else if (standingTile === Tile.TreeCanopy) speedMod = 0.85;
+  else if (standingTile === Tile.Cave) speedMod = 0.6;
+  else if (standingTile === Tile.ShallowWater) speedMod = 0.5;
+  const finalSpeed = walkSpeed * speedMod;
 
   // Decision making: change direction occasionally
   if (rng() < 0.02 * dt * 60) {
@@ -125,6 +152,11 @@ export function updateMote(
       socialFx -= (dx / dist) * 8;
     }
 
+    // Elder attraction: unbonded motes drift toward elders
+    if (other.age > 20 && m.bonds.length === 0 && dist > 4) {
+      socialFx += (dx / dist) * 2;
+    }
+
     // Bond tracking
     const isBonded = m.bonds.includes(other);
     if (isBonded) {
@@ -132,8 +164,8 @@ export function updateMote(
       if (dist > BOND_DIST * 0.5) {
         socialFx += (dx / dist) * 4;
       }
-      // Share energy
-      const transfer = (other.energy - m.energy) * 0.05 * dt;
+      // Share energy (sociability boosts transfer)
+      const transfer = (other.energy - m.energy) * (0.05 + m.temperament.sociability * 0.04) * dt;
       m.energy += transfer;
       other.energy -= transfer;
     } else if (
@@ -148,12 +180,13 @@ export function updateMote(
     }
   }
 
-  // Break bonds with distant motes
+  // Break bonds with distant motes (elders hold bonds longer)
+  const breakMult = ageElder ? 1.4 : 1.0;
   for (let i = m.bonds.length - 1; i >= 0; i--) {
     const b = m.bonds[i];
     const bdx = b.x - m.x;
     const bdy = b.y - m.y;
-    if (bdx * bdx + bdy * bdy > BOND_DIST * BOND_DIST * 6) {
+    if (bdx * bdx + bdy * bdy > BOND_DIST * BOND_DIST * 6 * breakMult) {
       b.bonds = b.bonds.filter((o) => o !== m);
       m.bonds.splice(i, 1);
     }
@@ -177,7 +210,7 @@ export function updateMote(
 
   // Apply walking + social forces
   if (m.grounded) {
-    m.vx = m.direction * walkSpeed + socialFx * 0.3;
+    m.vx = m.direction * finalSpeed + socialFx * 0.3;
     m.vy = 0;
   }
 
@@ -194,7 +227,7 @@ export function updateMote(
     const aheadTile = getTile(terrain, aheadX, aheadSurface);
     if (aheadTile === Tile.ShallowWater || aheadTile === Tile.DeepWater) {
       m.direction *= -1;
-      m.vx = m.direction * walkSpeed;
+      m.vx = m.direction * finalSpeed;
     }
   }
 
@@ -239,18 +272,6 @@ function cleanupBonds(m: Mote): void {
     bonded.bonds = bonded.bonds.filter((b) => b !== m);
   }
   m.bonds = [];
-}
-
-/** Check if a mote is near a cave tile */
-export function isNearCave(m: Mote, terrain: Terrain): boolean {
-  for (let dx = -2; dx <= 2; dx++) {
-    for (let dy = -2; dy <= 2; dy++) {
-      if (getTile(terrain, m.x + dx, m.y + dy) === Tile.Cave) {
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 /** Mark a settlement at a mote's position */

@@ -5,6 +5,7 @@
 import { noise2, seedNoise } from "./noise";
 import { W, H, setPixel } from "./render";
 import { PAL, Biome, BiomePalette, getBiomePalette, pickBiome, lerpColor, RGB } from "./palette";
+import { mulberry32 } from "./rng";
 
 /** Tile types */
 export const enum Tile {
@@ -36,13 +37,7 @@ export function generateTerrain(seed: number): Terrain {
   seedNoise(seed);
 
   // Seeded RNG for placement decisions
-  let s = seed | 0;
-  function rng(): number {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  }
+  const rng = mulberry32(seed);
 
   const biome = pickBiome(rng());
   const bp = getBiomePalette(biome);
@@ -274,6 +269,30 @@ export function isWalkable(tile: Tile): boolean {
     tile === Tile.Ruin ||
     tile === Tile.Settlement
   );
+}
+
+/** Energy yield per tile type. Positive = nutrient, negative = hazard. */
+export function getTileEnergy(tile: Tile): number {
+  if (tile === Tile.DeepWater) return -0.8;
+  if (tile === Tile.ShallowWater) return -0.3;
+  if (tile === Tile.Cliff) return -0.2;
+  if (tile === Tile.Sand) return 0.02;
+  if (tile === Tile.TreeTrunk) return 0.05;
+  if (tile === Tile.DarkGround) return 0.1;
+  if (tile === Tile.Ruin) return 0.1;
+  if (tile === Tile.Ground) return 0.15;
+  if (tile === Tile.Settlement) return 0.2;
+  if (tile === Tile.Cave) return 0.25;
+  if (tile === Tile.TreeCanopy) return 0.3;
+  return 0; // Air
+}
+
+/** Set a tile at screen coordinates (bounds-checked). */
+export function modifyTile(terrain: Terrain, x: number, y: number, newTile: Tile): void {
+  const ix = Math.round(x);
+  const iy = Math.round(y);
+  if (ix < 0 || ix >= W || iy < 0 || iy >= H) return;
+  terrain.tiles[iy * W + ix] = newTile;
 }
 
 // ---- Rendering ----

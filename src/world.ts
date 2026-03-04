@@ -8,6 +8,8 @@ import {
   ActiveEvent, checkForEvent, getEventTriggerPoint,
   applyEvent, isEventActive,
 } from "./events";
+import { mulberry32 } from "./rng";
+import { PAL } from "./palette";
 
 /** Cycle duration in seconds */
 export const CYCLE_DURATION = 300;
@@ -73,14 +75,11 @@ const PHASE_PARAMS: PhaseParams[] = [
   { spawnRate: 0, maxMotes: 200, energyDecay: 0.07, bondStrength: 0.1 },
 ];
 
-function mulberry32(seed: number): () => number {
-  let s = seed | 0;
-  return () => {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+export interface DeathRecord {
+  x: number;
+  y: number;
+  r: number; g: number; b: number;
+  time: number;
 }
 
 export interface World {
@@ -99,6 +98,8 @@ export interface World {
   settlementTimer: number;
   event: ActiveEvent | null;
   eventTriggered: boolean;
+  deaths: DeathRecord[];
+  pendingEventSound: string | null;
 }
 
 export function createWorld(): World {
@@ -120,6 +121,8 @@ export function createWorld(): World {
     settlementTimer: 0,
     event: checkForEvent(cycleNumber),
     eventTriggered: false,
+    deaths: [],
+    pendingEventSound: null,
   };
 }
 
@@ -154,6 +157,8 @@ export function updateWorld(world: World, dt: number): void {
     world.settlementTimer = 0;
     world.event = checkForEvent(currentCycle);
     world.eventTriggered = false;
+    world.deaths = [];
+    world.pendingEventSound = null;
   }
 
   if (newPhase !== world.phaseIndex) {
@@ -168,6 +173,7 @@ export function updateWorld(world: World, dt: number): void {
     if (world.cycleProgress >= getEventTriggerPoint()) {
       world.event.startTime = world.time;
       world.eventTriggered = true;
+      world.pendingEventSound = world.event.type;
     }
   }
 
@@ -221,6 +227,26 @@ export function updateWorld(world: World, dt: number): void {
     }
   }
 
+  // Capture deaths with color before filtering
+  const bp = world.terrain.bp;
+  const bright = PAL[bp.moteGlow];
+  const dark = PAL[bp.moteDim];
+  for (const m of world.motes) {
+    if (m.energy <= 0) {
+      const t = 0.3; // dying motes are dim
+      world.deaths.push({
+        x: m.x, y: m.y,
+        r: dark[0] + (bright[0] - dark[0]) * t,
+        g: dark[1] + (bright[1] - dark[1]) * t,
+        b: dark[2] + (bright[2] - dark[2]) * t,
+        time: world.time,
+      });
+    }
+  }
+
   // Remove dead motes
   world.motes = world.motes.filter((m) => m.energy > 0);
+
+  // Clean old death records
+  world.deaths = world.deaths.filter(d => world.time - d.time < 0.8);
 }

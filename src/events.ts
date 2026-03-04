@@ -1,14 +1,16 @@
 // events.ts — Rare events that break the pattern.
-// ~1 in 50 cycles triggers an event (deterministic from seed).
+// ~1 in 12 cycles triggers an event (deterministic from seed).
 // Events modify world state temporarily and show a text flash.
 
 import { World } from "./world";
 import { Mote } from "./mote";
-import { Terrain, getSurfaceY } from "./terrain";
+import { Terrain, getSurfaceY, modifyTile } from "./terrain";
 import { Tile } from "./terrain";
 import { W, H } from "./render";
 
-export type EventType = "flood" | "bloom" | "meteor" | "migration" | "eclipse";
+export type EventType =
+  | "flood" | "bloom" | "meteor" | "migration" | "eclipse"
+  | "earthquake" | "plague" | "aurora" | "drought";
 
 export interface ActiveEvent {
   type: EventType;
@@ -16,24 +18,32 @@ export interface ActiveEvent {
   startTime: number;   // world.time when event started
   duration: number;     // seconds
   messageAlpha: number; // fades from 1 to 0 over 3 seconds
+  data: Record<string, number>;
 }
 
 /** Check if this cycle has a rare event, and what kind */
 export function checkForEvent(cycleNumber: number): ActiveEvent | null {
   // Deterministic: hash the cycle number
   const h = Math.abs(cycleNumber * 2654435761 | 0);
-  if (h % 50 !== 0) return null;
+  if (h % 12 !== 0) return null;
 
-  const eventIndex = (h >>> 8) % 5;
-  const types: EventType[] = ["flood", "bloom", "meteor", "migration", "eclipse"];
+  const eventIndex = (h >>> 8) % 9;
+  const types: EventType[] = [
+    "flood", "bloom", "meteor", "migration", "eclipse",
+    "earthquake", "plague", "aurora", "drought",
+  ];
   const messages: string[] = [
     "A FLOOD RISES",
     "A BLOOM ERUPTS",
     "SOMETHING FALLS",
     "THE GREAT MIGRATION",
     "AN ECLIPSE DESCENDS",
+    "THE GROUND SHAKES",
+    "A PLAGUE SPREADS",
+    "AN AURORA APPEARS",
+    "A DROUGHT SETS IN",
   ];
-  const durations = [25, 15, 8, 20, 25];
+  const durations = [25, 15, 8, 20, 25, 12, 30, 20, 45];
 
   return {
     type: types[eventIndex],
@@ -41,6 +51,7 @@ export function checkForEvent(cycleNumber: number): ActiveEvent | null {
     startTime: -1, // set when triggered
     duration: durations[eventIndex],
     messageAlpha: 1,
+    data: {},
   };
 }
 
@@ -71,10 +82,10 @@ export function applyEvent(
 
   switch (event.type) {
     case "flood":
-      applyFlood(world.terrain, progress, dt);
+      applyFlood(world.terrain, progress);
       break;
     case "bloom":
-      applyBloom(world, dt);
+      applyBloom(world, dt, event, progress);
       break;
     case "meteor":
       applyMeteor(world, progress);
@@ -84,6 +95,18 @@ export function applyEvent(
       break;
     case "eclipse":
       // Eclipse effect is purely visual — handled in main.ts render
+      break;
+    case "earthquake":
+      applyEarthquake(world, progress);
+      break;
+    case "plague":
+      applyPlague(world.motes, dt);
+      break;
+    case "aurora":
+      applyAurora(world.motes, dt);
+      break;
+    case "drought":
+      applyDrought(world.motes, dt);
       break;
   }
 }
@@ -100,11 +123,12 @@ export function isEclipseActive(event: ActiveEvent | null, worldTime: number): b
 
 // --- Event implementations ---
 
-function applyFlood(terrain: Terrain, progress: number, _dt: number): void {
-  // Gradually raise water level
+function applyFlood(terrain: Terrain, _progress: number): void {
+  // Water rises and STAYS. No sin-based receding.
   const originalWater = terrain.waterLevel;
   const maxRise = Math.floor(H * 0.15);
-  const rise = Math.floor(Math.sin(progress * Math.PI) * maxRise); // rises then recedes
+  // Linear rise that stays at peak
+  const rise = Math.min(Math.floor(_progress * maxRise * 2), maxRise);
   const newLevel = originalWater + rise;
 
   // Convert newly-submerged ground tiles to shallow water
@@ -123,13 +147,28 @@ function applyFlood(terrain: Terrain, progress: number, _dt: number): void {
   }
 }
 
-function applyBloom(world: World, dt: number): void {
+function applyBloom(world: World, dt: number, event: ActiveEvent, progress: number): void {
   // Massively increased spawn rate
-  const blooomSpawnRate = 30; // 30 motes/sec
-  world.spawnAccum += blooomSpawnRate * dt;
+  const bloomSpawnRate = 30; // 30 motes/sec
+  world.spawnAccum += bloomSpawnRate * dt;
   // Also energize existing motes
   for (const m of world.motes) {
     m.energy = Math.min(1, m.energy + 0.02 * dt);
+  }
+
+  // On first frame, place 5-8 TreeCanopy tiles at a random spot
+  if (progress < 0.05 && event.data.bloomPlaced === undefined) {
+    const bx = Math.abs((world.cycleNumber * 7919) % W);
+    const by = getSurfaceY(world.terrain, bx);
+    event.data.bloomX = bx;
+    event.data.bloomY = by;
+    event.data.bloomPlaced = 1;
+    const count = 5 + Math.abs((world.cycleNumber * 3571) % 4);
+    for (let i = 0; i < count; i++) {
+      const ox = bx - 2 + Math.abs((world.cycleNumber * (131 + i * 37)) % 5);
+      const oy = by - 1 - Math.abs((world.cycleNumber * (97 + i * 53)) % 3);
+      modifyTile(world.terrain, ox, oy, Tile.TreeCanopy);
+    }
   }
 }
 
@@ -163,6 +202,14 @@ function applyMeteor(world: World, progress: number): void {
       );
     }
 
+    // Fill crater with water
+    for (let dx = -3; dx <= 3; dx++) {
+      const cx = ix + dx;
+      if (cx < 0 || cx >= W) continue;
+      const craterSurfY = getSurfaceY(world.terrain, cx);
+      modifyTile(world.terrain, cx, craterSurfY, Tile.ShallowWater);
+    }
+
     // Scatter nearby motes
     for (const m of world.motes) {
       const dx = m.x - impactX;
@@ -184,6 +231,49 @@ function applyMigration(motes: Mote[], progress: number): void {
 
   for (const m of motes) {
     m.forceX += direction * strength;
+  }
+}
+
+function applyEarthquake(world: World, progress: number): void {
+  // On first frame, create 2-3 cliff lines across random x positions
+  if (progress < 0.05) {
+    const lineCount = 2 + Math.abs((world.cycleNumber * 4391) % 2);
+    for (let line = 0; line < lineCount; line++) {
+      const lx = Math.abs((world.cycleNumber * (2017 + line * 1301)) % W);
+      const tileCount = 4 + Math.abs((world.cycleNumber * (773 + line * 997)) % 3);
+      for (let dy = 0; dy < tileCount; dy++) {
+        const surfY = getSurfaceY(world.terrain, lx);
+        modifyTile(world.terrain, lx, surfY + dy, Tile.Cliff);
+      }
+    }
+  }
+
+  // Apply jump force to all motes
+  for (const m of world.motes) {
+    m.forceY = -30;
+  }
+}
+
+function applyPlague(motes: Mote[], dt: number): void {
+  // Drain extra energy from all bonded motes
+  for (const m of motes) {
+    if (m.bonds.length > 0) {
+      m.energy -= 0.025 * dt * (1 - m.temperament.hardiness * 0.4);
+    }
+  }
+}
+
+function applyAurora(motes: Mote[], dt: number): void {
+  // Boost all mote energy
+  for (const m of motes) {
+    m.energy = Math.min(1, m.energy + 0.015 * dt);
+  }
+}
+
+function applyDrought(motes: Mote[], dt: number): void {
+  // Drain all motes
+  for (const m of motes) {
+    m.energy -= 0.008 * dt;
   }
 }
 
