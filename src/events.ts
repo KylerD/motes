@@ -2,24 +2,13 @@
 // ~1 in 12 cycles triggers an event (deterministic from seed).
 // Events modify world state temporarily and show a text flash.
 
-import { World } from "./world";
-import { Mote } from "./mote";
-import { Terrain, getSurfaceY, modifyTile } from "./terrain";
-import { Tile } from "./terrain";
-import { W, H } from "./render";
+import { Tile } from "./types";
+import type { World, Mote, Terrain, ActiveEvent, EventType } from "./types";
+import { getSurfaceY, modifyTile } from "./terrain-query";
+import { W, H } from "./config";
 
-export type EventType =
-  | "flood" | "bloom" | "meteor" | "migration" | "eclipse"
-  | "earthquake" | "plague" | "aurora" | "drought";
-
-export interface ActiveEvent {
-  type: EventType;
-  message: string;
-  startTime: number;   // world.time when event started
-  duration: number;     // seconds
-  messageAlpha: number; // fades from 1 to 0 over 3 seconds
-  data: Record<string, number>;
-}
+// Re-export for backward compatibility
+export type { ActiveEvent, EventType };
 
 /** Check if this cycle has a rare event, and what kind */
 export function checkForEvent(cycleNumber: number): ActiveEvent | null {
@@ -175,39 +164,63 @@ function applyBloom(world: World, dt: number, event: ActiveEvent, progress: numb
 function applyMeteor(world: World, progress: number): void {
   if (progress > 0.3) return; // impact happens in first 30%
 
-  // Meteor position: falls from top-center-ish to an impact point
   const impactX = W * 0.3 + (world.cycleNumber % 100) / 100 * W * 0.4;
   const t = progress / 0.3; // 0-1 during fall phase
 
-  if (t > 0.95) {
-    // Impact: crater in terrain + scatter motes
+  if (t > 0.95 && !world.event?.data.impacted) {
+    if (world.event) world.event.data.impacted = 1;
+
     const ix = Math.round(impactX);
     const surfY = getSurfaceY(world.terrain, ix);
 
-    // Carve crater (lower terrain around impact)
+    // Store crater location for visual effects
+    if (world.event) {
+      world.event.data.craterX = ix;
+      world.event.data.craterY = surfY;
+    }
+
+    // Carve crater downward into the ground (do NOT touch heights array)
     for (let dx = -4; dx <= 4; dx++) {
       const cx = ix + dx;
       if (cx < 0 || cx >= W) continue;
       const depth = Math.max(0, 4 - Math.abs(dx));
+      const colSurfY = getSurfaceY(world.terrain, cx);
+      // Carve downward from surface
       for (let dy = 0; dy < depth; dy++) {
-        const cy = surfY - dy;
+        const cy = colSurfY + dy;
         if (cy >= 0 && cy < H) {
           world.terrain.tiles[cy * W + cx] = Tile.Air;
         }
       }
-      // Update height map
-      world.terrain.heights[cx] = Math.max(
-        world.terrain.heights[cx] - depth * 0.8,
-        H * 0.1,
-      );
+      // Crater floor
+      const floorY = colSurfY + depth;
+      if (floorY >= 0 && floorY < H) {
+        world.terrain.tiles[floorY * W + cx] = Tile.DarkGround;
+      }
     }
 
-    // Fill crater with water
-    for (let dx = -3; dx <= 3; dx++) {
+    // Small puddle at crater center
+    for (let dx = -2; dx <= 2; dx++) {
       const cx = ix + dx;
       if (cx < 0 || cx >= W) continue;
-      const craterSurfY = getSurfaceY(world.terrain, cx);
-      modifyTile(world.terrain, cx, craterSurfY, Tile.ShallowWater);
+      const depth = Math.max(0, 4 - Math.abs(dx));
+      const colSurfY = getSurfaceY(world.terrain, cx);
+      const puddleY = colSurfY + depth - 1;
+      if (puddleY >= 0 && puddleY < H) {
+        modifyTile(world.terrain, cx, puddleY, Tile.ShallowWater);
+      }
+    }
+
+    // Scorched earth around the rim
+    for (let dx = -5; dx <= 5; dx++) {
+      const cx = ix + dx;
+      if (cx < 0 || cx >= W) continue;
+      if (Math.abs(dx) >= 4) {
+        const rimY = getSurfaceY(world.terrain, cx);
+        if (rimY >= 0 && rimY < H) {
+          modifyTile(world.terrain, cx, rimY, Tile.DarkGround);
+        }
+      }
     }
 
     // Scatter nearby motes

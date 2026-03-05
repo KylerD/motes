@@ -1,7 +1,10 @@
 // palette.ts — Fixed 16-color palette. Everything is drawn from these.
 // Inspired by ANSI/CGA but tuned for natural landscapes.
 
-export type RGB = [number, number, number];
+import type { RGB, Biome, BiomePalette } from "./types";
+
+// Re-export for backward compatibility
+export type { RGB, Biome, BiomePalette };
 
 /**
  * The 16 colors. Indexed 0–15.
@@ -42,25 +45,7 @@ export const PAL: RGB[] = [
   [100, 60, 100],   // 15 dusk
 ];
 
-/** Biome types — select different palette indices for terrain roles */
-export type Biome = "temperate" | "desert" | "tundra" | "volcanic" | "lush";
-
-export interface BiomePalette {
-  sky: number;           // sky gradient top color index
-  skyHorizon: number;    // sky gradient bottom color index
-  deepWater: number;
-  shallowWater: number;
-  sand: number;
-  ground: number;
-  darkGround: number;
-  cliff: number;
-  treeTrunk: number;
-  treeCanopy: number;
-  moteGlow: number;      // brightest mote color
-  moteMid: number;
-  moteDim: number;
-  text: number;          // cycle name / watcher count
-}
+// Biome and BiomePalette are defined in types.ts and re-exported above
 
 const BIOME_PALETTES: Record<Biome, BiomePalette> = {
   temperate: {
@@ -68,30 +53,35 @@ const BIOME_PALETTES: Record<Biome, BiomePalette> = {
     sand: 10, ground: 12, darkGround: 11, cliff: 3,
     treeTrunk: 9, treeCanopy: 12,
     moteGlow: 14, moteMid: 13, moteDim: 15, text: 2,
+    subsoil: 9, deepRock: 2,
   },
   desert: {
     sky: 14, skyHorizon: 10, deepWater: 7, shallowWater: 8,
     sand: 10, ground: 10, darkGround: 9, cliff: 9,
     treeTrunk: 9, treeCanopy: 11,
     moteGlow: 5, moteMid: 14, moteDim: 13, text: 2,
+    subsoil: 9, deepRock: 1,
   },
   tundra: {
     sky: 4, skyHorizon: 8, deepWater: 6, shallowWater: 7,
     sand: 4, ground: 3, darkGround: 2, cliff: 2,
     treeTrunk: 2, treeCanopy: 11,
     moteGlow: 8, moteMid: 4, moteDim: 15, text: 2,
+    subsoil: 3, deepRock: 1,
   },
   volcanic: {
     sky: 15, skyHorizon: 2, deepWater: 1, shallowWater: 6,
     sand: 3, ground: 2, darkGround: 1, cliff: 0,
     treeTrunk: 2, treeCanopy: 11,
     moteGlow: 14, moteMid: 13, moteDim: 15, text: 3,
+    subsoil: 1, deepRock: 0,
   },
   lush: {
     sky: 8, skyHorizon: 12, deepWater: 6, shallowWater: 7,
     sand: 10, ground: 12, darkGround: 11, cliff: 11,
     treeTrunk: 9, treeCanopy: 12,
     moteGlow: 14, moteMid: 12, moteDim: 8, text: 2,
+    subsoil: 9, deepRock: 2,
   },
 };
 
@@ -114,5 +104,24 @@ export function lerpColor(a: RGB, b: RGB, t: number): RGB {
     a[0] + (b[0] - a[0]) * t,
     a[1] + (b[1] - a[1]) * t,
     a[2] + (b[2] - a[2]) * t,
+  ];
+}
+
+/** HSL to RGB (h: 0-360, s: 0-1, l: 0-1) */
+export function hsl2rgb(h: number, s: number, l: number): [number, number, number] {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r1 = 0, g1 = 0, b1 = 0;
+  if (h < 60) { r1 = c; g1 = x; }
+  else if (h < 120) { r1 = x; g1 = c; }
+  else if (h < 180) { g1 = c; b1 = x; }
+  else if (h < 240) { g1 = x; b1 = c; }
+  else if (h < 300) { r1 = x; b1 = c; }
+  else { r1 = c; b1 = x; }
+  return [
+    Math.round((r1 + m) * 255),
+    Math.round((g1 + m) * 255),
+    Math.round((b1 + m) * 255),
   ];
 }

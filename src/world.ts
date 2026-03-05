@@ -1,18 +1,22 @@
 // world.ts — World state, cycle clock, mote lifecycle, terrain integration.
 
-import { Mote, createMote, updateMote, placeSettlement } from "./mote";
-import { Terrain, generateTerrain, getSurfaceY, getTile, Tile } from "./terrain";
-import { W } from "./render";
-import { findClusters, createGrid, buildGrid, SpatialGrid } from "./physics";
+import { Tile } from "./types";
+import type { World, PhaseName, DeathRecord } from "./types";
+import { createMote, updateMote, placeSettlement } from "./mote";
+import { generateTerrain, getSurfaceY, getTile } from "./terrain";
+import { W, CYCLE_DURATION } from "./config";
+import { findClusters, createGrid, buildGrid } from "./physics";
 import {
-  ActiveEvent, checkForEvent, getEventTriggerPoint,
+  checkForEvent, getEventTriggerPoint,
   applyEvent, isEventActive,
 } from "./events";
 import { mulberry32 } from "./rng";
 import { PAL } from "./palette";
+import { createWeather, updateWeather } from "./weather";
 
-/** Cycle duration in seconds */
-export const CYCLE_DURATION = 300;
+// Re-export for backward compatibility
+export { CYCLE_DURATION };
+export type { World, PhaseName, DeathRecord };
 
 export const PHASE_NAMES = [
   "genesis",
@@ -22,8 +26,6 @@ export const PHASE_NAMES = [
   "dissolution",
   "silence",
 ] as const;
-
-export type PhaseName = (typeof PHASE_NAMES)[number];
 
 /** Unequal phase durations (fractions of cycle) */
 const PHASE_DURATIONS = [
@@ -67,40 +69,15 @@ interface PhaseParams {
 }
 
 const PHASE_PARAMS: PhaseParams[] = [
-  { spawnRate: 8, maxMotes: 50, energyDecay: 0.008, bondStrength: 0.3 },
-  { spawnRate: 6, maxMotes: 120, energyDecay: 0.012, bondStrength: 0.5 },
-  { spawnRate: 4, maxMotes: 160, energyDecay: 0.015, bondStrength: 0.8 },
-  { spawnRate: 5, maxMotes: 200, energyDecay: 0.018, bondStrength: 0.9 },
-  { spawnRate: 0, maxMotes: 200, energyDecay: 0.04, bondStrength: 0.3 },
-  { spawnRate: 0, maxMotes: 200, energyDecay: 0.07, bondStrength: 0.1 },
+  { spawnRate: 4, maxMotes: 20, energyDecay: 0.008, bondStrength: 0.3 },
+  { spawnRate: 3, maxMotes: 45, energyDecay: 0.012, bondStrength: 0.5 },
+  { spawnRate: 2, maxMotes: 60, energyDecay: 0.015, bondStrength: 0.8 },
+  { spawnRate: 2, maxMotes: 70, energyDecay: 0.018, bondStrength: 0.9 },
+  { spawnRate: 0, maxMotes: 70, energyDecay: 0.04, bondStrength: 0.3 },
+  { spawnRate: 0, maxMotes: 70, energyDecay: 0.07, bondStrength: 0.1 },
 ];
 
-export interface DeathRecord {
-  x: number;
-  y: number;
-  r: number; g: number; b: number;
-  time: number;
-}
-
-export interface World {
-  terrain: Terrain;
-  motes: Mote[];
-  grid: SpatialGrid;
-  cycleProgress: number;
-  cycleNumber: number;
-  phaseIndex: number;
-  phaseProgress: number;
-  phaseName: PhaseName;
-  params: PhaseParams;
-  time: number;
-  rng: () => number;
-  spawnAccum: number;
-  settlementTimer: number;
-  event: ActiveEvent | null;
-  eventTriggered: boolean;
-  deaths: DeathRecord[];
-  pendingEventSound: string | null;
-}
+// World, DeathRecord are defined in types.ts and re-exported above
 
 export function createWorld(): World {
   const cycleNumber = Math.floor(Date.now() / (CYCLE_DURATION * 1000));
@@ -109,6 +86,7 @@ export function createWorld(): World {
     terrain,
     motes: [],
     grid: createGrid(W),
+    clusters: [],
     cycleProgress: 0,
     cycleNumber,
     phaseIndex: 0,
@@ -123,6 +101,8 @@ export function createWorld(): World {
     eventTriggered: false,
     deaths: [],
     pendingEventSound: null,
+    phaseFlash: 0,
+    weather: createWeather(cycleNumber, terrain.biome),
   };
 }
 
@@ -159,12 +139,15 @@ export function updateWorld(world: World, dt: number): void {
     world.eventTriggered = false;
     world.deaths = [];
     world.pendingEventSound = null;
+    world.weather = createWeather(currentCycle, world.terrain.biome);
   }
 
   if (newPhase !== world.phaseIndex) {
     world.phaseIndex = newPhase;
     world.phaseName = PHASE_NAMES[newPhase];
+    world.phaseFlash = 1.0;
   }
+  world.phaseFlash = Math.max(0, world.phaseFlash - dt);
 
   world.params = PHASE_PARAMS[world.phaseIndex];
 
@@ -248,5 +231,11 @@ export function updateWorld(world: World, dt: number): void {
   world.motes = world.motes.filter((m) => m.energy > 0);
 
   // Clean old death records (1.2s for soul-rise effect)
-  world.deaths = world.deaths.filter(d => world.time - d.time < 1.2);
+  world.deaths = world.deaths.filter(d => world.time - d.time < 6);
+
+  // Weather particle/cloud/lightning updates
+  updateWeather(world.weather, dt, world.time, world.rng);
+
+  // Cache clusters for rendering and sound
+  world.clusters = findClusters(world.motes);
 }

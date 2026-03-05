@@ -1,41 +1,21 @@
 // mote.ts — Terrain-aware creatures with temperaments.
 // Motes walk on the landscape, form bonds, deplete resources, leave settlements.
 
-import { Terrain, getSurfaceY, getTile, getTileEnergy, Tile, isWalkable } from "./terrain";
-import { W, H } from "./render";
-import { SpatialGrid, getNeighbors } from "./physics";
+import { Tile } from "./types";
+import type { Terrain, Mote, SpatialGrid } from "./types";
+import { getSurfaceY, getTile, getTileEnergy } from "./terrain-query";
+import { W } from "./config";
+import { getNeighbors } from "./physics";
 
-/** Temperament axes (continuous, not classes) */
-interface Temperament {
-  wanderlust: number;  // 0 = homebody, 1 = restless explorer
-  sociability: number; // 0 = loner, 1 = deeply social
-  hardiness: number;   // 0 = fragile, 1 = resilient
-}
-
-export interface Mote {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  energy: number;
-  age: number;
-  temperament: Temperament;
-  bonds: Mote[];
-  bondTimer: number;
-  bondFlash: number;   // 1.0 on bond formation, decays to 0
-  grounded: boolean;   // is standing on terrain
-  direction: number;   // -1 or 1, current walking direction
-
-  // External forces (cursor, events)
-  forceX: number;
-  forceY: number;
-}
+// Re-export for backward compatibility
+export type { Mote };
+export { placeSettlement } from "./terrain-query";
 
 const GRAVITY = 60;
 const WALK_SPEED = 14;
 const MAX_FALL = 60;
 const JUMP_OVER = 4; // can step up 4px ledges at double res
-const BOND_DIST = 14;
+const BOND_DIST = 20;
 const BOND_TIME = 1.2;
 const MAX_BONDS = 3;
 const NEIGHBOR_RADIUS = 28;
@@ -63,6 +43,9 @@ export function createMote(
     bondFlash: 0,
     grounded: false,
     direction: rng() < 0.5 ? -1 : 1,
+    spawnFlash: 1.0,
+    trail: [],
+    trailTimer: 0,
     forceX: 0,
     forceY: 0,
   };
@@ -78,6 +61,7 @@ export function updateMote(
   rng: () => number,
 ): void {
   m.age += dt;
+  m.spawnFlash = Math.max(0, m.spawnFlash - dt * 3);
 
   // Age lifecycle modifiers
   const ageMature = m.age > 8;   // ~8 seconds
@@ -85,6 +69,18 @@ export function updateMote(
   const ageMod = ageElder ? 0.82 : ageMature ? 0.92 : 1.0;
 
   m.bondFlash = Math.max(0, m.bondFlash - dt * 3);
+
+  // Record trail breadcrumbs
+  m.trailTimer += dt;
+  if (m.trailTimer >= 0.15) {
+    m.trailTimer = 0;
+    m.trail.push({ x: Math.round(m.x), y: Math.round(m.y), age: 0 });
+    if (m.trail.length > 10) m.trail.shift();
+  }
+  for (let i = m.trail.length - 1; i >= 0; i--) {
+    m.trail[i].age += dt;
+    if (m.trail[i].age > 2) { m.trail.splice(i, 1); }
+  }
 
   // Tile the mote is standing on (used for both energy and movement)
   const standingTile = getTile(terrain, m.x, m.y + 1);
@@ -147,9 +143,9 @@ export function updateMote(
       socialFx += (dx / dist) * m.temperament.sociability * 6;
     }
 
-    // Avoid crowding
-    if (dist < 3) {
-      socialFx -= (dx / dist) * 8;
+    // Avoid crowding — bigger critters need more personal space
+    if (dist < 8) {
+      socialFx -= (dx / dist) * 12;
     }
 
     // Elder attraction: unbonded motes drift toward elders
@@ -274,14 +270,3 @@ function cleanupBonds(m: Mote): void {
   m.bonds = [];
 }
 
-/** Mark a settlement at a mote's position */
-export function placeSettlement(terrain: Terrain, x: number, y: number): void {
-  const ix = Math.round(x);
-  const iy = Math.round(y) + 1; // mark the ground they're standing on
-  if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
-    const tile = terrain.tiles[iy * W + ix];
-    if (isWalkable(tile as Tile)) {
-      terrain.tiles[iy * W + ix] = Tile.Settlement;
-    }
-  }
-}

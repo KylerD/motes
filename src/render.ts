@@ -1,13 +1,11 @@
 // render.ts — Canvas pipeline. 256×144 pixels, scaled up with nearest-neighbor.
 
-/** Internal (pixel-art) resolution */
-export const W = 256;
-export const H = 144;
+import { W, H } from "./config";
+import type { RenderContext } from "./types";
 
-export interface RenderContext {
-  ctx: CanvasRenderingContext2D;
-  buf: ImageData;
-}
+// Re-export for backward compatibility during migration
+export { W, H };
+export type { RenderContext };
 
 export function createRenderContext(canvas: HTMLCanvasElement): RenderContext {
   canvas.width = W;
@@ -67,4 +65,31 @@ export function clearBuf(buf: ImageData, r: number, g: number, b: number): void 
 /** Flush buffer to canvas */
 export function present(ctx: CanvasRenderingContext2D, buf: ImageData): void {
   ctx.putImageData(buf, 0, 0);
+}
+
+/** Bresenham line drawing */
+export function drawLine(
+  buf: ImageData,
+  x0: number, y0: number,
+  x1: number, y1: number,
+  r: number, g: number, b: number, a: number,
+): void {
+  let ix0 = Math.round(x0);
+  let iy0 = Math.round(y0);
+  const ix1 = Math.round(x1);
+  const iy1 = Math.round(y1);
+
+  const dx = Math.abs(ix1 - ix0);
+  const dy = Math.abs(iy1 - iy0);
+  const sx = ix0 < ix1 ? 1 : -1;
+  const sy = iy0 < iy1 ? 1 : -1;
+  let err = dx - dy;
+
+  for (let i = 0; i < 30; i++) {
+    setPixel(buf, ix0, iy0, r, g, b, a);
+    if (ix0 === ix1 && iy0 === iy1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; ix0 += sx; }
+    if (e2 < dx) { err += dx; iy0 += sy; }
+  }
 }

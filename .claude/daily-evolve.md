@@ -140,13 +140,13 @@ Append a new entry to `public/evolution-log.json`:
 {
   "date": "YYYY-MM-DD",
   "title": "Short title (2-5 words)",
-  "reflection": "What you observed, what was lacking, why this direction. Be specific and honest about what's still not good enough.",
-  "change": "What you implemented. What the viewer will see or hear differently. Why it matters.",
-  "ambition": "Where should Mote go next? What's the next big leap? Think in terms of 'what would make this unforgettable' not 'what small thing is left.'",
+  "reflection": "2-3 sentences max. What was the gap, what you did, what changed.",
   "looking_ahead": ["2-4 specific ideas — be bold"],
   "files_changed": ["list of modified files"]
 }
 ```
+
+**Keep `reflection` to 2-3 sentences.** No multi-paragraph essays. State the problem, the solution, and the impact — concisely.
 
 The log is append-only. Never delete or modify previous entries.
 

@@ -1,13 +1,11 @@
 // physics.ts — Spatial hash grid for efficient neighbor queries.
 
-import { Mote } from "./mote";
+import type { Mote, SpatialGrid } from "./types";
+
+// Re-export for backward compatibility
+export type { SpatialGrid };
 
 const CELL_SIZE = 20;
-
-export interface SpatialGrid {
-  cells: Map<number, Mote[]>;
-  cols: number;
-}
 
 export function createGrid(width: number): SpatialGrid {
   return {

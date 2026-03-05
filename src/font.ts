@@ -1,8 +1,9 @@
 // font.ts — 3×5 bitmap font. Uppercase, digits, minimal punctuation.
 // Each character is encoded as 5 rows of 3 bits (15 bits total, fits in a number).
 
+import type { RGB } from "./types";
 import { setPixel } from "./render";
-import { PAL, RGB } from "./palette";
+import { PAL } from "./palette";
 
 // Encode a 3×5 glyph: rows top-to-bottom, each row is 3 bits (MSB = left pixel)
 // bit layout: row0[2:0] row1[2:0] row2[2:0] row3[2:0] row4[2:0]

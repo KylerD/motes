@@ -1,24 +1,10 @@
 // interaction.ts — Cursor as gentle force in the tiny world.
 
-import { W, H } from "./render";
-import { Mote } from "./mote";
+import { W, H } from "./config";
+import type { Mote, Interaction, Ripple } from "./types";
 
-export interface Ripple {
-  x: number;
-  y: number;
-  radius: number;
-  alpha: number;
-}
-
-export interface Interaction {
-  x: number;
-  y: number;
-  present: boolean;
-  calm: boolean;
-  speed: number;
-  pulses: { x: number; y: number }[];
-  ripples: Ripple[];
-}
+// Re-export for backward compatibility
+export type { Interaction, Ripple };
 
 const INFLUENCE_RADIUS = 30;
 const GRAVITY_STRENGTH = 12;

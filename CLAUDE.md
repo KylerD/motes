@@ -16,20 +16,39 @@ A procedurally-generated living pixel world. Tiny creatures emerge, form bonds, 
 
 ```
 src/
-├── main.ts          # Frame loop, rendering orchestration
-├── world.ts         # Cycle clock, phase management, spawning
-├── mote.ts          # Creature behavior, physics, bonding
-├── terrain.ts       # Procedural landscape, tile map, biomes
-├── physics.ts       # Spatial hash grid, cluster detection
-├── sound.ts         # Web Audio synthesis, cluster-to-tone mapping
-├── events.ts        # Rare event triggering & effects
-├── interaction.ts   # Cursor force, click pulse
-├── render.ts        # Canvas 2D pixel buffer
-├── palette.ts       # 16-color palette, biome system
-├── noise.ts         # Seeded Simplex noise
-├── names.ts         # Procedural cycle naming
-├── font.ts          # Bitmap font rendering
-└── style.css        # Layout, glass frame, typography
+├── config.ts          # Universal constants: W, H, CYCLE_DURATION
+├── types.ts           # All shared interfaces and the Tile const enum
+│
+├── main.ts            # Thin orchestrator: init + frame loop (~160 lines)
+├── world.ts           # Cycle clock, phase management, mote spawning
+├── narrative.ts       # Ambient story text system
+│
+├── mote.ts            # Creature behavior, physics, bonding
+├── physics.ts         # Spatial hash grid, cluster detection
+├── events.ts          # Rare event triggering & effects
+├── interaction.ts     # Cursor force, click pulse
+│
+├── terrain.ts         # Re-export barrel (backward compat)
+├── terrain-gen.ts     # Procedural landscape generation, biomes
+├── terrain-query.ts   # getSurfaceY, getTile, placeSettlement
+├── terrain-render.ts  # Terrain + sky rendering
+│
+├── weather.ts         # Weather data/state + re-exports render fns
+├── weather-render.ts  # Celestial, clouds, particles, lightning, fog
+│
+├── render.ts          # Canvas 2D pixel buffer, setPixel, drawLine
+├── render-motes.ts    # Mote sprite drawing, color computation
+├── render-effects.ts  # Eclipse, aurora, meteor, vignette, phase flash
+├── render-bonds.ts    # Bond lines, cluster glow, death particles
+├── render-ui.ts       # Cursor, ripples, event message, debug overlay
+│
+├── palette.ts         # 16-color palette, biome system, hsl2rgb
+├── noise.ts           # Seeded Simplex noise
+├── rng.ts             # Mulberry32 PRNG
+├── names.ts           # Procedural cycle naming
+├── font.ts            # Bitmap font rendering
+├── sound.ts           # Web Audio synthesis, cluster-to-tone mapping
+└── style.css          # Layout, glass frame, typography
 ```
 
 ## Build & Verify

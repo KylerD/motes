@@ -2,13 +2,11 @@
   {
     "date": "2026-03-02",
     "title": "The Log Begins",
-    "reflection": "Mote has a complete, working foundation — terrain, creatures, sound, interaction, rare events — all rendering to a 256×144 canvas in synchronized 5-minute cycles. But the systems are single-octave. Motes have rich temperament data (wanderlust, sociability, hardiness) that's invisible to the viewer. The sound engine maps clusters to voices but has no rhythm or envelopes. Rare events flash and vanish without consequence. The spatial hash grid in physics.ts is fully built but never called. Today isn't about code — it's about establishing the practice of daily reflection, so that each session builds on the last instead of starting from zero.",
-    "change": "Added the evolution log system — a persistent thinking journal that Claude reads at the start of each daily session and writes to at the end. The log surfaces in the app as a human-readable journal page. This is the context engineering that makes autonomous daily improvement possible.",
+    "reflection": "Established the evolution log system — a persistent thinking journal that Claude reads at session start and writes to at session end. This is the context engineering that makes autonomous daily improvement possible.",
     "looking_ahead": [
-      "Mote individuality: make temperament visible through color, size, or movement",
-      "Sound envelopes: give voices attack/release so bonds forming and breaking have musical moments",
-      "Event permanence: meteor craters that persist, flood channels that remain",
-      "Activate the spatial hash grid for efficient neighbor queries"
+      "Make temperament visible through color",
+      "Sound envelopes for bond formation/breaking",
+      "Event permanence: meteor craters, flood channels"
     ],
     "files_changed": [
       "CLAUDE.md",
@@ -23,13 +21,11 @@
   {
     "date": "2026-03-02",
     "title": "Temperament Made Visible",
-    "reflection": "Reading the code closely, I found the most glaring gap: motes have three continuous temperament axes — wanderlust, sociability, hardiness — computed at birth and influencing behavior throughout their lives, but rendered as a single pixel colored only by energy level. Three discrete shades. The viewer has no way to know that the restless creature sprinting left is different in kind from the cautious homebody huddled in the middle. They look identical. The data exists. The display ignores it. This felt like the clearest possible first step toward making mote feel like a world of individuals rather than a swarm of dots. The spatial hash grid activation was tempting — it would make the simulation faster — but it doesn't change what the viewer sees. Sound envelopes would be musical but subtle. The temperament visibility change is the one that makes you stop and say: 'that one is different from that one.' That felt right to start with.",
-    "change": "Replaced the 3-level energy color lookup (moteGlow/moteMid/moteDim thresholds) with a continuous computeMoteColor function that mixes energy brightness with temperament-driven hue shifts. High-wanderlust motes shift toward warm ember (200, 80, 20). High-sociability motes shift toward cool sky (60, 160, 200). Hardy motes resist dimming at low energy — a 0–30% brightness boost when energy is low, making their resilience subtly visible as they keep glowing while others fade. The shifts are blended so a social wanderer splits the difference. Added Mote and BiomePalette imports to main.ts. No behavioral changes — purely a rendering change that exposes existing data.",
+    "reflection": "Motes had three temperament axes computed at birth but rendered as a single energy-colored pixel. Replaced the 3-level color lookup with a continuous hue function: wanderlust shifts warm, sociability shifts cool, hardiness resists dimming at low energy.",
     "looking_ahead": [
-      "Sound envelopes: give voices attack/release so bonds forming and breaking create distinct musical moments — a chord forming, a note fading",
-      "Activate the spatial hash grid in mote.ts — the O(n²) neighbor loop is the main performance bottleneck and the grid is already built",
-      "Event permanence: meteor craters, flood channels, bloom zones that persist as terrain marks through the cycle",
-      "Bond line coloring: draw bond lines in a blend of the two connected motes' temperament colors, making cluster structure visually richer"
+      "Sound envelopes for musical bond moments",
+      "Activate spatial hash grid for performance",
+      "Event permanence: terrain marks that persist through the cycle"
     ],
     "files_changed": [
       "src/main.ts",
@@ -39,13 +35,11 @@
   {
     "date": "2026-03-03",
     "title": "Bonds as Relationships",
-    "reflection": "Yesterday's work gave every mote a color that reflects its temperament. But the bond lines — the actual visible connections between creatures — were still rendered in a single flat biome-dim color for every pair. They looked like scaffolding, not relationships. If you can read a mote's character from its color, you should be able to read the nature of its bond from the line between them. Two restless wanderers bonded together should produce a warm amber thread. Two sociable motes hovering close should connect with a cool blue shimmer. A wanderer bonded to a social mote should show something in between — a negotiation of temperaments made visible. The change also removed a redundant per-bond call to computeMoteColor by pre-computing all mote colors into a Map before the render loops. Each mote's color is now computed once per frame regardless of how many bonds it has.",
-    "change": "Bond lines now blend the temperament colors of their two endpoints instead of using a fixed biome-dim color. Before each render loop, all mote colors are computed into a Map<Mote, [r, g, b]>. The bond drawing loop looks up both endpoints in this map and averages their colors, passing the result to drawLine with alpha 40 (up from 30). Every cluster now has a visual signature: warm clusters of wanderers, cool webs of social motes, and mixed-temperament clusters showing gradient coloring through their social fabric.",
+    "reflection": "Bond lines were a single flat biome-dim color for every pair. Now they blend the temperament colors of their two endpoints, making cluster character visible. Pre-computed all mote colors into a Map for efficiency.",
     "looking_ahead": [
-      "Sound envelopes: detect bond formation/breaking events and trigger musical moments — a chime when a cluster coalesces, a fade when it dissolves",
-      "Activate the spatial hash grid in mote.ts — O(n²) neighbor iteration is the performance ceiling; the grid is built and waiting in physics.ts",
-      "Event permanence: crater tiles after meteors, waterlogged terrain after floods, pollen-dusted ground after bloom — marks that survive into the next phase",
-      "Mote age visibility: older motes could shift toward a third color axis (desaturation, or a gold tinge) — making elders visually distinct from newborns"
+      "Sound envelopes for bond formation chimes",
+      "Activate spatial hash grid",
+      "Event permanence: crater tiles, waterlogged terrain"
     ],
     "files_changed": [
       "src/main.ts",
@@ -55,13 +49,11 @@
   {
     "date": "2026-03-03",
     "title": "Making the Invisible Visible",
-    "reflection": "The previous two sessions gave motes temperament colors and bond line blending — good data made displayable. But at the pixel level, none of it mattered: motes were still single pixels on a 256x144 canvas, bonds were rendered at alpha 40 (nearly transparent), clicks produced zero visual feedback, the meteor was a lone gold dot, and the vignette dimmed edges to 35%. The simulation was running rich behavior that nobody could see. The most important thing wasn't adding new systems — it was making existing systems legible. A mote's temperament color means nothing if the mote is 1 pixel. A bond forming is invisible if the line is ghost-faint. An interaction system is pointless if clicking gives no response. The spatial hash grid in physics.ts was fully implemented but never wired up — free performance sitting unused.",
-    "change": "Motes now render as a 5-pixel cross (center + cardinal neighbors) with alpha scaled by energy, growing to a 3x3 blob when bonded — dying motes shrink back to 1px. Bond lines draw at alpha 100 (was 40) visible to 50px (was 24), with a white flash burst on formation that fades over 0.3s via a new bondFlash field. Clicks produce an expanding white ring ripple. Hover shows a faint cursor indicator ring. The meteor gets a 3x3 bright head with a 10-pixel graduated trail and an expanding impact flash on landing. The vignette starts later (0.65 vs 0.55) with a minimum 55% brightness (was 35%). Wired up the spatial hash grid — mote neighbor queries now use getNeighbors() instead of iterating all motes.",
+    "reflection": "Rich simulation was running but invisible at the pixel level. Motes grew from 1px to 5px crosses (3x3 when bonded), bonds became visible at alpha 100, clicks produce ripple rings, meteor got a trail and impact flash, and the spatial hash grid was wired up for O(1) neighbor queries.",
     "looking_ahead": [
-      "Sound envelopes: bond formation now has a visual flash — pair it with a musical chime so you hear clusters coalescing",
-      "Event permanence: meteor now has a dramatic impact flash — leave a crater tile behind that persists through the cycle",
-      "Death particles: when a mote's energy hits zero and it shrinks to 1px, scatter a few fading pixels as a dissolution effect",
-      "Settlement markers: clusters place settlements on the ground but they just recolor tiles — give them a tiny structural shape"
+      "Sound envelopes for bond formation",
+      "Death particles on mote expiration",
+      "Settlement markers with structural shapes"
     ],
     "files_changed": [
       "src/main.ts",
@@ -74,13 +66,11 @@
   {
     "date": "2026-03-04",
     "title": "The Sky Remembers the Hour",
-    "reflection": "Looking at the before screenshots, the most jarring absence in Mote was atmospheric: genesis and dissolution were visually identical. The same blue sky above the same terrain, regardless of whether it was a world just waking or one about to go dark. The aesthetic contract explicitly calls for making 'genesis feel more like dawn, make dissolution feel more like dusk' — and the sky is 60% of the canvas. It's the single largest visual surface, and it was completely phase-blind.\n\nI read renderTerrain in terrain.ts and found the function accepted a _time parameter (note the underscore: TypeScript's way of saying 'unused') which was only consulted for water shimmer timing. The sky gradient used two fixed palette indices — bp.sky and bp.skyHorizon — hard-coded to the biome, frozen for the entire 5-minute cycle. In the palette, temperate sky is PAL[8] = (80, 140, 180) — a flat mid-morning blue from 0% to 100% of the cycle. No arc. No memory of what came before or what's coming.\n\nI considered death particles (scatter 3–4 fading pixels when a mote dies) — meaningful but small-canvas, easily missed. Sound envelopes were appealing but invisible in screenshots. The sky change covers the most screen real estate and would be immediately sensed by any viewer within one phase transition. You feel it before you name it: 'something changed about the light.'\n\nThe implementation defines six RGB tint deltas, one per phase, matching the PHASE_BOUNDARIES from world.ts: genesis (−8, −8, +15) for cool pre-dawn violet; exploration (0, 0, 0) for neutral clear-day; organization (+5, +3, −3) for slight midday warmth; complexity (+8, +4, −5) for warm afternoon; dissolution (+20, +8, −15) for golden-hour amber; silence (−5, −10, +12) for indigo dusk. These tints smooth-interpolate between phases using the same boundary fractions used elsewhere. The tint is strongest at the zenith (tintStr=1.0) and fades to 30% at the horizon, so the biome's own horizon color stays mostly true while the overhead sky carries the phase's emotional quality.\n\nThe effect is strongest in the desert biome: desert sky is PAL[14] = (210, 180, 60) — already warm gold. At dissolution, adding (+20, +8, −15) produces (230, 188, 45) overhead — a deep amber that silhouettes the brown terrain like a genuine sunset. The captures show this clearly. Temperate biomes get a subtler arc: from cool blue-violet at genesis (72, 132, 195) through neutral clear-day (80, 140, 180) to warm dusk-amber at dissolution (100, 148, 165). The shift is 28 units of red and 15 units of blue across the cycle — visible, but not jarring.",
-    "change": "Added a skyTintAt(cycleProgress) function in terrain.ts that interpolates a per-phase RGB delta table across the 0–1 cycle position. The renderTerrain signature gains a cycleProgress parameter (replacing the unused _time which is kept for water shimmer). Each sky pixel now receives the biome base color plus the interpolated tint, weighted by a tintStr factor that falls from 1.0 at zenith to 0.3 at horizon, preserving biome-horizon character while shifting the overhead mood. Phase-to-tint mapping uses the same PHASE_BOUNDARIES fractions as world.ts. main.ts now passes world.cycleProgress to renderTerrain.",
+    "reflection": "The sky was phase-blind — same blue from genesis to silence. Added skyTintAt() that interpolates per-phase RGB tints across the cycle: cool violet at genesis, neutral midday, amber at dissolution, indigo at silence. Strongest at zenith, fading to 30% at horizon.",
     "looking_ahead": [
-      "Death particles: when a mote's energy hits zero, scatter 3–4 fading pixel fragments before removing it from world.motes — gives dissolution phase a visible sense of things departing",
-      "Sound envelopes: bond formation has a visual flash; pair it with a chime in sound.ts using a short-lived OscillatorNode (like ping() but lower, softer) triggered when bondFlash is set",
-      "Mote age visibility: mote.age is tracked but never rendered — older motes could shift toward desaturation or gold tinge, making elders visually distinct from newborns and amplifying the genesis→silence arc",
-      "Sky tint amplitude tuning: genesis tint (−8,−8,+15) may be too subtle for temperate biomes at native resolution — consider doubling it to (−16,−16,+30) if future sessions confirm it's imperceptible"
+      "Death particles for dissolution visibility",
+      "Sound envelopes for bond chimes",
+      "Mote age visibility: gold tinge for elders"
     ],
     "files_changed": [
       "src/terrain.ts",
@@ -91,14 +81,12 @@
   {
     "date": "2026-03-04",
     "title": "The World Comes Alive",
-    "reflection": "Stepped back and looked at Mote as a first-time viewer. The verdict: rich simulation, flat surface. Motes were readable at 5-pixel crosses but felt inert — no pulse, no breath, no sense of being alive. Bond formation was a subtle alpha line appearing. Death was a dim pixel vanishing. Events like eclipse and aurora were small brightness adjustments. The generative audio — arguably the most compelling part — was gated behind a Web Audio gesture with no prompt, so most visitors never heard it. The gap between what the simulation computes and what reaches the viewer's eyes was enormous. This session is about closing that gap dramatically across every visual system at once.",
-    "change": "Comprehensive visual and experience overhaul touching main.ts, world.ts, style.css, index.html, CLAUDE.md, and daily-evolve.md:\n\n1. BREATHING MOTES: Every mote now pulses with a sinusoidal rhythm tied to its age and wanderlust — they feel alive, not static.\n\n2. CLUSTER GLOW: Bonded groups of 3+ motes get a soft, pulsing aura around their centroid — communities are visible as warm pools of light.\n\n3. DRAMATIC BONDS: Bond lines pulse in sync. Formation flash expanded to include outer halo ring with diagonal pixels. Bonded motes are more visually substantial (higher corner alpha).\n\n4. SOUL-RISE DEATH: Death particles now rise upward like departing spirits — expanding cardinal cross plus upward-drifting fragments over 1.2 seconds (was 0.8s of dim expanding dots).\n\n5. SPECTACULAR ECLIPSE: Screen dims to 12% at peak (was 40%). Stars with cross-shaped bright stars and twinkling single pixels emerge in the sky. Motes become glowing white points of light with colored halos — like fireflies in darkness.\n\n6. AURORA CURTAINS: Animated sine-wave light curtains in green-blue-purple ripple across the sky during aurora events, behind motes.\n\n7. ENHANCED METEOR: Longer 15-pixel trail (was 10), white-hot core, deterministic sparks, larger impact flash radius.\n\n8. AUDIO PROMPT: 'click anywhere to hear the world' overlay appears after 2 seconds, dismisses on first interaction. Sound is no longer hidden.\n\n9. NARRATIVE TEXT: Ambient story text appears below the canvas at key moments: 'life stirs', 'the first bond forms', 'an elder endures', 'a community takes shape', 'the light begins to fade', 'silence falls', plus event-specific narration.\n\n10. CREATIVE EVOLUTION REWRITE: daily-evolve.md completely rewritten from conservative ('don't add new systems, deepen existing ones, one small change') to ambitious ('push boundaries, make it mesmerizing, emotion is the metric'). Removes the artificial constraints that were producing safe, incremental changes and replaces them with a creative mandate.\n\n11. CLAUDE.md updated to encourage ambition and browser API usage.",
-    "ambition": "This is a foundation for much more. The next leaps: WebGL shaders for real glow/bloom effects, creature memory and rituals, visible trails and history, richer terrain with erosion and rivers, and a sound system that truly hooks people within 3 seconds.",
+    "reflection": "Comprehensive visual overhaul: breathing mote pulse, cluster glow auras, soul-rise death particles, dramatic eclipse with stars and glowing eyes, aurora curtains, enhanced meteor trail, audio prompt overlay, and ambient narrative text. Rewrote daily-evolve.md from conservative to ambitious.",
     "looking_ahead": [
-      "WebGL post-processing: bloom/glow shader pass would make cluster auras and eclipse mote-lights genuinely luminous instead of alpha-blended approximations",
-      "Creature memory: motes that remember where they found energy, where bonds formed, where friends died — and visibly return to those places",
-      "Visible history: fading trails showing where motes have walked, grave markers where they died, making the landscape accumulate story through the cycle",
-      "Sound evolution: phase transitions should have distinct musical moments — a chord that swells at complexity, a note that fades into silence"
+      "WebGL post-processing for real bloom/glow",
+      "Creature memory: motes returning to meaningful places",
+      "Visible trails and history accumulating through the cycle",
+      "Sound evolution: phase transitions with musical moments"
     ],
     "files_changed": [
       "src/main.ts",
@@ -107,6 +95,43 @@
       "index.html",
       "CLAUDE.md",
       ".claude/daily-evolve.md",
+      "public/evolution-log.json"
+    ]
+  },
+  {
+    "date": "2026-03-05",
+    "title": "Architecture Refactor: Clean DAG, Focused Files",
+    "reflection": "Restructured from 15 to 25 files with a clean layered DAG. Split the 922-line main.ts god file into 6 focused modules (narrative, render-motes, render-effects, render-bonds, render-ui, thin orchestrator). Extracted config.ts/types.ts foundation, split terrain and weather into data/render pairs, fixed circular deps, cached clusters.",
+    "looking_ahead": [
+      "WebGL post-processing for bloom/glow",
+      "Creature memory and meaningful return behaviors",
+      "Sound evolution: phase transitions with musical moments"
+    ],
+    "files_changed": [
+      "src/config.ts",
+      "src/types.ts",
+      "src/terrain.ts",
+      "src/terrain-gen.ts",
+      "src/terrain-query.ts",
+      "src/terrain-render.ts",
+      "src/weather.ts",
+      "src/weather-render.ts",
+      "src/narrative.ts",
+      "src/render-motes.ts",
+      "src/render-effects.ts",
+      "src/render-bonds.ts",
+      "src/render-ui.ts",
+      "src/main.ts",
+      "src/render.ts",
+      "src/palette.ts",
+      "src/world.ts",
+      "src/mote.ts",
+      "src/events.ts",
+      "src/sound.ts",
+      "src/interaction.ts",
+      "src/physics.ts",
+      "src/font.ts",
+      "CLAUDE.md",
       "public/evolution-log.json"
     ]
   }

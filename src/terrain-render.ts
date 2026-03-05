@@ -1,0 +1,241 @@
+// terrain-render.ts — Terrain rendering: sky gradient, tile colors, surface detail.
+
+import { noise2 } from "./noise";
+import { W, H } from "./config";
+import { Tile } from "./types";
+import type { Terrain, RGB, BiomePalette } from "./types";
+import { setPixel } from "./render";
+import { PAL, lerpColor } from "./palette";
+import { getSurfaceY } from "./terrain-query";
+
+/** Tile-to-palette-index mapping (uses biome palette) */
+function tileColor(tile: Tile, bp: BiomePalette): number {
+  switch (tile) {
+    case Tile.DeepWater: return bp.deepWater;
+    case Tile.ShallowWater: return bp.shallowWater;
+    case Tile.Sand: return bp.sand;
+    case Tile.Ground: return bp.ground;
+    case Tile.DarkGround: return bp.darkGround;
+    case Tile.Cliff: return bp.cliff;
+    case Tile.TreeTrunk: return bp.treeTrunk;
+    case Tile.TreeCanopy: return bp.treeCanopy;
+    case Tile.Cave: return 0;  // void black
+    case Tile.Ruin: return 3;  // stone
+    case Tile.Settlement: return 10; // sand/warm
+    case Tile.Subsoil: return bp.subsoil;
+    case Tile.DeepRock: return bp.deepRock;
+    case Tile.CaveInterior: return 0; // near-black void
+    default: return -1; // air — don't draw
+  }
+}
+
+/**
+ * Sky tints per phase — RGB deltas applied on top of biome sky.
+ * These shift the sky's mood across the cycle arc without overriding biome identity.
+ * Top of sky gets full tint; horizon fades to 30% tint for a natural gradient blend.
+ */
+const SKY_TINTS: RGB[] = [
+  [-8,  -8,  15],  // genesis:      cool violet — pre-dawn, a world not yet awake
+  [ 0,   0,   0],  // exploration:  neutral — clear day, open sky
+  [ 5,   3,  -3],  // organization: slight warmth — mid-day building
+  [ 8,   4,  -5],  // complexity:   warm afternoon — peak light
+  [20,   8, -15],  // dissolution:  golden hour — amber light, things fading
+  [-5, -10,  12],  // silence:      indigo dusk — the world going to sleep
+];
+
+// Cumulative phase boundaries (fractions of cycle) — mirrors world.ts PHASE_DURATIONS
+const TINT_BOUNDARIES = [0.10, 0.30, 0.55, 0.80, 0.92, 1.0];
+
+/** Smooth interpolated sky tint for a given cycle position (0-1) */
+function skyTintAt(cycleProgress: number): RGB {
+  let prev = 0;
+  for (let i = 0; i < TINT_BOUNDARIES.length; i++) {
+    if (cycleProgress <= TINT_BOUNDARIES[i]) {
+      const t = (cycleProgress - prev) / (TINT_BOUNDARIES[i] - prev);
+      const a = SKY_TINTS[i];
+      const b = SKY_TINTS[(i + 1) % SKY_TINTS.length];
+      return [
+        a[0] + (b[0] - a[0]) * t,
+        a[1] + (b[1] - a[1]) * t,
+        a[2] + (b[2] - a[2]) * t,
+      ];
+    }
+    prev = TINT_BOUNDARIES[i];
+  }
+  return SKY_TINTS[5];
+}
+
+/** Pre-compute background mountain heights (called once per terrain generation) */
+function generateBgMountains(seed: number): Float32Array {
+  const bgHeights = new Float32Array(W);
+  for (let x = 0; x < W; x++) {
+    const n1 = noise2(x * 0.012, seed * 0.3 + 100);
+    const n2 = noise2(x * 0.03, seed * 0.3 + 200) * 0.3;
+    bgHeights[x] = (0.3 + (n1 + n2) * 0.18) * H;
+  }
+  return bgHeights;
+}
+
+// Cache background mountains per seed
+let bgMountainCache: { seed: number; heights: Float32Array } | null = null;
+
+function getBgMountains(seed: number): Float32Array {
+  if (bgMountainCache && bgMountainCache.seed === seed) return bgMountainCache.heights;
+  const heights = generateBgMountains(seed);
+  bgMountainCache = { seed, heights };
+  return heights;
+}
+
+/** Render terrain + sky into the buffer */
+export function renderTerrain(
+  buf: ImageData,
+  terrain: Terrain,
+  time: number,
+  cycleProgress: number,
+): void {
+  const { tiles, bp } = terrain;
+  const skyTop = PAL[bp.sky];
+  const skyBot = PAL[bp.skyHorizon];
+  const tint = skyTintAt(cycleProgress);
+  const bgMountains = getBgMountains(terrain.seed);
+  const bgColor = PAL[bp.cliff];
+
+  const d = buf.data;
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const idx = y * W + x;
+      const tile = tiles[idx] as Tile;
+      const pi = idx * 4;
+
+      if (tile === Tile.Air) {
+        // Sky gradient
+        const t = y / (H * 0.6);
+        const st = Math.min(1, Math.max(0, t));
+        const c: RGB = lerpColor(skyTop, skyBot, st);
+        const tintStr = 1 - st * 0.7;
+        let r = Math.max(0, Math.min(255, c[0] + tint[0] * tintStr));
+        let g = Math.max(0, Math.min(255, c[1] + tint[1] * tintStr));
+        let b = Math.max(0, Math.min(255, c[2] + tint[2] * tintStr));
+
+        // Background mountains — blend distant silhouettes over sky
+        const bgSurfY = Math.floor(H - bgMountains[x]);
+        if (y >= bgSurfY) {
+          const blend = 0.25;
+          r = r * (1 - blend) + bgColor[0] * blend;
+          g = g * (1 - blend) + bgColor[1] * blend;
+          b = b * (1 - blend) + bgColor[2] * blend;
+        }
+
+        d[pi]     = r;
+        d[pi + 1] = g;
+        d[pi + 2] = b;
+        d[pi + 3] = 255;
+      } else if (tile === Tile.CaveInterior) {
+        // Cave interiors: near-black with subtle texture
+        const flicker = noise2(x * 0.3, y * 0.3) * 0.5 + 0.5;
+        const brightness = 8 + flicker * 12;
+        d[pi]     = brightness;
+        d[pi + 1] = brightness;
+        d[pi + 2] = brightness + 4;
+        d[pi + 3] = 255;
+      } else {
+        const ci = tileColor(tile, bp);
+        if (ci >= 0) {
+          d[pi] = PAL[ci][0];
+          d[pi + 1] = PAL[ci][1];
+          d[pi + 2] = PAL[ci][2];
+          d[pi + 3] = 255;
+        }
+      }
+    }
+  }
+
+  // Surface detail: grass blades, flowers, vines
+  renderSurfaceDetail(buf, terrain);
+
+  // Water surface shimmer: occasional lighter pixels on water surface
+  for (let x = 0; x < W; x++) {
+    const surfaceY = getSurfaceY(terrain, x);
+    const worldH = H - surfaceY;
+    if (worldH <= terrain.waterLevel && worldH >= terrain.waterLevel - 1) {
+      if ((x + Math.floor(time * 2)) % 5 === 0) {
+        setPixel(buf, x, surfaceY, PAL[8][0], PAL[8][1], PAL[8][2], 120);
+      }
+    }
+  }
+}
+
+/** Decorative surface detail — grass, flowers, vines, mushrooms */
+function renderSurfaceDetail(buf: ImageData, terrain: Terrain): void {
+  const { tiles, bp, biome, waterLevel } = terrain;
+  const skipGrass = biome === "desert" || biome === "volcanic";
+  const lushBoost = biome === "lush" ? 0.15 : 0;
+
+  for (let x = 0; x < W; x++) {
+    const surfaceY = getSurfaceY(terrain, x);
+    const worldH = H - surfaceY;
+    if (worldH <= waterLevel) continue; // underwater — no decoration
+
+    const surfTile = tiles[surfaceY * W + x] as Tile;
+    const aboveIdx = (surfaceY - 1) * W + x;
+
+    // Grass blades: 1px above ground surface
+    if (!skipGrass && surfaceY > 0 &&
+        (surfTile === Tile.Ground || surfTile === Tile.Sand) &&
+        (tiles[aboveIdx] as Tile) === Tile.Air) {
+      const grassChance = noise2(x * 0.5, terrain.seed * 0.7) * 0.5 + 0.5;
+      if (grassChance > (0.55 - lushBoost)) {
+        const gc = PAL[bp.treeCanopy];
+        // Slightly brighter than canopy for contrast
+        setPixel(buf, x, surfaceY - 1, gc[0] + 15, gc[1] + 20, gc[2] + 10, 180);
+      }
+    }
+
+    // Flowers: rare bright pixels on grassy surfaces
+    if (!skipGrass && surfaceY > 0 &&
+        surfTile === Tile.Ground &&
+        (tiles[aboveIdx] as Tile) === Tile.Air) {
+      const flowerChance = noise2(x * 1.3, terrain.seed * 1.1) * 0.5 + 0.5;
+      if (flowerChance > (0.93 - lushBoost * 0.5)) {
+        // Pick flower color deterministically from position
+        const colorPick = Math.floor(noise2(x * 2.7, terrain.seed * 0.3) * 3 + 3) % 3;
+        const flowerColors: RGB[] = [
+          PAL[13], // ember
+          PAL[14], // gold
+          PAL[15], // dusk
+        ];
+        const fc = flowerColors[colorPick];
+        setPixel(buf, x, surfaceY - 1, fc[0], fc[1], fc[2], 220);
+      }
+    }
+
+    // Vines on cliff faces: hanging pixels next to Air
+    if ((biome === "temperate" || biome === "lush") && surfTile === Tile.Cliff) {
+      // Check if there's air to the left or right
+      const hasAirLeft = x > 0 && (tiles[surfaceY * W + x - 1] as Tile) === Tile.Air;
+      const hasAirRight = x < W - 1 && (tiles[surfaceY * W + x + 1] as Tile) === Tile.Air;
+      if (hasAirLeft || hasAirRight) {
+        const vineChance = noise2(x * 0.8, surfaceY * 0.6) * 0.5 + 0.5;
+        if (vineChance > 0.75) {
+          const vineX = hasAirLeft ? x - 1 : x + 1;
+          const vc = PAL[11]; // dark green
+          setPixel(buf, vineX, surfaceY, vc[0], vc[1], vc[2], 160);
+          // Extend vine downward 1-2 pixels
+          if (surfaceY + 1 < H && (tiles[(surfaceY + 1) * W + vineX] as Tile) === Tile.Air) {
+            setPixel(buf, vineX, surfaceY + 1, vc[0], vc[1], vc[2], 120);
+          }
+        }
+      }
+    }
+
+    // Mushrooms in caves
+    if (surfTile === Tile.Cave && surfaceY + 1 < H) {
+      const mushChance = noise2(x * 1.5, surfaceY * 0.9) * 0.5 + 0.5;
+      if (mushChance > 0.75) {
+        const mc = PAL[15]; // dusk purple
+        setPixel(buf, x, surfaceY, mc[0], mc[1], mc[2], 180);
+      }
+    }
+  }
+}
