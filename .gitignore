@@ -8,6 +8,12 @@ dist/
 captures/
 captures-*/
 
+# Quality analysis reports (generated during evolution)
+quality-report*.json
+
+# Planning docs (local working notes)
+.planning/
+
 # Claude Code local settings (per-machine permissions)
 .claude/settings.local.json
 .claude/projects/

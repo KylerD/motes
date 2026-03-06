@@ -190,22 +190,12 @@ export interface Interaction {
 
 export interface SoundEngine {
   ctx: AudioContext;
-  voices: Voice[];
+  voices: never[]; // retained for interface compat — notes are now triggered on demand
   masterGain: GainNode;
   reverb: ConvolverNode;
   compressor: DynamicsCompressorNode;
   initialized: boolean;
   weatherAmbient: WeatherAmbient;
-}
-
-interface Voice {
-  osc: OscillatorNode;
-  gain: GainNode;
-  filter: BiquadFilterNode;
-  active: boolean;
-  targetFreq: number;
-  targetGain: number;
-  targetFilterFreq: number;
 }
 
 interface WeatherAmbient {

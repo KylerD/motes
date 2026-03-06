@@ -32,7 +32,7 @@ jobs:
         run: |
           npx -y @anthropic-ai/claude-code -p "$(cat .claude/daily-evolve.md)" \
             --dangerously-skip-permissions \
-            --max-turns 50
+            --max-turns 80
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 

@@ -128,6 +128,7 @@ export function updateMote(
 
   // Social force: move toward nearby motes if sociable
   let socialFx = 0;
+  let socialAttract = 0;
   let closestUnbonded: Mote | null = null;
   let closestDist = Infinity;
 
@@ -138,19 +139,20 @@ export function updateMote(
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < 0.5) continue;
 
-    // Social attraction
-    if (dist > 4) {
-      socialFx += (dx / dist) * m.temperament.sociability * 6;
+    // Social attraction — only beyond comfortable distance
+    if (dist > 12) {
+      socialAttract += (dx / dist) * m.temperament.sociability * 4;
     }
 
-    // Avoid crowding — bigger critters need more personal space
-    if (dist < 8) {
-      socialFx -= (dx / dist) * 12;
+    // Strong inverse-square repulsion at close range — prevents clumping
+    if (dist < 12) {
+      const repelStrength = 30 * Math.pow(12 / Math.max(dist, 1), 2);
+      socialFx -= (dx / dist) * repelStrength;
     }
 
     // Elder attraction: unbonded motes drift toward elders
-    if (other.age > 20 && m.bonds.length === 0 && dist > 4) {
-      socialFx += (dx / dist) * 2;
+    if (other.age > 20 && m.bonds.length === 0 && dist > 12) {
+      socialAttract += (dx / dist) * 2;
     }
 
     // Bond tracking
@@ -175,6 +177,9 @@ export function updateMote(
       }
     }
   }
+
+  // Clamp accumulated attraction so groups don't death-ball
+  socialFx += Math.max(-10, Math.min(10, socialAttract));
 
   // Break bonds with distant motes (elders hold bonds longer)
   const breakMult = ageElder ? 1.4 : 1.0;

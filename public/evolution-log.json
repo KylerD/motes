@@ -1,138 +1,80 @@
 [
   {
     "date": "2026-03-02",
-    "title": "The Log Begins",
-    "reflection": "Established the evolution log system — a persistent thinking journal that Claude reads at session start and writes to at session end. This is the context engineering that makes autonomous daily improvement possible.",
+    "title": "Add evolution log",
+    "reflection": "Created the evolution log system and daily-evolve workflow for autonomous improvement.",
     "looking_ahead": [
       "Make temperament visible through color",
       "Sound envelopes for bond formation/breaking",
       "Event permanence: meteor craters, flood channels"
     ],
-    "files_changed": [
-      "CLAUDE.md",
-      "public/evolution-log.json",
-      ".claude/daily-evolve.md",
-      ".github/workflows/daily-evolve.yml",
-      "journal.html",
-      "src/style.css",
-      "index.html"
-    ]
+    "files_changed": ["CLAUDE.md", "public/evolution-log.json", ".claude/daily-evolve.md", ".github/workflows/daily-evolve.yml", "journal.html", "src/style.css", "index.html"]
   },
   {
     "date": "2026-03-02",
-    "title": "Temperament Made Visible",
-    "reflection": "Motes had three temperament axes computed at birth but rendered as a single energy-colored pixel. Replaced the 3-level color lookup with a continuous hue function: wanderlust shifts warm, sociability shifts cool, hardiness resists dimming at low energy.",
+    "title": "Temperament colors",
+    "reflection": "Replaced single energy-colored pixel with continuous hue from temperament axes.",
     "looking_ahead": [
       "Sound envelopes for musical bond moments",
       "Activate spatial hash grid for performance",
       "Event permanence: terrain marks that persist through the cycle"
     ],
-    "files_changed": [
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/main.ts", "public/evolution-log.json"]
   },
   {
     "date": "2026-03-03",
-    "title": "Bonds as Relationships",
-    "reflection": "Bond lines were a single flat biome-dim color for every pair. Now they blend the temperament colors of their two endpoints, making cluster character visible. Pre-computed all mote colors into a Map for efficiency.",
+    "title": "Blended bond colors",
+    "reflection": "Bond lines now blend the temperament colors of both endpoints. Pre-computed mote colors into a Map.",
     "looking_ahead": [
       "Sound envelopes for bond formation chimes",
       "Activate spatial hash grid",
       "Event permanence: crater tiles, waterlogged terrain"
     ],
-    "files_changed": [
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/main.ts", "public/evolution-log.json"]
   },
   {
     "date": "2026-03-03",
-    "title": "Making the Invisible Visible",
-    "reflection": "Rich simulation was running but invisible at the pixel level. Motes grew from 1px to 5px crosses (3x3 when bonded), bonds became visible at alpha 100, clicks produce ripple rings, meteor got a trail and impact flash, and the spatial hash grid was wired up for O(1) neighbor queries.",
+    "title": "Visible motes and bonds",
+    "reflection": "Motes grew from 1px to 5px crosses, bonds visible at alpha 100, spatial hash grid wired up.",
     "looking_ahead": [
       "Sound envelopes for bond formation",
       "Death particles on mote expiration",
       "Settlement markers with structural shapes"
     ],
-    "files_changed": [
-      "src/main.ts",
-      "src/mote.ts",
-      "src/interaction.ts",
-      "src/world.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/main.ts", "src/mote.ts", "src/interaction.ts", "src/world.ts", "public/evolution-log.json"]
   },
   {
     "date": "2026-03-04",
-    "title": "The Sky Remembers the Hour",
-    "reflection": "The sky was phase-blind — same blue from genesis to silence. Added skyTintAt() that interpolates per-phase RGB tints across the cycle: cool violet at genesis, neutral midday, amber at dissolution, indigo at silence. Strongest at zenith, fading to 30% at horizon.",
+    "title": "Phase-tinted sky",
+    "reflection": "Sky now interpolates per-phase color tints: violet at genesis, amber at dissolution, indigo at silence.",
     "looking_ahead": [
       "Death particles for dissolution visibility",
       "Sound envelopes for bond chimes",
       "Mote age visibility: gold tinge for elders"
     ],
-    "files_changed": [
-      "src/terrain.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/terrain.ts", "src/main.ts", "public/evolution-log.json"]
   },
   {
     "date": "2026-03-04",
-    "title": "The World Comes Alive",
-    "reflection": "Comprehensive visual overhaul: breathing mote pulse, cluster glow auras, soul-rise death particles, dramatic eclipse with stars and glowing eyes, aurora curtains, enhanced meteor trail, audio prompt overlay, and ambient narrative text. Rewrote daily-evolve.md from conservative to ambitious.",
+    "title": "Visual overhaul",
+    "reflection": "Added breathing pulse, cluster glow, soul-rise death particles, eclipse stars, aurora curtains, narrative text.",
     "looking_ahead": [
       "WebGL post-processing for real bloom/glow",
       "Creature memory: motes returning to meaningful places",
       "Visible trails and history accumulating through the cycle",
       "Sound evolution: phase transitions with musical moments"
     ],
-    "files_changed": [
-      "src/main.ts",
-      "src/world.ts",
-      "src/style.css",
-      "index.html",
-      "CLAUDE.md",
-      ".claude/daily-evolve.md",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/main.ts", "src/world.ts", "src/style.css", "index.html", "CLAUDE.md", ".claude/daily-evolve.md", "public/evolution-log.json"]
   },
   {
     "date": "2026-03-05",
-    "title": "Architecture Refactor: Clean DAG, Focused Files",
-    "reflection": "Restructured from 15 to 25 files with a clean layered DAG. Split the 922-line main.ts god file into 6 focused modules (narrative, render-motes, render-effects, render-bonds, render-ui, thin orchestrator). Extracted config.ts/types.ts foundation, split terrain and weather into data/render pairs, fixed circular deps, cached clusters.",
+    "title": "Architecture refactor",
+    "reflection": "Split 922-line main.ts into 25 focused files with clean layered DAG. No circular deps.",
     "looking_ahead": [
       "WebGL post-processing for bloom/glow",
       "Creature memory and meaningful return behaviors",
       "Sound evolution: phase transitions with musical moments"
     ],
-    "files_changed": [
-      "src/config.ts",
-      "src/types.ts",
-      "src/terrain.ts",
-      "src/terrain-gen.ts",
-      "src/terrain-query.ts",
-      "src/terrain-render.ts",
-      "src/weather.ts",
-      "src/weather-render.ts",
-      "src/narrative.ts",
-      "src/render-motes.ts",
-      "src/render-effects.ts",
-      "src/render-bonds.ts",
-      "src/render-ui.ts",
-      "src/main.ts",
-      "src/render.ts",
-      "src/palette.ts",
-      "src/world.ts",
-      "src/mote.ts",
-      "src/events.ts",
-      "src/sound.ts",
-      "src/interaction.ts",
-      "src/physics.ts",
-      "src/font.ts",
-      "CLAUDE.md",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/config.ts", "src/types.ts", "src/terrain.ts", "src/terrain-gen.ts", "src/terrain-query.ts", "src/terrain-render.ts", "src/weather.ts", "src/weather-render.ts", "src/narrative.ts", "src/render-motes.ts", "src/render-effects.ts", "src/render-bonds.ts", "src/render-ui.ts", "src/main.ts", "src/render.ts", "src/palette.ts", "src/world.ts", "src/mote.ts", "src/events.ts", "src/sound.ts", "src/interaction.ts", "src/physics.ts", "src/font.ts", "CLAUDE.md", "public/evolution-log.json"]
   }
 ]

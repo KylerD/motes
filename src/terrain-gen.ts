@@ -20,6 +20,13 @@ interface TerrainArchetype {
   roughness: [number, number];
   waterLevel: [number, number];
   postProcess?: (heights: Float32Array, rng: () => number) => void;
+  /** Water feature noise parameters — controls pools/gaps beyond the base waterLevel */
+  waterFeatures?: {
+    freq: number;         // noise frequency for water carving
+    poolThreshold: number; // noise > this creates elevated pools
+    dryThreshold: number;  // noise < this removes water (creates islands)
+    poolRange: number;     // how far above waterLevel pools can form
+  };
 }
 
 // Terrain sits low — ground-level, zoomed-in feel. Less sky, more land.
@@ -30,6 +37,7 @@ const ARCHETYPES: TerrainArchetype[] = [
     amp1: 0.12, amp2: 0.05,
     baseHeight: [0.22, 0.30], roughness: [0.5, 0.8],
     waterLevel: [0.12, 0.18],
+    waterFeatures: { freq: 0.04, poolThreshold: 0.6, dryThreshold: -0.3, poolRange: 6 },
   },
   {
     name: "canyon",
@@ -37,6 +45,7 @@ const ARCHETYPES: TerrainArchetype[] = [
     amp1: 0.18, amp2: 0.08,
     baseHeight: [0.25, 0.35], roughness: [0.6, 0.9],
     waterLevel: [0.08, 0.14],
+    waterFeatures: { freq: 0.02, poolThreshold: 0.55, dryThreshold: -0.5, poolRange: 4 },
   },
   {
     name: "archipelago",
@@ -44,6 +53,7 @@ const ARCHETYPES: TerrainArchetype[] = [
     amp1: 0.12, amp2: 0.06,
     baseHeight: [0.20, 0.28], roughness: [0.4, 0.7],
     waterLevel: [0.22, 0.28],
+    waterFeatures: { freq: 0.08, poolThreshold: 0.45, dryThreshold: 0.1, poolRange: 10 },
   },
   {
     name: "plateau",
@@ -51,6 +61,7 @@ const ARCHETYPES: TerrainArchetype[] = [
     amp1: 0.10, amp2: 0.04,
     baseHeight: [0.28, 0.35], roughness: [0.3, 0.5],
     waterLevel: [0.10, 0.18],
+    waterFeatures: { freq: 0.06, poolThreshold: 0.5, dryThreshold: -0.4, poolRange: 8 },
     postProcess(heights) {
       for (let x = 0; x < W; x++) {
         const h = heights[x] / H;
@@ -64,6 +75,7 @@ const ARCHETYPES: TerrainArchetype[] = [
     amp1: 0.06, amp2: 0.03,
     baseHeight: [0.18, 0.24], roughness: [0.3, 0.5],
     waterLevel: [0.14, 0.20],
+    waterFeatures: { freq: 0.10, poolThreshold: 0.35, dryThreshold: 0.15, poolRange: 12 },
   },
   {
     name: "hills",
@@ -71,6 +83,7 @@ const ARCHETYPES: TerrainArchetype[] = [
     amp1: 0.20, amp2: 0.08,
     baseHeight: [0.22, 0.32], roughness: [0.6, 0.9],
     waterLevel: [0.10, 0.16],
+    waterFeatures: { freq: 0.05, poolThreshold: 0.55, dryThreshold: -0.2, poolRange: 6 },
   },
   {
     name: "staircase",
@@ -78,6 +91,7 @@ const ARCHETYPES: TerrainArchetype[] = [
     amp1: 0.12, amp2: 0.05,
     baseHeight: [0.22, 0.30], roughness: [0.4, 0.6],
     waterLevel: [0.12, 0.18],
+    waterFeatures: { freq: 0.07, poolThreshold: 0.48, dryThreshold: -0.1, poolRange: 10 },
     postProcess(heights) {
       const step = H * 0.05;
       for (let x = 0; x < W; x++) {
@@ -194,6 +208,36 @@ export function generateTerrain(seed: number): Terrain {
         const worldH = H - y;
         if (worldH <= waterLevel + 4 && caveNoise < 0.58) {
           tiles[idx] = Tile.ShallowWater;
+        }
+      }
+    }
+  }
+
+  // Water feature pass: noise-carved pools and dry gaps for variety
+  if (arch.waterFeatures) {
+    const wf = arch.waterFeatures;
+    for (let x = 0; x < W; x++) {
+      const surfaceY = Math.floor(H - heights[x]);
+      for (let y = surfaceY; y < H; y++) {
+        const worldY = H - y;
+        const idx = y * W + x;
+        const tile = tiles[idx] as Tile;
+
+        // Use a separate noise domain (offset by seed * 0.3) for water features
+        const waterNoise = noise2(x * wf.freq, y * wf.freq + seed * 0.3);
+
+        // Elevated pools: above the water line, noise carves pockets of water
+        if (worldY > waterLevel && worldY < waterLevel + wf.poolRange) {
+          if (waterNoise > wf.poolThreshold && tile !== Tile.Air && tile !== Tile.CaveInterior) {
+            tiles[idx] = Tile.ShallowWater;
+          }
+        }
+
+        // Dry gaps: within the water zone, noise removes water to create islands/sandbars
+        if (worldY <= waterLevel && (tile === Tile.ShallowWater || tile === Tile.DeepWater)) {
+          if (waterNoise < wf.dryThreshold) {
+            tiles[idx] = Tile.Sand;
+          }
         }
       }
     }

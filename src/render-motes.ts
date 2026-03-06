@@ -7,23 +7,28 @@ import { hsl2rgb } from "./palette";
 /** Each mote gets a unique hue from its temperament fingerprint.
  *  Energy drives luminosity, age shifts toward warm gold. */
 export function computeMoteColor(m: Mote, _bp: BiomePalette): [number, number, number] {
+  // Spread hue across full spectrum — wanderlust=warm, sociability=cool, hardiness=offset
   const hue = (
-    m.temperament.wanderlust * 50 +
-    m.temperament.sociability * 160 + 40 +
-    m.temperament.hardiness * 60
+    m.temperament.wanderlust * 120 +
+    m.temperament.sociability * 200 +
+    m.temperament.hardiness * 80 + 30
   ) % 360;
 
-  const sat = 0.45 + m.temperament.sociability * 0.35 + m.energy * 0.15;
-  const hardyBoost = m.temperament.hardiness * 0.08 * (1 - m.energy);
-  const light = 0.30 + (m.energy + hardyBoost) * 0.38;
+  const sat = 0.65 + m.temperament.sociability * 0.30;
+  const light = 0.45 + m.energy * 0.25;
 
-  let [r, g, b] = hsl2rgb(hue, Math.min(1, sat), Math.min(0.72, light));
+  let [r, g, b] = hsl2rgb(hue, Math.min(1, sat), Math.min(0.75, light));
 
   // Age: elders shift toward warm gold
   const ageGold = Math.min(1, Math.max(0, (m.age - 8) / 22)) * 0.40;
   r += (220 - r) * ageGold;
   g += (165 - g) * ageGold;
   b += (40 - b) * ageGold;
+
+  // Brightness floor — motes must never blend into dark terrain
+  r = Math.max(80, r);
+  g = Math.max(80, g);
+  b = Math.max(80, b);
 
   return [Math.round(r), Math.round(g), Math.round(b)];
 }
@@ -37,7 +42,7 @@ export function renderMoteTrails(
   for (const m of motes) {
     const [tr, tg, tb] = moteColors.get(m)!;
     for (const pt of m.trail) {
-      const ta = Math.round((1 - pt.age / 2.0) * 35);
+      const ta = Math.round((1 - pt.age / 2.0) * 50);
       if (ta > 0) setPixel(buf, pt.x, pt.y, tr, tg, tb, ta);
     }
   }
@@ -63,6 +68,7 @@ export function renderMotes(
     }
 
     const isElder = m.age > 20;
+    // Breathe only affects aura/glow, not core body
     const breathe = Math.sin(m.age * 2.5 + m.temperament.wanderlust * 6.28) * 0.15 + 0.85;
 
     const ox = Math.round(m.x);
@@ -74,41 +80,40 @@ export function renderMotes(
     const lg = Math.min(255, Math.round(cg * 1.4));
     const lb = Math.min(255, Math.round(cb * 1.4));
 
-    // DARK OUTLINE
-    setPixel(buf, ox - 1, oy - 3, 4, 4, 8, 200);
-    setPixel(buf, ox, oy - 3, 4, 4, 8, 200);
-    setPixel(buf, ox + 1, oy - 3, 4, 4, 8, 200);
-    setPixel(buf, ox - 2, oy - 2, 4, 4, 8, 200);
-    setPixel(buf, ox + 2, oy - 2, 4, 4, 8, 200);
-    setPixel(buf, ox - 3, oy - 1, 4, 4, 8, 180);
-    setPixel(buf, ox + 3, oy - 1, 4, 4, 8, 180);
-    setPixel(buf, ox - 3, oy, 4, 4, 8, 180);
-    setPixel(buf, ox + 3, oy, 4, 4, 8, 180);
-    setPixel(buf, ox - 2, oy + 1, 4, 4, 8, 160);
-    setPixel(buf, ox, oy + 1, 4, 4, 8, 160);
-    setPixel(buf, ox + 2, oy + 1, 4, 4, 8, 160);
-    setPixel(buf, ox - 1, oy + 2, 4, 4, 8, 140);
-    setPixel(buf, ox + 1, oy + 2, 4, 4, 8, 140);
+    // DARK OUTLINE — near-opaque for strong contrast
+    setPixel(buf, ox - 1, oy - 3, 4, 4, 8, 245);
+    setPixel(buf, ox, oy - 3, 4, 4, 8, 245);
+    setPixel(buf, ox + 1, oy - 3, 4, 4, 8, 245);
+    setPixel(buf, ox - 2, oy - 2, 4, 4, 8, 245);
+    setPixel(buf, ox + 2, oy - 2, 4, 4, 8, 245);
+    setPixel(buf, ox - 3, oy - 1, 4, 4, 8, 230);
+    setPixel(buf, ox + 3, oy - 1, 4, 4, 8, 230);
+    setPixel(buf, ox - 3, oy, 4, 4, 8, 230);
+    setPixel(buf, ox + 3, oy, 4, 4, 8, 230);
+    setPixel(buf, ox - 2, oy + 1, 4, 4, 8, 220);
+    setPixel(buf, ox, oy + 1, 4, 4, 8, 220);
+    setPixel(buf, ox + 2, oy + 1, 4, 4, 8, 220);
+    setPixel(buf, ox - 1, oy + 2, 4, 4, 8, 200);
+    setPixel(buf, ox + 1, oy + 2, 4, 4, 8, 200);
 
-    // TRANSLUCENT BODY
-    const headA = Math.round(140 * breathe);
-    setPixel(buf, ox - 1, oy - 2, cr, cg, cb, Math.round(headA * 0.7));
-    setPixel(buf, ox, oy - 2, lr, lg, lb, headA);
-    setPixel(buf, ox + 1, oy - 2, cr, cg, cb, Math.round(headA * 0.7));
+    // HEAD — solid body, no breathe on core
+    setPixel(buf, ox - 1, oy - 2, cr, cg, cb, 180);
+    setPixel(buf, ox, oy - 2, lr, lg, lb, 240);
+    setPixel(buf, ox + 1, oy - 2, cr, cg, cb, 180);
 
-    const faceA = Math.round(160 * breathe);
-    setPixel(buf, ox - 2, oy - 1, cr, cg, cb, Math.round(faceA * 0.45));
-    setPixel(buf, ox - 1, oy - 1, cr, cg, cb, Math.round(faceA * 0.8));
-    setPixel(buf, ox, oy - 1, lr, lg, lb, faceA);
-    setPixel(buf, ox + 1, oy - 1, cr, cg, cb, Math.round(faceA * 0.8));
-    setPixel(buf, ox + 2, oy - 1, cr, cg, cb, Math.round(faceA * 0.45));
+    // FACE — solid
+    setPixel(buf, ox - 2, oy - 1, cr, cg, cb, 120);
+    setPixel(buf, ox - 1, oy - 1, cr, cg, cb, 210);
+    setPixel(buf, ox, oy - 1, lr, lg, lb, 245);
+    setPixel(buf, ox + 1, oy - 1, cr, cg, cb, 210);
+    setPixel(buf, ox + 2, oy - 1, cr, cg, cb, 120);
 
     // GLOWING EYES
     const blinkCycle = Math.sin(m.age * 0.8 + m.temperament.sociability * 10);
     const eyeOpen = blinkCycle > -0.92;
     if (eyeOpen) {
       const eyePulse = Math.sin(m.age * 3 + m.x * 0.1) * 0.15 + 0.85;
-      const eyeBright = Math.round(240 * eyePulse);
+      const eyeBright = Math.round(250 * eyePulse);
       const eyeR = Math.min(255, Math.round(cr * 0.3 + 180));
       const eyeG = Math.min(255, Math.round(cg * 0.3 + 180));
       const eyeB = Math.min(255, Math.round(cb * 0.3 + 180));
@@ -121,46 +126,44 @@ export function renderMotes(
       }
     }
 
-    // TORSO
-    const bodyA = Math.round(100 * breathe);
-    setPixel(buf, ox - 2, oy, cr, cg, cb, Math.round(bodyA * 0.3));
-    setPixel(buf, ox - 1, oy, cr, cg, cb, Math.round(bodyA * 0.7));
-    setPixel(buf, ox, oy, lr, lg, lb, bodyA);
-    setPixel(buf, ox + 1, oy, cr, cg, cb, Math.round(bodyA * 0.7));
-    setPixel(buf, ox + 2, oy, cr, cg, cb, Math.round(bodyA * 0.3));
+    // TORSO — solid core
+    setPixel(buf, ox - 2, oy, cr, cg, cb, 100);
+    setPixel(buf, ox - 1, oy, cr, cg, cb, 200);
+    setPixel(buf, ox, oy, lr, lg, lb, 240);
+    setPixel(buf, ox + 1, oy, cr, cg, cb, 200);
+    setPixel(buf, ox + 2, oy, cr, cg, cb, 100);
 
-    // FEET
+    // FEET — visible
     const walkBob = m.grounded && Math.abs(m.vx) > 2;
     const stepPhase = Math.sin(m.age * 12) > 0;
-    const footA = Math.round(65 * breathe);
     if (walkBob) {
       const frontFoot = stepPhase ? -1 : 1;
-      setPixel(buf, ox + frontFoot, oy + 1, cr, cg, cb, footA);
-      setPixel(buf, ox - frontFoot, oy + 1, cr, cg, cb, Math.round(footA * 0.5));
+      setPixel(buf, ox + frontFoot, oy + 1, cr, cg, cb, 160);
+      setPixel(buf, ox - frontFoot, oy + 1, cr, cg, cb, 100);
     } else {
-      setPixel(buf, ox - 1, oy + 1, cr, cg, cb, footA);
-      setPixel(buf, ox + 1, oy + 1, cr, cg, cb, footA);
+      setPixel(buf, ox - 1, oy + 1, cr, cg, cb, 150);
+      setPixel(buf, ox + 1, oy + 1, cr, cg, cb, 150);
     }
 
-    // INNER GLOW
+    // INNER GLOW — breathe affects this aura layer only
     const heartPulse = Math.sin(m.age * 4 + m.temperament.hardiness * 5) * 0.3 + 0.7;
-    const heartA = Math.round(180 * heartPulse * m.energy);
+    const heartA = Math.round(200 * heartPulse * m.energy * breathe);
     setPixel(buf, ox, oy - 1, lr, lg, lb, heartA);
 
     // ELDER CROWN
     if (isElder) {
       const elderGlow = Math.sin(m.age * 1.5) * 0.15 + 0.85;
-      const ga = Math.round(160 * elderGlow);
+      const ga = Math.round(200 * elderGlow);
       setPixel(buf, ox, oy - 3, 210, 180, 60, ga);
-      setPixel(buf, ox - 1, oy - 3, 210, 180, 60, Math.round(ga * 0.5));
-      setPixel(buf, ox + 1, oy - 3, 210, 180, 60, Math.round(ga * 0.5));
+      setPixel(buf, ox - 1, oy - 3, 210, 180, 60, Math.round(ga * 0.6));
+      setPixel(buf, ox + 1, oy - 3, 210, 180, 60, Math.round(ga * 0.6));
     }
 
     // WALKING DUST
     if (m.grounded && Math.abs(m.vx) > 4 && m.age > 0.3) {
       const dustFlicker = Math.sin(m.age * 20 + m.x) > 0.3;
       if (dustFlicker) {
-        setPixel(buf, ox - dir * 2, oy + 1, 160, 150, 130, 30);
+        setPixel(buf, ox - dir * 2, oy + 1, 160, 150, 130, 50);
       }
     }
 
@@ -168,15 +171,15 @@ export function renderMotes(
     if (m.energy < 0.2 && m.energy > 0) {
       const flicker = Math.sin(m.age * 15) > 0 ? 0.4 : 1.0;
       if (flicker < 1) {
-        setPixel(buf, ox, oy, 0, 0, 0, Math.round((1 - flicker) * 60));
-        setPixel(buf, ox, oy - 1, 0, 0, 0, Math.round((1 - flicker) * 40));
+        setPixel(buf, ox, oy, 0, 0, 0, Math.round((1 - flicker) * 80));
+        setPixel(buf, ox, oy - 1, 0, 0, 0, Math.round((1 - flicker) * 50));
       }
     }
 
-    // BOND-SEEKING GLOW
+    // BOND-SEEKING GLOW — breathe affects this
     if (m.bondTimer > 0.3 && m.bondFlash === 0) {
       const seekPulse = Math.sin(m.age * 8) * 0.5 + 0.5;
-      const sa = Math.round(seekPulse * 45);
+      const sa = Math.round(seekPulse * 60 * breathe);
       setPixel(buf, ox, oy - 3, lr, lg, lb, sa);
       setPixel(buf, ox - 1, oy - 3, lr, lg, lb, Math.round(sa * 0.4));
       setPixel(buf, ox + 1, oy - 3, lr, lg, lb, Math.round(sa * 0.4));
@@ -185,8 +188,8 @@ export function renderMotes(
     // BOND FORMATION FLASH
     if (m.bondFlash > 0) {
       const fi = m.bondFlash * m.bondFlash;
-      const fa = Math.round(fi * 220);
-      const fa2 = Math.round(fi * 70);
+      const fa = Math.round(fi * 240);
+      const fa2 = Math.round(fi * 90);
       for (let dx = -3; dx <= 3; dx++) {
         for (let dy = -4; dy <= 3; dy++) {
           const dist = Math.sqrt(dx * dx + dy * dy);
@@ -203,7 +206,7 @@ export function renderMotes(
     if (m.spawnFlash > 0) {
       const sf = m.spawnFlash * m.spawnFlash;
       const radius = Math.round(3 + (1 - sf) * 4);
-      const sa = Math.round(sf * 130);
+      const sa = Math.round(sf * 150);
       for (let dx = -radius; dx <= radius; dx++) {
         for (let dy = -radius; dy <= radius; dy++) {
           const dist = Math.sqrt(dx * dx + dy * dy);

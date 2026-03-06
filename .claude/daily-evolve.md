@@ -73,6 +73,7 @@ These aren't small tweaks. These are the kinds of changes that transform the exp
 - **Tweaking constants.** If you're adjusting a value by 10%, you're not being ambitious enough. Make changes that cross perceptual thresholds.
 - **One tiny thing.** It's fine to do one focused change — but "focused" means "deep and impactful", not "minimal and safe."
 - **Ignoring emotion.** Technical correctness without emotional impact is wasted effort.
+- **Blind coding.** NEVER commit changes without visually verifying them. You have tools to see what you've created — use them.
 
 ---
 
@@ -84,26 +85,55 @@ cat public/evolution-log.json
 ```
 Read every entry. Understand the trajectory. Where is the experience weakest? What would a first-time viewer think?
 
-### 2. Check recent history
+### 2. Read quality standards
+```bash
+cat .claude/quality-standards.md
+```
+These are the minimum quality bars. Your changes must not regress on these. Known issues listed here are high-priority fixes.
+
+### 3. Check recent history
 ```bash
 git log --oneline -20
 ```
 
-### 3. Observe the world
-Capture screenshots across a full accelerated cycle:
+### 4. Run BEFORE quality analysis
+```bash
+npx playwright install chromium --with-deps 2>/dev/null
+node scripts/analyze-quality.mjs 60 quality-report-before.json
+```
+Read the output. This is your baseline. Note any existing quality issues.
+
+### 5. Capture BEFORE screenshots
 ```bash
 node scripts/capture.mjs 60 captures/before
 ```
-**Be your own harshest critic.** Look at these screenshots and ask: "Would I keep watching?" If the answer is no, identify exactly why.
 
-### 4. Identify the biggest gap
+### 6. LOOK at the screenshots (CRITICAL)
+**You MUST visually examine the captured screenshots.** Use the Read tool to look at the native-resolution PNGs:
+```
+Read captures/before/04-exploration-mid-native.png
+Read captures/before/07-organization-start-native.png
+Read captures/before/09-complexity-mid-native.png
+Read captures/before/11-dissolution-mid-native.png
+```
+Study these images carefully. Ask yourself:
+- Can I clearly see individual motes? Are they bright enough against the terrain?
+- Can I distinguish motes from each other, or do they blur into a mass?
+- Is the water interesting or is it just a flat pool at the bottom?
+- Does the phase progression feel different between screenshots?
+- Would a first-time viewer find this beautiful?
+
+Write down what you observe — this grounds your changes in reality, not imagination.
+
+### 7. Identify the biggest gap
 The gap between what the simulation computes and what the viewer experiences. The richest opportunities are:
 - Data that exists but isn't rendered
 - Moments that should feel significant but don't
 - Systems that interact in code but not on screen
 - Emotional beats in the cycle arc that fall flat
+- Quality issues flagged in the BEFORE analysis
 
-### 5. Pick your change
+### 8. Pick your change
 One coherent direction — but don't artificially limit scope. If making bonds beautiful requires changes to physics, rendering, sound, and events, do all of it. The constraint is coherence, not file count.
 
 Before committing:
@@ -111,7 +141,7 @@ Before committing:
 - Does it make the experience more emotionally compelling?
 - Is it deterministic?
 
-### 6. Implement
+### 9. Implement
 Write clean code. But don't let "clean" mean "timid." Bold changes that work are better than safe changes that don't matter.
 
 **Hard constraints:**
@@ -120,37 +150,61 @@ Write clean code. But don't let "clean" mean "timid." Bold changes that work are
 - 256x144 canvas and 5-minute cycles are sacred
 - Deterministic: same cycle = same world
 
-### 7. Verify build
+### 10. Verify build
 ```bash
 npx tsc --noEmit
 npx vite build
 ```
 Both must pass.
 
-### 8. Visual verification
+### 11. Run AFTER quality analysis
+```bash
+node scripts/analyze-quality.mjs 60 quality-report-after.json
+```
+Compare with BEFORE. If any quality metric got worse, you must fix it before committing.
+
+### 12. Capture AFTER screenshots
 ```bash
 node scripts/capture.mjs 60 captures/after
 ```
-Compare before/after. **Would someone watching for the first time feel something they wouldn't have felt before your change?**
 
-### 9. Update the evolution log
+### 13. LOOK at the AFTER screenshots (CRITICAL — DO NOT SKIP)
+**You MUST visually examine the AFTER screenshots and compare with BEFORE.** Use the Read tool:
+```
+Read captures/after/04-exploration-mid-native.png
+Read captures/after/09-complexity-mid-native.png
+```
+Compare with the BEFORE images you already examined. Ask yourself:
+- Is the change actually visible? Can I see the difference?
+- Did anything regress? Are motes still visible? Is the terrain still readable?
+- Would someone watching for the first time feel something they wouldn't have felt before?
+
+**If you can't see an improvement, your change didn't work.** Go back to step 9 and iterate. Do NOT commit invisible changes.
+
+### 14. Update the evolution log
 Append a new entry to `public/evolution-log.json`:
 
 ```json
 {
   "date": "YYYY-MM-DD",
-  "title": "Short title (2-5 words)",
-  "reflection": "2-3 sentences max. What was the gap, what you did, what changed.",
-  "looking_ahead": ["2-4 specific ideas — be bold"],
+  "title": "2-4 plain words",
+  "reflection": "1-2 sentences, max 150 chars. Problem, fix, result.",
+  "looking_ahead": ["2-4 specific next steps"],
+  "visual_verification": "What you saw in AFTER screenshots that confirmed it worked.",
+  "quality_delta": "Metric changes, e.g. 'mote brightness 0.42 -> 0.61'",
   "files_changed": ["list of modified files"]
 }
 ```
 
-**Keep `reflection` to 2-3 sentences.** No multi-paragraph essays. State the problem, the solution, and the impact — concisely.
+**Strict format rules:**
+- `title`: Plain, descriptive, not poetic. "Fix mote visibility" not "The Creatures Emerge From Shadow".
+- `reflection`: 1-2 short sentences. Max 150 characters. No flowery language.
+- Example good: `"Mote body alpha was 100, invisible on terrain. Raised to 220. Clearly visible now."`
+- Example bad: `"Rich simulation was running but invisible at the pixel level. Motes grew from 1px to 5px crosses (3x3 when bonded), bonds became visible at alpha 100, clicks produce ripple rings, meteor got a trail and impact flash, and the spatial hash grid was wired up for O(1) neighbor queries."`
 
 The log is append-only. Never delete or modify previous entries.
 
-### 10. Commit
+### 15. Commit
 ```
 evolve: [short description]
 ```

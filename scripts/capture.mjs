@@ -34,6 +34,20 @@ for (let i = 0; i < PHASES.length; i++) {
 const CYCLE_DURATION = 300; // seconds
 const effectiveCycleDuration = CYCLE_DURATION / speed;
 
+/** Save the canvas at its native 256x144 resolution as a PNG */
+async function saveCanvasNative(page, filepath) {
+  const dataUrl = await page.evaluate(() => {
+    const canvas = document.getElementById("world");
+    if (!canvas) return null;
+    return canvas.toDataURL("image/png");
+  });
+  if (dataUrl) {
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
+    const { writeFileSync } = await import("fs");
+    writeFileSync(filepath, Buffer.from(base64, "base64"));
+  }
+}
+
 async function main() {
   const absOut = resolve(projectRoot, outDir);
   if (!existsSync(absOut)) mkdirSync(absOut, { recursive: true });
@@ -63,9 +77,10 @@ async function main() {
   // Wait for initial render
   await page.waitForTimeout(500);
 
-  // Take an initial screenshot
+  // Take an initial screenshot (both full viewport and native canvas resolution)
   await page.screenshot({ path: resolve(absOut, `00-initial.png`) });
-  console.log(`  00-initial.png`);
+  await saveCanvasNative(page, resolve(absOut, `00-initial-native.png`));
+  console.log(`  00-initial.png (+ native)`);
 
   // Now we need to wait for specific cycle progress points.
   // At speed=60, a full cycle takes 5 seconds.
@@ -82,8 +97,10 @@ async function main() {
 
     if (elapsed >= targetRealMs) {
       const filename = `${String(captureIndex + 1).padStart(2, "0")}-${point.name}.png`;
+      const nativeFilename = `${String(captureIndex + 1).padStart(2, "0")}-${point.name}-native.png`;
       await page.screenshot({ path: resolve(absOut, filename) });
-      console.log(`  ${filename} (progress ~${(point.progress * 100).toFixed(1)}%)`);
+      await saveCanvasNative(page, resolve(absOut, nativeFilename));
+      console.log(`  ${filename} (+ native, progress ~${(point.progress * 100).toFixed(1)}%)`);
       captureIndex++;
     } else {
       await page.waitForTimeout(50);
@@ -98,7 +115,8 @@ async function main() {
 
   // Final full-cycle screenshot
   await page.screenshot({ path: resolve(absOut, `99-final.png`) });
-  console.log(`  99-final.png`);
+  await saveCanvasNative(page, resolve(absOut, `99-final-native.png`));
+  console.log(`  99-final.png (+ native)`);
 
   console.log(`\nDone! ${captureIndex + 2} screenshots saved to ${absOut}`);
 
