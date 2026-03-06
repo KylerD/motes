@@ -17,7 +17,7 @@ import { computeMoteColor, renderMoteTrails, renderMotes } from "./render-motes"
 import {
   renderAuroraCurtains, renderEclipse, applyAuroraBoost,
   renderMeteorVisual, renderCraterGlow, renderPhaseFlash,
-  applyVignette, createMeteorState,
+  applyVignette, applyPhaseColorGrade, createMeteorState,
 } from "./render-effects";
 import { renderClusterGlow, renderBondLines, renderDeathParticles } from "./render-bonds";
 import { renderRipples, renderCursor, renderEventMessage, renderDebugOverlay } from "./render-ui";
@@ -159,7 +159,7 @@ function init(): void {
 
     // UI: ripples, cursor
     renderRipples(rc.buf, input, dt);
-    renderCursor(rc.buf, input);
+    renderCursor(rc.buf, input, w.time);
 
     // Weather foreground
     renderParticles(rc.buf, w.weather, w.terrain.biome);
@@ -167,8 +167,9 @@ function init(): void {
     renderLightning(rc.buf, w.weather);
 
     // Phase flash + vignette
-    renderPhaseFlash(rc.buf, w.phaseFlash);
-    applyVignette(rc.buf);
+    renderPhaseFlash(rc.buf, w.phaseFlash, w.phaseIndex);
+    applyVignette(rc.buf, w.phaseIndex);
+    applyPhaseColorGrade(rc.buf, w.phaseIndex, w.phaseProgress);
 
     // Event message
     renderEventMessage(rc.buf, w.event, w.time);

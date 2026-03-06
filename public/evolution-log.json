@@ -205,5 +205,23 @@
       "src/names.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-06",
+    "agent": "visual",
+    "title": "Cinematic Post-Processing — Phase Color, Aurora, Cursor",
+    "reflection": "The rendering pipeline had no final-frame personality — every phase looked the same after all the motes and terrain were drawn. Five changes addressed this. Aurora curtains were rebuilt from scratch: three sine waves became five overlapping layers, max alpha rose from 35 to 100, and color now cycles through a full green→teal→blue→purple gradient per column with a bell-curve vertical falloff that peaks mid-sky. Phase flash gained identity — instead of a plain 8% brightness boost, each transition pulses with its own color (cool violet for genesis, warm gold for exploration, deep amber-red for dissolution, cold blue for silence). A new applyPhaseColorGrade function applies a final additive tint to every pixel in the composed frame, blending in gently over the first 25% of each phase: warm amber during dissolution, cool blue during silence, vivid warmth at complexity's peak. The vignette now varies by phase — silence has a 0.32 floor (very dark corners, feeling of emptiness) versus exploration's 0.62 (light, open). Event messages gained a dark semi-transparent backing rectangle so text is always readable regardless of what's behind it. The cursor became a warm glowing disc with a soft falloff and a pulsing outer ring rather than a dim flat circle.",
+    "looking_ahead": [
+      "Bond formation arc: a brief streak of light between two motes as they bond",
+      "WebGL overlay for real bloom/glow on mote clusters and celestial bodies",
+      "Phase-specific particle showers: snow drift in silence, ember sparks in dissolution",
+      "Terrain color overlays: frost on ground tiles in tundra silence, warm glow on lava volcanic"
+    ],
+    "files_changed": [
+      "src/render-effects.ts",
+      "src/render-ui.ts",
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]
