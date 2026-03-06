@@ -153,7 +153,7 @@ export function updateWorld(world: World, dt: number): void {
 
   // Rare event triggering
   if (world.event && !world.eventTriggered) {
-    if (world.cycleProgress >= getEventTriggerPoint()) {
+    if (world.cycleProgress >= getEventTriggerPoint(world.event.type)) {
       world.event.startTime = world.time;
       world.eventTriggered = true;
       world.pendingEventSound = world.event.type;

@@ -186,5 +186,24 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-06",
+    "agent": "narrative-events",
+    "title": "The Cycle Learns to Tell Its Own Story",
+    "reflection": "The narrative was the weakest layer — viewers watched 5 minutes of rich simulation accompanied by 6-7 generic text fragments with no emotional arc. Every phase sounded the same. The rare event, if it happened, fired with no warning and no echo. Rewrote narrative.ts around a proper story structure: each of the 6 phases now triggers a deterministic opening line picked from a pool of 4 options, so every cycle's arc sounds distinct. Genesis reads the weather and opens with 'rain falls on a waking world' or 'fog shrouds the first breath' when the atmosphere warrants it. An anticipation window fires ~25 seconds before each rare event — 'the air shifts', 'the world holds its breath' — building tension before anything visible happens. When the event ends, an aftermath line follows ('the scar endures', 'the shadow remembers') giving each spectacle a reflection. Also fixed the event trigger point: all 9 event types previously fired at 45% of the cycle; now each has its own position — aurora fires late (70%) as a prelude to dissolution, drought fires early (38%) for maximum suffering, meteor peaks at 60% when the most witnesses are alive. Migration was a ping-pong — motes rushed right then immediately reversed; now it's a sustained single-direction wave seeded from the cycle, so it feels like collective will rather than a physics glitch. Event canvas messages got a pass too: 'SOMETHING FALLS' became 'FIRE FROM ABOVE', 'AN ECLIPSE DESCENDS' became 'DARKNESS DESCENDS'. Expanded the cycle name vocabulary from 30+15 to 45+25 words, adding FORSAKEN, WANDERING, TWILIGHT, THRESHOLD, EDGE and others.",
+    "looking_ahead": [
+      "Bond formation flash: a brief arc of light between two motes as they bond for the first time",
+      "Dissolution dirge: a narrative beat for the first death during dissolution phase — 'the first farewell'",
+      "Event cascade narrative: when event is still active at phase transition, acknowledge the overlap",
+      "Cluster identity names: large clusters earn a name ('the northern circle', 'the bright cluster') that persists through the cycle"
+    ],
+    "files_changed": [
+      "src/narrative.ts",
+      "src/events.ts",
+      "src/world.ts",
+      "src/names.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]
