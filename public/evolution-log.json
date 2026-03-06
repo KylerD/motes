@@ -134,5 +134,22 @@
       "CLAUDE.md",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-06",
+    "agent": "mote",
+    "title": "Death Made Dramatic",
+    "reflection": "Death was the weakest visual moment in the cycle — a handful of generic biome-colored pixels that vanished in 1.2 seconds. Two bugs combined to kill the effect: deaths captured the landscape's palette color instead of the mote's temperament color, and the particle system was too sparse to notice. Fixed the color capture in world.ts to compute the actual hue/saturation from temperament, then rewrote renderDeathParticles into four distinct phases — flash burst, five soul shards arcing upward, a rising spirit orb that sways and pulses for 2.8 seconds, and a soft ground echo that lingers for 7 seconds. Now each death is a small spectacle in the mote's own identity color.",
+    "looking_ahead": [
+      "Temperament movement distinction: wanderers leave longer trails, social motes pulse when bonded",
+      "Bond formation visual moment: a brief arc of light connecting two motes as they bond",
+      "Cluster identity: large clusters develop a shared color aura that marks their territory",
+      "Hardy motes: visual resilience cue when surviving hostile terrain (brief white flash)"
+    ],
+    "files_changed": [
+      "src/world.ts",
+      "src/render-bonds.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

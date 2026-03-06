@@ -76,7 +76,7 @@ export function renderBondLines(
   }
 }
 
-/** Death particles — rising souls + ground marks */
+/** Death particles — four-phase soul departure: flash → shards → spirit → echo */
 export function renderDeathParticles(
   buf: ImageData,
   deaths: DeathRecord[],
@@ -85,27 +85,87 @@ export function renderDeathParticles(
   for (const d of deaths) {
     const age = time - d.time;
 
-    // Soul rise phase
-    if (age < 1.2) {
-      const life = 1 - age / 1.2;
-      const alpha = Math.round(life * 200);
-      const spread = age * 20;
-      const rise = age * 8;
-      setPixel(buf, d.x, d.y, d.r, d.g, d.b, alpha);
-      const pa = Math.round(alpha * 0.6);
-      setPixel(buf, d.x, d.y - spread - rise, 255, 255, 255, Math.round(pa * 0.8));
-      setPixel(buf, d.x - spread, d.y - rise, d.r, d.g, d.b, pa);
-      setPixel(buf, d.x + spread, d.y - rise, d.r, d.g, d.b, pa);
-      setPixel(buf, d.x, d.y - spread * 1.5 - rise, d.r, d.g, d.b, Math.round(pa * 0.4));
-      setPixel(buf, d.x - 1, d.y - spread * 0.7 - rise, d.r, d.g, d.b, Math.round(pa * 0.3));
-      setPixel(buf, d.x + 1, d.y - spread * 0.7 - rise, d.r, d.g, d.b, Math.round(pa * 0.3));
+    // Precompute brightened identity color
+    const br = Math.min(255, Math.round(d.r * 1.5 + 50));
+    const bg = Math.min(255, Math.round(d.g * 1.5 + 50));
+    const bb = Math.min(255, Math.round(d.b * 1.5 + 50));
+
+    // Phase 1: Flash burst (0–0.28s) — white core + expanding color ring
+    if (age < 0.28) {
+      const t = age / 0.28;
+      const ring = t * 10; // radius expands 0→10px
+      const ringA = Math.round((1 - t) * 210);
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        setPixel(buf, d.x + Math.cos(angle) * ring, d.y - 1 + Math.sin(angle) * ring, br, bg, bb, ringA);
+      }
+      const coreA = Math.round((1 - t) * 255);
+      setPixel(buf, d.x, d.y - 1, 255, 255, 255, coreA);
+      setPixel(buf, d.x - 1, d.y - 1, 255, 255, 255, Math.round(coreA * 0.6));
+      setPixel(buf, d.x + 1, d.y - 1, 255, 255, 255, Math.round(coreA * 0.6));
+      setPixel(buf, d.x, d.y, 255, 255, 255, Math.round(coreA * 0.5));
+      setPixel(buf, d.x, d.y - 2, br, bg, bb, Math.round(coreA * 0.45));
     }
 
-    // Ground mark phase
-    if (age >= 1.0 && age < 6) {
-      const markLife = 1 - (age - 1.0) / 5.0;
-      const ma = Math.round(markLife * 25);
-      if (ma > 0) setPixel(buf, d.x, d.y, d.r, d.g, d.b, ma);
+    // Phase 2: Soul shards (0–1.8s) — 5 particles arc upward and fade
+    if (age < 1.8) {
+      for (let i = 0; i < 5; i++) {
+        // Deterministic spread: fan upward, ±1.1 rad around straight-up (-π/2)
+        const spread = (i - 2) * 0.55;
+        // Small position-based jitter so each death looks slightly unique
+        const jitter = ((d.x * 13 + d.y * 7 + i * 31) % 100) * 0.006 - 0.3;
+        const angle = -Math.PI / 2 + spread + jitter;
+        const spd = 10 + ((d.x * 3 + i * 17) % 6); // 10–15 px/s
+        const px = d.x + Math.cos(angle) * spd * age;
+        // Upward launch with mild gravity pulling back
+        const py = d.y - 1 + Math.sin(angle) * spd * age + 3.5 * age * age;
+        // Alpha: ramp 0→0.2s, plateau, fade 0.6→1.8s
+        let alpha: number;
+        if (age < 0.2) alpha = Math.round((age / 0.2) * 170);
+        else if (age < 0.6) alpha = 170;
+        else alpha = Math.round((1 - (age - 0.6) / 1.2) * 170);
+        if (alpha > 3) {
+          setPixel(buf, px, py, d.r, d.g, d.b, alpha);
+          // Bright tip
+          setPixel(buf, px, py - 1, br, bg, bb, Math.round(alpha * 0.45));
+        }
+      }
+    }
+
+    // Phase 3: Spirit orb (0–2.8s) — rises high, pulses, then fades away
+    if (age < 2.8) {
+      // Ease-out rise: fast at start, decelerating
+      const rise = 16 * age - 2.2 * age * age;
+      const sway = Math.sin(age * 3.5 + d.x * 0.2) * 1.5;
+      const sx = d.x + sway;
+      const sy = d.y - 1 - Math.max(0, rise);
+      const pulse = Math.sin(age * 7) * 0.15 + 0.85;
+      let spiritA: number;
+      if (age < 0.15) spiritA = Math.round((age / 0.15) * 230 * pulse);
+      else if (age < 1.8) spiritA = Math.round(230 * pulse);
+      else spiritA = Math.round((1 - (age - 1.8) / 1.0) * 230 * pulse);
+      if (spiritA > 4) {
+        setPixel(buf, sx, sy, br, bg, bb, spiritA);
+        setPixel(buf, sx - 1, sy, d.r, d.g, d.b, Math.round(spiritA * 0.55));
+        setPixel(buf, sx + 1, sy, d.r, d.g, d.b, Math.round(spiritA * 0.55));
+        setPixel(buf, sx, sy - 1, 255, 255, 255, Math.round(spiritA * 0.35));
+        // Faint trail below spirit
+        if (rise > 4) {
+          const trailRise = rise * 0.55;
+          setPixel(buf, d.x + sway * 0.5, d.y - 1 - trailRise, d.r, d.g, d.b, Math.round(spiritA * 0.18));
+        }
+      }
+    }
+
+    // Phase 4: Ground echo (1.2–7.0s) — soft glow at death site
+    if (age >= 1.2 && age < 7.0) {
+      const markLife = 1 - (age - 1.2) / 5.8;
+      const ma = Math.round(markLife * markLife * 38);
+      if (ma > 1) {
+        setPixel(buf, d.x, d.y, d.r, d.g, d.b, ma);
+        setPixel(buf, d.x - 1, d.y, d.r, d.g, d.b, Math.round(ma * 0.5));
+        setPixel(buf, d.x + 1, d.y, d.r, d.g, d.b, Math.round(ma * 0.5));
+      }
     }
   }
 }
