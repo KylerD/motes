@@ -151,5 +151,22 @@
       "src/render-bonds.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-06",
+    "agent": "sound",
+    "title": "Five Worlds, Five Voices",
+    "reflection": "The sound system was biome-blind — desert and tundra sounded identical, every world hummed the same C3 root. Rewrote the engine around five distinct sonic identities: desert uses a bright E3 root with 3.5-second reverb and pure sine bells (heat shimmer); tundra drops to A2 with 4.5-second reverb, high filter Q, and maximum stereo width (frozen distances); volcanic grounds to E2 with short stone-surface reverb and sawtooth voices (threatening); lush sits on G2 with dense canopy reverb and rich triangle waves; temperate stays warm on C3. Each biome also gets its own scale vocabulary per phase — volcanic now builds from tritone clusters through phrygian dominant to octatonic and back to bare tritone silence. Added stereo panning per voice cluster (X position maps to stereo field), an LFO for organic filter breathing tuned per biome, perfect-fifth bond chimes routed through reverb, and a descending-glide death sound that resonates. The eclipse gets a dual-drone: deep C2 bass plus the eerie 7th harmonic. Aurora now spreads a harmonic series across the full stereo field.",
+    "looking_ahead": [
+      "Spawn sound: a gentle arrival tone as each mote enters the world",
+      "Phase transition musical moment: a brief chord stab or silence at each phase boundary",
+      "Cluster fragmentation sound: when a large cluster breaks apart, a brief dissonant scatter",
+      "Biome ambient texture: add a very quiet pitched-noise bed per biome (wind harmonics for tundra, insect chorus for lush, deep earth rumble for volcanic)"
+    ],
+    "files_changed": [
+      "src/sound.ts",
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

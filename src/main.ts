@@ -60,7 +60,7 @@ function init(): void {
 
   // Sound update loop (~15fps, decoupled)
   setInterval(() => {
-    updateSound(sound, world.ref.motes, world.ref.phaseIndex, world.ref.phaseProgress);
+    updateSound(sound, world.ref.motes, world.ref.phaseIndex, world.ref.phaseProgress, world.ref.terrain.biome);
     updateWeatherSound(sound, world.ref.weather);
   }, 67);
 
