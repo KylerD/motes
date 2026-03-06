@@ -100,6 +100,25 @@ export function renderTerrain(
   const bgMountains = getBgMountains(terrain.seed);
   const bgColor = PAL[bp.cliff];
 
+  // Background mountain color: biome-matched silhouette
+  // Slightly lighter/tinted version of the cliff color for atmospheric depth
+  const biome = terrain.biome;
+  const bgMtnR = biome === "desert"   ? Math.min(255, bgColor[0] + 30) :
+                 biome === "tundra"   ? Math.min(255, bgColor[0] + 20) :
+                 biome === "volcanic" ? bgColor[0] :
+                 biome === "lush"     ? Math.max(0, bgColor[0] - 10) :
+                                        bgColor[0] + 15;
+  const bgMtnG = biome === "desert"   ? Math.min(255, bgColor[1] + 18) :
+                 biome === "tundra"   ? Math.min(255, bgColor[1] + 25) :
+                 biome === "volcanic" ? bgColor[1] :
+                 biome === "lush"     ? Math.min(255, bgColor[1] + 18) :
+                                        bgColor[1] + 15;
+  const bgMtnB = biome === "desert"   ? Math.min(255, bgColor[2] + 8)  :
+                 biome === "tundra"   ? Math.min(255, bgColor[2] + 40) :
+                 biome === "volcanic" ? bgColor[2] :
+                 biome === "lush"     ? Math.max(0, bgColor[2] - 5)    :
+                                        bgColor[2] + 18;
+
   const d = buf.data;
 
   for (let y = 0; y < H; y++) {
@@ -119,12 +138,15 @@ export function renderTerrain(
         let b = Math.max(0, Math.min(255, c[2] + tint[2] * tintStr));
 
         // Background mountains — blend distant silhouettes over sky
+        // Two depth layers: far (lighter) and near (darker), based on height
         const bgSurfY = Math.floor(H - bgMountains[x]);
         if (y >= bgSurfY) {
-          const blend = 0.25;
-          r = r * (1 - blend) + bgColor[0] * blend;
-          g = g * (1 - blend) + bgColor[1] * blend;
-          b = b * (1 - blend) + bgColor[2] * blend;
+          // Depth-based blend: stronger near the surface (more opaque mountains)
+          const depthIntoMtn = y - bgSurfY;
+          const blend = Math.min(0.52, 0.35 + depthIntoMtn * 0.025);
+          r = r * (1 - blend) + bgMtnR * blend;
+          g = g * (1 - blend) + bgMtnG * blend;
+          b = b * (1 - blend) + bgMtnB * blend;
         }
 
         d[pi]     = r;
@@ -154,14 +176,50 @@ export function renderTerrain(
   // Surface detail: grass blades, flowers, vines
   renderSurfaceDetail(buf, terrain);
 
-  // Water surface shimmer: occasional lighter pixels on water surface
+  // Water surface shimmer: animated wave highlights across water
+  renderWaterShimmer(buf, terrain, time);
+}
+
+/** Animated water shimmer — layered waves with depth variation */
+function renderWaterShimmer(buf: ImageData, terrain: Terrain, time: number): void {
+  const { bp } = terrain;
+  const shallowC = PAL[bp.shallowWater];
+  const skyC = PAL[bp.sky];
+
   for (let x = 0; x < W; x++) {
     const surfaceY = getSurfaceY(terrain, x);
     const worldH = H - surfaceY;
-    if (worldH <= terrain.waterLevel && worldH >= terrain.waterLevel - 1) {
-      if ((x + Math.floor(time * 2)) % 5 === 0) {
-        setPixel(buf, x, surfaceY, PAL[8][0], PAL[8][1], PAL[8][2], 120);
-      }
+    if (worldH > terrain.waterLevel || worldH < terrain.waterLevel - 8) continue;
+
+    // Three overlapping wave frequencies for organic motion
+    const w1 = Math.sin(x * 0.18 + time * 1.8) * 0.5 + 0.5;
+    const w2 = Math.sin(x * 0.31 - time * 2.4 + 1.3) * 0.5 + 0.5;
+    const w3 = Math.sin(x * 0.07 + time * 0.9 + 2.7) * 0.5 + 0.5;
+    const wave = w1 * 0.5 + w2 * 0.3 + w3 * 0.2;
+
+    // Surface glint — brightest highlights
+    if (wave > 0.78) {
+      const a = Math.round((wave - 0.78) / 0.22 * 160);
+      setPixel(buf, x, surfaceY,
+        Math.min(255, skyC[0] + 40),
+        Math.min(255, skyC[1] + 40),
+        Math.min(255, skyC[2] + 30), a);
+    }
+
+    // Shallow shimmer — sub-surface ripple color
+    if (wave > 0.55 && surfaceY + 1 < H) {
+      const a = Math.round((wave - 0.55) / 0.45 * 70);
+      setPixel(buf, x, surfaceY + 1,
+        shallowC[0] + 20, shallowC[1] + 20, shallowC[2] + 25, a);
+    }
+
+    // Occasional dark trough between waves
+    if (wave < 0.22) {
+      const a = Math.round((0.22 - wave) / 0.22 * 40);
+      setPixel(buf, x, surfaceY,
+        Math.max(0, shallowC[0] - 15),
+        Math.max(0, shallowC[1] - 12),
+        Math.max(0, shallowC[2] - 8), a);
     }
   }
 }

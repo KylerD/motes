@@ -107,7 +107,7 @@ function init(): void {
     renderTerrain(rc.buf, w.terrain, w.time, w.cycleProgress);
 
     // Weather background
-    renderCelestial(rc.buf, w.weather, w.time);
+    renderCelestial(rc.buf, w.weather, w.time, w.cycleProgress);
     renderClouds(rc.buf, w.weather, w.time);
     applyWeatherDarkening(rc.buf, w.weather);
 
@@ -162,8 +162,8 @@ function init(): void {
     renderCursor(rc.buf, input);
 
     // Weather foreground
-    renderParticles(rc.buf, w.weather);
-    renderFog(rc.buf, w.weather, w.time);
+    renderParticles(rc.buf, w.weather, w.terrain.biome);
+    renderFog(rc.buf, w.weather, w.time, w.terrain.biome);
     renderLightning(rc.buf, w.weather);
 
     // Phase flash + vignette

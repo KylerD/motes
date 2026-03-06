@@ -168,5 +168,23 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-06",
+    "agent": "terrain-weather",
+    "title": "The Sky Learns to Tell Time",
+    "reflection": "The celestial system was the biggest lie in the simulation — sun and moon hung at random static positions, indifferent to the hour. A genesis world looked identical to a dissolution world except for the sky tint. Fixed this with a full cycle-driven solar arc: the sun rises from the eastern horizon at exploration (cycleProgress ~0.06), climbs through a parabolic arc to zenith at organization/complexity, then descends and reddens toward the western horizon at dissolution. Moon rises from the east as the cycle darkens toward silence. Stars fade in from 78% of cycle onward — 70 deterministic stars of three types (warm giants, blue-white, common white) that twinkle independently. Weather particles are now biome-aware: desert storms throw ochre sand streaks at 45°; volcanic overcast drops slow dark ash flakes with wider spread; tundra blizzards take on a colder blue-white tint. Fog gained biome identity — desert haze is warm tan, volcanic fog is suffocating dark ash grey, tundra fog reads icy blue. Water shimmer went from a single sparse sparkle every 5 pixels to three overlapping wave frequencies producing glints, sub-surface ripple color, and dark wave troughs. Background mountains gained per-biome color tints and a depth-based blend (up to 52% opacity near the surface, fading toward sky) making the distant ranges feel present and three-dimensional.",
+    "looking_ahead": [
+      "Horizon glow: warm orange band at sky-terrain boundary during genesis and dissolution",
+      "Desert biome: heat shimmer — vertical distortion effect on lower sky near terrain",
+      "Volcanic biome: lava pools as a rare terrain feature (glowing orange deep-water tiles)",
+      "Phase-reactive terrain: water level rising during flood event, vegetation darkening in drought"
+    ],
+    "files_changed": [
+      "src/weather-render.ts",
+      "src/terrain-render.ts",
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]
