@@ -335,6 +335,38 @@ export function renderMotes(
       setPixel(buf, ox, oy - 1, 10, 10, 25, Math.round(m.bondBreakFlash * 140));
     }
 
+    // DEATH INHERITANCE — nearest witness briefly carries the dead mote's color
+    // An expanding ring of grief: the color of loss radiating outward from the survivor
+    if (m.inheritFlash > 0) {
+      const ef = m.inheritFlash;
+      const expandT = 1 - ef;                      // 0→1 as ring grows
+      const ringRadius = 3 + expandT * 7;           // 3→10 px expansion
+      const ringA = Math.round(ef * 175);
+      const dotCount = 14;
+      for (let i = 0; i < dotCount; i++) {
+        const angle = (i / dotCount) * Math.PI * 2;
+        const rx = ox + Math.cos(angle) * ringRadius;
+        const ry = (oy - 1) + Math.sin(angle) * ringRadius;
+        setPixel(buf, rx, ry, m.inheritR, m.inheritG, m.inheritB, ringA);
+      }
+      // Second, tighter ring for depth
+      const ring2R = ringRadius * 0.55;
+      const ring2A = Math.round(ef * ef * 90);
+      if (ring2A > 4) {
+        for (let i = 0; i < 8; i++) {
+          const angle = (i / 8) * Math.PI * 2;
+          setPixel(buf, ox + Math.cos(angle) * ring2R, (oy - 1) + Math.sin(angle) * ring2R, m.inheritR, m.inheritG, m.inheritB, ring2A);
+        }
+      }
+      // Brief core tinge: the first moment of grief, before the ring spreads
+      if (ef > 0.65) {
+        const coreA = Math.round((ef - 0.65) / 0.35 * 130);
+        setPixel(buf, ox,     oy - 1, m.inheritR, m.inheritG, m.inheritB, coreA);
+        setPixel(buf, ox - 1, oy - 1, m.inheritR, m.inheritG, m.inheritB, Math.round(coreA * 0.45));
+        setPixel(buf, ox + 1, oy - 1, m.inheritR, m.inheritG, m.inheritB, Math.round(coreA * 0.45));
+      }
+    }
+
     // SPAWN MATERIALIZATION
     if (m.spawnFlash > 0) {
       const sf = m.spawnFlash * m.spawnFlash;

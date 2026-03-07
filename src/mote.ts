@@ -43,6 +43,10 @@ export function createMote(
     bondFlash: 0,
     bondBreakFlash: 0,
     hardinessFlash: 0,
+    inheritFlash: 0,
+    inheritR: 0,
+    inheritG: 0,
+    inheritB: 0,
     grounded: false,
     direction: rng() < 0.5 ? -1 : 1,
     spawnFlash: 1.0,
@@ -72,6 +76,7 @@ export function updateMote(
 
   m.bondFlash = Math.max(0, m.bondFlash - dt * 3);
   m.bondBreakFlash = Math.max(0, m.bondBreakFlash - dt * 2.5);
+  m.inheritFlash = Math.max(0, m.inheritFlash - dt * 0.65); // ~1.5s grief window
 
   // Record trail breadcrumbs
   m.trailTimer += dt;

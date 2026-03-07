@@ -229,6 +229,23 @@ export function updateWorld(world: World, dt: number): void {
         r: dr, g: dg, b: db,
         time: world.time,
       });
+
+      // Death inheritance: nearest living mote within 55px briefly carries the dead mote's color
+      let nearest: typeof world.motes[0] | null = null;
+      let nearestD2 = 55 * 55;
+      for (const other of world.motes) {
+        if (other === m || other.energy <= 0) continue;
+        const dx = other.x - m.x;
+        const dy = other.y - m.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < nearestD2) { nearestD2 = d2; nearest = other; }
+      }
+      if (nearest) {
+        nearest.inheritFlash = 1.0;
+        nearest.inheritR = dr;
+        nearest.inheritG = dg;
+        nearest.inheritB = db;
+      }
     }
   }
 

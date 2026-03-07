@@ -97,6 +97,10 @@ export interface Mote {
   forceY: number;
   bondBreakFlash: number;
   hardinessFlash: number;
+  inheritFlash: number;
+  inheritR: number;
+  inheritG: number;
+  inheritB: number;
 }
 
 // ---- Physics ----
