@@ -2,7 +2,7 @@
 
 import { createRenderContext, present } from "./render";
 import { H } from "./config";
-import { renderTerrain } from "./terrain";
+import { renderTerrain, applyHeatHaze } from "./terrain";
 import { createWorld, updateWorld } from "./world";
 import { cycleName } from "./names";
 import { createSoundEngine, initAudio, updateSound, updateWeatherSound, playDeath, playEventSound, playPhaseTransition } from "./sound";
@@ -122,6 +122,7 @@ function init(): void {
     renderCelestial(rc.buf, w.weather, w.time, w.cycleProgress);
     renderClouds(rc.buf, w.weather, w.time);
     applyWeatherDarkening(rc.buf, w.weather);
+    applyHeatHaze(rc.buf, w.terrain, w.time, w.cycleProgress);
 
     // Pre-compute mote colors
     const moteColors = new Map<Mote, [number, number, number]>();

@@ -199,9 +199,24 @@ export function renderClouds(buf: ImageData, weather: Weather, time: number): vo
         const a = Math.round(shape * cloud.density * 255);
         if (a < 3) continue;
 
-        // Cloud color: light grey-white
-        const bright = weather.type === "storm" ? 100 : weather.type === "overcast" ? 140 : 200;
-        setPixel(buf, px, py, bright, bright + 5, bright + 10, a);
+        // Cloud color: vertical gradient — bright tops, darker bases for depth
+        // vertT = 0 at top, 1 at bottom
+        const vertT = (dy + Math.ceil(hh)) / Math.max(1, 2 * Math.ceil(hh));
+        let cr: number, cg: number, cb: number;
+        if (weather.type === "storm") {
+          // Storm: very dark bottom (threatening), lighter grey top
+          const v = Math.round(130 - vertT * 80);
+          cr = v - 8; cg = v; cb = v + 12;
+        } else if (weather.type === "overcast") {
+          // Overcast: flat mid-grey with slight dark belly
+          const v = Math.round(158 - vertT * 28);
+          cr = v; cg = v + 2; cb = v + 8;
+        } else {
+          // Clear/fog/snow: bright white, slight blue tint at top
+          const blueBoost = Math.round((1 - vertT) * 18);
+          cr = 205; cg = 210; cb = 218 + blueBoost;
+        }
+        setPixel(buf, px, py, cr, cg, cb, a);
       }
     }
   }

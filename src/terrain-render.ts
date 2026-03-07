@@ -137,6 +137,33 @@ export function renderTerrain(
 
   const d = buf.data;
 
+  // Pre-compute sky reflection color for water tiles — mid-sky tinted by phase
+  const midSky = lerpColor(skyTop, skyBot, 0.4);
+  const skyReflR = Math.max(0, Math.min(255, midSky[0] + tint[0] * 0.6));
+  const skyReflG = Math.max(0, Math.min(255, midSky[1] + tint[1] * 0.6));
+  const skyReflB = Math.max(0, Math.min(255, midSky[2] + tint[2] * 0.6));
+
+  // Phase-driven terrain lighting: sunlight angle/color shifts through the cycle
+  const inGoldenHour = cycleProgress >= 0.68 && cycleProgress < 0.92;
+  const inDawn       = cycleProgress < 0.12;
+  const inDusk       = cycleProgress >= 0.92;
+  let lightR = 0, lightG = 0, lightB = 0, lightStr = 0;
+  if (inGoldenHour) {
+    // Warm amber-gold light — peaks at dissolution, fades toward silence
+    const gp = (cycleProgress - 0.68) / 0.24;
+    lightStr = Math.sin(gp * Math.PI) * 0.55;
+    lightR = 38; lightG = 14; lightB = -22;
+  } else if (inDawn) {
+    // Cool blue-violet pre-dawn — fades as sun rises
+    const dp = cycleProgress / 0.12;
+    lightStr = (1 - dp) * 0.35;
+    lightR = -8; lightG = -5; lightB = 22;
+  } else if (inDusk) {
+    // Deep indigo moonlight
+    lightStr = 0.38;
+    lightR = -12; lightG = -8; lightB = 24;
+  }
+
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const idx = y * W + x;
@@ -204,13 +231,32 @@ export function renderTerrain(
         d[pi + 1] = Math.round(Math.min(255, (28  + lavaFlicker * 72) * depthDim));
         d[pi + 2] = 8;
         d[pi + 3] = 255;
+      } else if (tile === Tile.DeepWater || tile === Tile.ShallowWater) {
+        // Water with sky reflection: blend phase-tinted sky into the water surface
+        const ci = tileColor(tile, bp);
+        const wc = PAL[ci];
+        const refl = tile === Tile.ShallowWater ? 0.28 : 0.14;
+        d[pi]     = Math.round(Math.min(255, wc[0] + (skyReflR - wc[0]) * refl));
+        d[pi + 1] = Math.round(Math.min(255, wc[1] + (skyReflG - wc[1]) * refl));
+        d[pi + 2] = Math.round(Math.min(255, wc[2] + (skyReflB - wc[2]) * refl));
+        d[pi + 3] = 255;
       } else {
         const ci = tileColor(tile, bp);
         if (ci >= 0) {
-          d[pi] = PAL[ci][0];
+          d[pi]     = PAL[ci][0];
           d[pi + 1] = PAL[ci][1];
           d[pi + 2] = PAL[ci][2];
           d[pi + 3] = 255;
+          // Phase lighting on surface tiles: warm at golden hour, cool at dawn/dusk
+          if (lightStr > 0) {
+            const distSurf = y - surfaceYCache[x];
+            if (distSurf >= 0 && distSurf < 3) {
+              const fade = (1 - distSurf * 0.4) * lightStr;
+              d[pi]     = Math.min(255, Math.max(0, d[pi]     + Math.round(lightR * fade)));
+              d[pi + 1] = Math.min(255, Math.max(0, d[pi + 1] + Math.round(lightG * fade)));
+              d[pi + 2] = Math.min(255, Math.max(0, d[pi + 2] + Math.round(lightB * fade)));
+            }
+          }
         }
       }
     }
@@ -378,6 +424,52 @@ function renderSurfaceDetail(buf: ImageData, terrain: Terrain): void {
           setPixel(buf, x, surfaceY - 1, 240, 248, 255, crystalA);
         }
       }
+    }
+  }
+}
+
+/**
+ * Desert heat haze — warm shimmering glow in the air above hot desert terrain.
+ * Call after terrain + weather are composited, before motes are drawn.
+ * Only active in hot phases (exploration through dissolution).
+ */
+export function applyHeatHaze(buf: ImageData, terrain: Terrain, time: number, cycleProgress: number): void {
+  if (terrain.biome !== "desert") return;
+
+  // Only during the hot part of the day
+  const hotStart = 0.10, hotEnd = 0.88;
+  if (cycleProgress < hotStart || cycleProgress > hotEnd) return;
+
+  // Intensity peaks at midday, tapers at dawn/dusk
+  const p = (cycleProgress - hotStart) / (hotEnd - hotStart);
+  const intensity = Math.sin(p * Math.PI);
+  if (intensity < 0.08) return;
+
+  const d = buf.data;
+
+  for (let x = 0; x < W; x++) {
+    const surfaceY = getSurfaceY(terrain, x);
+
+    // Heat haze zone: 3–28px above surface
+    for (let dist = 3; dist < 28; dist++) {
+      const y = surfaceY - dist;
+      if (y < 0) break;
+
+      // Two overlapping noise frequencies for organic shimmering bands
+      const n1 = noise2(x * 0.18 + time * 1.2, y * 0.22 - time * 0.6) * 0.5 + 0.5;
+      const n2 = noise2(x * 0.31 - time * 0.9, y * 0.15 + time * 0.4) * 0.5 + 0.5;
+      const haze = n1 * 0.6 + n2 * 0.4;
+
+      // Quadratic falloff with height — hottest just above ground
+      const nearGround = Math.pow(1 - dist / 28, 2);
+      const hazeStr = haze * nearGround * intensity;
+      if (hazeStr < 0.05) continue;
+
+      const pi = (y * W + x) * 4;
+      // Warm yellow shimmer: boost R and G, slightly cool B
+      d[pi]     = Math.min(255, d[pi]     + Math.round(hazeStr * 26));
+      d[pi + 1] = Math.min(255, d[pi + 1] + Math.round(hazeStr * 13));
+      d[pi + 2] = Math.max(0,   d[pi + 2] - Math.round(hazeStr * 9));
     }
   }
 }

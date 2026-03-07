@@ -5,4 +5,4 @@ export { Tile } from "./types";
 export type { Terrain } from "./types";
 export { generateTerrain } from "./terrain-gen";
 export { getSurfaceY, getTile, isSolid, isWalkable, getTileEnergy, modifyTile, placeSettlement } from "./terrain-query";
-export { renderTerrain } from "./terrain-render";
+export { renderTerrain, applyHeatHaze } from "./terrain-render";

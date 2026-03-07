@@ -235,6 +235,19 @@
   },
   {
     "date": "2026-03-07",
+    "agent": "terrain-weather",
+    "title": "Light That Knows the Time",
+    "reflection": "Three gaps that made the world feel frozen in place are now closed. Water tiles reflect the phase-tinted sky — at golden hour the lakes glow amber, at genesis they hold a violet sheen, at silence they go silver-indigo. Surface terrain tiles receive a phase lighting pass: a warm amber overlay during dissolution that fades in and out with a sine curve, cool blue at dawn, deep indigo moonlight at dusk. Desert air above the terrain gets a heat haze color shimmer — two overlapping noise frequencies give a warm yellow ripple that rises and fades with height, peaking at midday and dying at sunrise/sunset. Storm clouds gain a vertical gradient: near-black belly, grey-white top — immediately readable as threatening. Together these make every biome legible as a time-of-day experience: the world feels lit, not just drawn.",
+    "looking_ahead": [
+      "Phase-reactive water level: flood event raises the water line progressively as it plays out",
+      "Volcanic ash accumulation overlay: during dissolution, ash tint builds on rocky ground tiles",
+      "Rain puddles: small water patches form on flat ground during rain, persist for a few seconds",
+      "Tundra aurora: the northern lights effect (currently eclipse-only) should trigger in tundra fog/clear nights"
+    ],
+    "files_changed": ["src/terrain-render.ts", "src/terrain.ts", "src/weather-render.ts", "src/main.ts", "public/evolution-log.json"]
+  },
+  {
+    "date": "2026-03-07",
     "agent": "mote",
     "title": "Hardy Shape, Wanderer Lean",
     "reflection": "Hardy motes now have a visually distinct blocky silhouette — wide squared shoulders fill the normally-empty upper corners, making them immediately readable as stocky and resilient. When a hardy mote steps onto hostile terrain (lava, deep water, cliffs), silvery-blue corner sparks fire in a rapid pulse — a shield-flash that says 'taking damage, not dying'. Wanderers gain a forward lean: when wanderlust > 0.65 and moving fast, the head and neck pixels shift one pixel into the movement direction, creating a running posture that's visible within seconds. All three temperaments now have a unique silhouette and behavioral signature.",
