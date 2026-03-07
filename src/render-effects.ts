@@ -20,9 +20,11 @@ const _bloomBufB = new Uint8Array(_BLOOM_N);
  * additive-blend the glow back onto the frame.  Creates the "lens glow"
  * around mote eyes, bond sparks, death flashes, and celestial bodies.
  *
- * @param strength  0 = no bloom, 1 = full (0.3–0.7 recommended)
+ * @param strength   0 = no bloom, 1 = full (0.3–0.7 recommended)
+ * @param tintR/G/B  Per-channel glow tint multipliers (1.0 = neutral).
+ *                   Use e.g. (1.4, 0.7, 0.5) for a volcanic red-orange glow.
  */
-export function applyBloom(buf: ImageData, strength: number): void {
+export function applyBloom(buf: ImageData, strength: number, tintR = 1.0, tintG = 1.0, tintB = 1.0): void {
   if (strength <= 0) return;
   const d = buf.data;
   const THRESHOLD = 140;
@@ -78,9 +80,9 @@ export function applyBloom(buf: ImageData, strength: number): void {
         cnt++;
       }
       const di = (y * W + x) << 2;
-      const blr = (sr / cnt * strength) | 0;
-      const blg = (sg / cnt * strength) | 0;
-      const blb = (sb / cnt * strength) | 0;
+      const blr = (sr / cnt * strength * tintR) | 0;
+      const blg = (sg / cnt * strength * tintG) | 0;
+      const blb = (sb / cnt * strength * tintB) | 0;
       d[di]     = d[di]     + blr > 255 ? 255 : d[di]     + blr;
       d[di + 1] = d[di + 1] + blg > 255 ? 255 : d[di + 1] + blg;
       d[di + 2] = d[di + 2] + blb > 255 ? 255 : d[di + 2] + blb;
@@ -370,6 +372,117 @@ export function renderPhaseFlash(buf: ImageData, phaseFlash: number, phaseIndex:
     d[i]     = Math.min(255, Math.max(0, Math.round(d[i]     + (d[i]     * 0.07 + tint[0]) * f)));
     d[i + 1] = Math.min(255, Math.max(0, Math.round(d[i + 1] + (d[i + 1] * 0.07 + tint[1]) * f)));
     d[i + 2] = Math.min(255, Math.max(0, Math.round(d[i + 2] + (d[i + 2] * 0.07 + tint[2]) * f)));
+  }
+}
+
+/**
+ * Phase-specific atmospheric particle field.
+ *
+ * Genesis:     ascending stardust — bright gold-white sparks drifting upward
+ * Dissolution: falling ash       — warm grey particles accumulating as the cycle dies
+ * Silence:     drifting dust     — barely-visible specks, the world holding its breath
+ *
+ * All particles are deterministic: same cycleNumber → same positions/motion.
+ * Movement is driven purely by time, so they animate continuously.
+ */
+export function renderAtmosphericParticles(
+  buf: ImageData,
+  phaseIndex: number,
+  phaseProgress: number,
+  time: number,
+  cycleNumber: number,
+): void {
+  if (phaseIndex === 0) {
+    // Genesis: ascending stardust — fades in fast, fades out by ~70%
+    const fadeIn  = Math.min(1, phaseProgress * 10);
+    const fadeOut = phaseProgress > 0.65 ? Math.max(0, 1 - (phaseProgress - 0.65) / 0.35) : 1;
+    const intensity = fadeIn * fadeOut;
+    if (intensity < 0.02) return;
+
+    const COUNT = 28;
+    const seed  = cycleNumber * 7919;
+    for (let i = 0; i < COUNT; i++) {
+      const h1 = Math.abs(seed + i * 6271) % (W * 100);
+      const h2 = Math.abs(seed + i * 4397) % (H * 100);
+      const h3 = Math.abs(seed + i * 2311) % 100;
+      const h4 = Math.abs(seed + i * 1129) % 200;
+      const h5 = Math.abs(seed + i *  997) % 100;
+
+      const baseX     = h1 % W;
+      const baseY     = h2 % H;
+      const riseSpeed = 2.0 + h3 / 33.3;           // 2.0–5.0 px/s upward
+      const drift     = (h4 - 100) / 250;          // –0.4..+0.4 px/s horizontal
+      const twinkle   = Math.sin(time * (1.5 + h5 / 50) + i * 2.1) * 0.35 + 0.65;
+
+      const x = ((baseX + drift * time + W * 10) % W + W) % W | 0;
+      const y = ((baseY - riseSpeed * time)       % H + H * 50) % H | 0;
+
+      const a = Math.round(intensity * twinkle * 160);
+      if (a < 4) continue;
+
+      setPixel(buf, x, y, 245, 233, 190, a);
+      // 1-in-5 particles get a faint cross halo
+      if (h3 % 5 === 0) {
+        const ha = Math.round(a * 0.38);
+        setPixel(buf, x - 1, y, 255, 248, 215, ha);
+        setPixel(buf, x + 1, y, 255, 248, 215, ha);
+        setPixel(buf, x, y - 1, 255, 248, 215, ha);
+      }
+    }
+
+  } else if (phaseIndex === 4) {
+    // Dissolution: falling ash — density builds with phaseProgress
+    const intensity      = Math.min(1, phaseProgress * 1.6);
+    const particleCount  = Math.floor(18 + phaseProgress * 44);
+    const seed           = cycleNumber * 5381;
+
+    for (let i = 0; i < particleCount; i++) {
+      const h1 = Math.abs(seed + i * 4691) % (W * 100);
+      const h2 = Math.abs(seed + i * 3779) % (H * 100);
+      const h3 = Math.abs(seed + i * 1733) % 100;
+      const h4 = Math.abs(seed + i * 2719) % 200;
+
+      const baseX     = h1 % W;
+      const baseY     = h2 % H;
+      const fallSpeed = 1.5 + h3 / 37;             // 1.5–4.2 px/s downward
+      const sway      = (h4 - 100) / 450;          // gentle horizontal meander
+
+      const x = ((baseX + sway * time + Math.sin(time * 0.45 + i * 0.9) * 1.4 + W * 10) % W + W) % W | 0;
+      const y = (baseY + fallSpeed * time) % H | 0;
+
+      // Warm grey ash — each particle slightly different shade
+      const grey = 138 + h3 % 22;
+      const a    = Math.round(intensity * (52 + Math.sin(time * 0.55 + i * 1.3) * 18));
+      if (a < 4) continue;
+
+      setPixel(buf, x, y, grey + 18, grey + 5, grey - 12, Math.min(255, Math.max(0, a)));
+    }
+
+  } else if (phaseIndex === 5) {
+    // Silence: barely-visible drifting dust motes
+    const COUNT = 12;
+    const seed  = cycleNumber * 3371;
+
+    for (let i = 0; i < COUNT; i++) {
+      const h1 = Math.abs(seed + i * 5003) % (W * 100);
+      const h2 = Math.abs(seed + i * 2897) % (H * 100);
+      const h3 = Math.abs(seed + i * 1021) % 40;
+      const h4 = Math.abs(seed + i * 1847) % 40;
+
+      const baseX  = h1 % W;
+      const baseY  = h2 % H;
+      const ySpeed = (h3 - 20) / 55;              // –0.36..+0.36 px/s mixed up/down
+      const xSpeed = (h4 - 20) / 100;             // very slow horizontal drift
+
+      const x = ((baseX + xSpeed * time + W * 10) % W + W) % W | 0;
+      const y = ((baseY + ySpeed * time + H * 50) % H + H) % H | 0;
+
+      const twinkle = (Math.sin(time * 0.55 + i * 1.8) * 0.4 + 0.6);
+      const a = Math.round(twinkle * 40);
+      if (a < 5) continue;
+
+      setPixel(buf, x, y, 138, 143, 158, a);
+    }
   }
 }
 

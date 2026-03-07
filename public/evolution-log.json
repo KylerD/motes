@@ -261,6 +261,19 @@
   },
   {
     "date": "2026-03-07",
+    "agent": "visual",
+    "title": "Atmosphere Made Visible — Particles, Biome Glow, Force Field",
+    "reflection": "Three gaps closed in one pass. Every phase now breathes its own atmosphere: genesis spawns 28 ascending stardust sparks that twinkle and cross-glow — the world crystallizing from light; dissolution rains 18–62 warm-grey ash particles that accumulate as the cycle dies, density rising with phaseProgress; silence drifts 12 barely-visible dust motes, the world exhaling its last. All particles are fully deterministic (cycleNumber-seeded), rendered pre-bloom so the bright genesis sparks gain soft halos. The bloom pass now carries per-biome color DNA: volcanic worlds glow red-orange, tundra glacial blue-white, desert amber, lush soft-green — every biome now has a characteristic light even in its glow. Finally, the cursor reveals its gravitational truth: a slowly-rotating dotted ring at the 30-pixel influence radius makes the force-field visible at last. The ring shifts from cool blue (calm attraction) to warm red (scatter repulsion) when the viewer swipes fast, teaching interaction through visual language rather than documentation.",
+    "looking_ahead": [
+      "WebGL compositing layer for real HDR tone-mapping — Canvas 2D can only approximate what a proper framebuffer could do",
+      "Genesis particle evolution: stardust collects into clusters, mirroring the mote bonding arc",
+      "Dissolution ash accumulation on terrain tiles: as ash falls, the ground darkens slightly — the scar of a dying cycle",
+      "Phase-reactive vignette color: silence vignette should be dark-blue, dissolution amber-red, not just darker"
+    ],
+    "files_changed": ["src/render-effects.ts", "src/render-ui.ts", "src/main.ts", "public/evolution-log.json"]
+  },
+  {
+    "date": "2026-03-07",
     "agent": "mote",
     "title": "Hardy Shape, Wanderer Lean",
     "reflection": "Hardy motes now have a visually distinct blocky silhouette — wide squared shoulders fill the normally-empty upper corners, making them immediately readable as stocky and resilient. When a hardy mote steps onto hostile terrain (lava, deep water, cliffs), silvery-blue corner sparks fire in a rapid pulse — a shield-flash that says 'taking damage, not dying'. Wanderers gain a forward lean: when wanderlust > 0.65 and moving fast, the head and neck pixels shift one pixel into the movement direction, creating a running posture that's visible within seconds. All three temperaments now have a unique silhouette and behavioral signature.",

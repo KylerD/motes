@@ -18,7 +18,7 @@ import {
   renderAuroraCurtains, renderEclipse, applyAuroraBoost,
   renderMeteorVisual, renderCraterGlow, renderPhaseFlash,
   applyVignette, applyPhaseColorGrade, createMeteorState,
-  applyBloom,
+  applyBloom, renderAtmosphericParticles,
 } from "./render-effects";
 import { renderClusterGlow, renderBondLines, renderDeathParticles } from "./render-bonds";
 import { renderRipples, renderCursor, renderEventMessage, renderDebugOverlay } from "./render-ui";
@@ -179,15 +179,28 @@ function init(): void {
     renderFog(rc.buf, w.weather, w.time, w.terrain.biome);
     renderLightning(rc.buf, w.weather);
 
-    // Phase flash + bloom + vignette
+    // Phase flash + atmospheric particles + bloom + vignette
     renderPhaseFlash(rc.buf, w.phaseFlash, w.phaseIndex);
+
+    // Phase-specific atmospheric particles — rendered pre-bloom so they glow
+    renderAtmosphericParticles(rc.buf, w.phaseIndex, w.phaseProgress, w.time, w.cycleNumber);
 
     // Bloom strength varies by phase and event — creatures glow brightest at peak complexity
     const BLOOM_BY_PHASE = [0.45, 0.40, 0.50, 0.62, 0.33, 0.20];
     let bloomStrength = BLOOM_BY_PHASE[Math.min(5, w.phaseIndex)];
     if (eclipseActive) bloomStrength = 0.78;     // dramatic: mote eyes as tiny lanterns
     else if (auroraActive) bloomStrength = Math.min(0.65, bloomStrength * 1.2);
-    applyBloom(rc.buf, bloomStrength);
+
+    // Per-biome bloom tint — each world's light has a characteristic color cast
+    let bloomTintR = 1.0, bloomTintG = 1.0, bloomTintB = 1.0;
+    switch (w.terrain.biome) {
+      case "volcanic":   bloomTintR = 1.40; bloomTintG = 0.72; bloomTintB = 0.52; break;
+      case "tundra":     bloomTintR = 0.62; bloomTintG = 0.88; bloomTintB = 1.48; break;
+      case "desert":     bloomTintR = 1.32; bloomTintG = 1.05; bloomTintB = 0.62; break;
+      case "lush":       bloomTintR = 0.88; bloomTintG = 1.22; bloomTintB = 0.80; break;
+      // temperate: neutral (1, 1, 1)
+    }
+    applyBloom(rc.buf, bloomStrength, bloomTintR, bloomTintG, bloomTintB);
 
     applyVignette(rc.buf, w.phaseIndex);
     applyPhaseColorGrade(rc.buf, w.phaseIndex, w.phaseProgress);

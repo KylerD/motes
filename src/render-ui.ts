@@ -49,7 +49,10 @@ export function renderRipples(buf: ImageData, input: Interaction, dt: number): v
   }
 }
 
-/** Render cursor indicator — warm glow disc with pulsing ring */
+// Influence radius must match the constant in interaction.ts
+const _FIELD_RADIUS = 30;
+
+/** Render cursor indicator — warm glow disc with pulsing ring and force-field halo */
 export function renderCursor(buf: ImageData, input: Interaction, time: number): void {
   if (!input.present) return;
   const cx = Math.round(input.x);
@@ -67,7 +70,7 @@ export function renderCursor(buf: ImageData, input: Interaction, time: number): 
     }
   }
 
-  // Pulsing outer ring
+  // Pulsing inner ring
   const pulse = Math.sin(time * 2.5) * 0.15 + 0.85;
   const cr = 5;
   const cr2inner = (cr - 1) * (cr - 1);
@@ -80,6 +83,28 @@ export function renderCursor(buf: ImageData, input: Interaction, time: number): 
         setPixel(buf, cx + dx, cy + dy, 225, 215, 195, ringA);
       }
     }
+  }
+
+  // Force-field boundary ring — dotted circle at the influence radius.
+  // Color shifts: cool-blue when attracting (calm), warm-red when scattering (fast swipe).
+  const scatter = input.speed > 80;
+  const fr = scatter ? 215 : 130;
+  const fg = scatter ? 110 :  85;  // blue for calm, amber-red for scatter
+  const fb = scatter ?  80 : 190;
+  // 20 evenly-spaced dot positions, 10 rendered (every other = dashed)
+  // Slow rotation: 0.18 rad/s attract, –0.28 rad/s repel
+  const rotSpeed = scatter ? -0.28 : 0.18;
+  const baseAngle = time * rotSpeed;
+  const DOT_COUNT = 20;
+  for (let d = 0; d < DOT_COUNT; d += 2) {
+    const angle = baseAngle + (d / DOT_COUNT) * Math.PI * 2;
+    const fx = Math.round(cx + Math.cos(angle) * _FIELD_RADIUS);
+    const fy = Math.round(cy + Math.sin(angle) * _FIELD_RADIUS);
+    // Gently pulse the alpha so the field feels alive
+    const fieldPulse = Math.sin(time * 1.8 + d * 0.6) * 0.25 + 0.75;
+    const baseAlpha = scatter ? 55 : input.calm ? 38 : 25;
+    const fa = Math.round(baseAlpha * fieldPulse);
+    setPixel(buf, fx, fy, fr, fg, fb, fa);
   }
 }
 
