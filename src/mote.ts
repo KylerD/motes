@@ -132,7 +132,13 @@ export function updateMote(
   const finalSpeed = walkSpeed * speedMod;
 
   // Decision making: change direction occasionally
-  if (rng() < 0.02 * dt * 60) {
+  // Wanderers at low energy: frantic direction reversals — can't settle, can't stop
+  const wandererFrenzy = (
+    m.temperament.wanderlust > m.temperament.sociability &&
+    m.temperament.wanderlust > m.temperament.hardiness &&
+    m.energy < 0.3
+  ) ? 1 + (1 - m.energy / 0.3) * 3 : 1; // up to 4x more erratic
+  if (rng() < 0.02 * dt * 60 * wandererFrenzy) {
     m.direction *= -1;
   }
 
@@ -186,6 +192,15 @@ export function updateMote(
         closestDist = dist;
       }
     }
+  }
+
+  // Dying social motes reach desperately toward any connection
+  if (
+    m.temperament.sociability > m.temperament.wanderlust &&
+    m.temperament.sociability > m.temperament.hardiness &&
+    m.energy < 0.3
+  ) {
+    socialAttract *= 1 + (1 - m.energy / 0.3) * m.temperament.sociability * 2;
   }
 
   // Clamp accumulated attraction so groups don't death-ball

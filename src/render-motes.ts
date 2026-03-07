@@ -200,12 +200,82 @@ export function renderMotes(
       }
     }
 
-    // LOW ENERGY
-    if (m.energy < 0.2 && m.energy > 0) {
-      const flicker = Math.sin(m.age * 15) > 0 ? 0.4 : 1.0;
-      if (flicker < 1) {
-        setPixel(buf, ox, oy, 0, 0, 0, Math.round((1 - flicker) * 80));
-        setPixel(buf, ox, oy - 1, 0, 0, 0, Math.round((1 - flicker) * 50));
+    // LOW ENERGY — temperament-differentiated dying behavior
+    if (m.energy < 0.35 && m.energy > 0) {
+      const dp = 1 - m.energy / 0.35; // 0→1 as energy → 0
+      const domW = m.temperament.wanderlust > m.temperament.sociability && m.temperament.wanderlust > m.temperament.hardiness;
+      const domS = m.temperament.sociability > m.temperament.wanderlust && m.temperament.sociability > m.temperament.hardiness;
+      const domH = m.temperament.hardiness > m.temperament.wanderlust && m.temperament.hardiness > m.temperament.sociability;
+
+      if (domW) {
+        // WANDERER FRENZY: rapid whole-body flicker + jitter ghost — short-circuiting light
+        const flickerHz = 15 + dp * 20; // 15→35 Hz, faster as death nears
+        const flick = Math.sin(m.age * flickerHz);
+        const dimA = Math.round(dp * (flick > 0 ? 105 : 0));
+        if (dimA > 0) {
+          setPixel(buf, ox, oy - 1, 0, 0, 0, dimA);
+          setPixel(buf, ox, oy, 0, 0, 0, Math.round(dimA * 0.7));
+          setPixel(buf, ox - 1, oy - 1, 0, 0, 0, Math.round(dimA * 0.4));
+          setPixel(buf, ox + 1, oy - 1, 0, 0, 0, Math.round(dimA * 0.4));
+        }
+        // Jitter ghost: a displaced copy that flickers out of phase
+        if (dp > 0.25 && flick < -0.2) {
+          const gx = Math.sin(m.age * 37) > 0 ? 1 : -1;
+          const ghostA = Math.round(dp * 75 * (-flick));
+          setPixel(buf, ox + gx, oy - 1, cr, cg, cb, ghostA);
+          setPixel(buf, ox + gx, oy - 2, cr, cg, cb, Math.round(ghostA * 0.4));
+        }
+      } else if (domS) {
+        // SOCIAL YEARNING: smooth fade + arms reaching outward — dying reaching for connection
+        const fadeA = Math.round(dp * 115);
+        setPixel(buf, ox, oy - 1, 0, 0, 0, Math.round(fadeA * 0.85));
+        setPixel(buf, ox, oy, 0, 0, 0, Math.round(fadeA * 0.65));
+        setPixel(buf, ox - 1, oy - 1, 0, 0, 0, Math.round(fadeA * 0.45));
+        setPixel(buf, ox + 1, oy - 1, 0, 0, 0, Math.round(fadeA * 0.45));
+        // Reaching arms: extend outward horizontally, growing as energy fades
+        if (dp > 0.15) {
+          const reachDist = 3 + Math.round(dp * 2); // 3→5 px
+          const armA = Math.round(dp * 90);
+          setPixel(buf, ox - reachDist, oy - 1, cr, cg, cb, armA);
+          setPixel(buf, ox + reachDist, oy - 1, cr, cg, cb, armA);
+          setPixel(buf, ox - reachDist - 1, oy - 1, cr, cg, cb, Math.round(armA * 0.35));
+          setPixel(buf, ox + reachDist + 1, oy - 1, cr, cg, cb, Math.round(armA * 0.35));
+          // Upward reach — toward the sky, toward others above
+          if (dp > 0.4) {
+            setPixel(buf, ox, oy - 4, cr, cg, cb, Math.round(armA * 0.5));
+            setPixel(buf, ox, oy - 5, cr, cg, cb, Math.round(armA * 0.2));
+          }
+        }
+      } else if (domH) {
+        // HARDY STRAIN: stress fractures + body quake — refuses to go quietly
+        const crackPulse = Math.sin(m.age * 11) * 0.5 + 0.5;
+        const crackA = Math.round(dp * crackPulse * 170);
+        if (crackA > 5) {
+          // Diagonal stress fractures across the body
+          setPixel(buf, ox - 1, oy - 2, 215, 235, 255, crackA);
+          setPixel(buf, ox + 2, oy, 215, 235, 255, Math.round(crackA * 0.7));
+          setPixel(buf, ox - 2, oy + 1, 215, 235, 255, Math.round(crackA * 0.6));
+          if (dp > 0.45) {
+            // More fractures as death approaches
+            setPixel(buf, ox, oy - 3, 215, 235, 255, Math.round(crackA * 0.85));
+            setPixel(buf, ox + 1, oy - 2, 215, 235, 255, Math.round(crackA * 0.55));
+            setPixel(buf, ox - 1, oy + 1, 215, 235, 255, Math.round(crackA * 0.45));
+          }
+        }
+        // Quake: whole body trembles at low energy — the mote shaking with effort
+        if (dp > 0.55) {
+          const quake = Math.sin(m.age * 28) > 0 ? 1 : -1;
+          const qa = Math.round((dp - 0.55) / 0.45 * 95);
+          setPixel(buf, ox + quake, oy - 1, cr, cg, cb, qa);
+          setPixel(buf, ox + quake, oy, cr, cg, cb, Math.round(qa * 0.5));
+        }
+      } else {
+        // NEUTRAL: simple flicker for mixed temperaments
+        const flicker = Math.sin(m.age * 15) > 0 ? 0.4 : 1.0;
+        if (flicker < 1) {
+          setPixel(buf, ox, oy, 0, 0, 0, Math.round((1 - flicker) * 80));
+          setPixel(buf, ox, oy - 1, 0, 0, 0, Math.round((1 - flicker) * 50));
+        }
       }
     }
 

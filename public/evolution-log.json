@@ -284,5 +284,18 @@
       "Low-energy wanderer: a frantic fast-flicker as energy nears zero, vs social motes that dim evenly — different deaths for different characters"
     ],
     "files_changed": ["src/types.ts", "src/mote.ts", "src/render-motes.ts", "public/evolution-log.json"]
+  },
+  {
+    "date": "2026-03-07",
+    "agent": "mote",
+    "title": "Three Deaths, Three Characters",
+    "reflection": "The dying moment was the same for every mote — a barely-visible dark blink that no viewer would notice. Now each dominant temperament has a completely different death. Wanderers short-circuit: rapid whole-body flicker at 15–35 Hz (faster as energy drops) with displaced ghost pixels that stutter out of phase — they can't stop moving even as they fail, and behaviorally they flip direction up to 4x more often. Social motes fade with yearning: smooth center dimming plus pixel arms that extend 3–5px outward horizontally (growing as energy falls) and a reach upward toward the sky — they die reaching for others, and behaviorally their social pull doubles so they sprint toward any nearby mote. Hardy motes strain: diagonal white stress-fracture pixels crackle across the body, more fractures appear past 45% dying, and above 55% the whole body quakes with a 28Hz tremor — they hold their form the longest, crack visibly, then finally give. The threshold moved from 0.2 to 0.35 so the arc is visible for longer. A viewer can now tell which kind of mote is dying before it dies.",
+    "looking_ahead": [
+      "Wanderer trail terrain-fade: old trail breadcrumbs shift toward the underlying ground color, leaving ghostly echoes in the landscape",
+      "Social cluster merge flash: when a bond forms between members of two previously separate clusters, a brief color-bloom radiates from the bond midpoint",
+      "Hardy elder accumulated mass: motes past age 30 gain a second, wider shoulder layer — visual weight that grows with resilience",
+      "Death inheritance: when a mote dies, the nearest living mote briefly flashes the dead mote's color — loss made visible in survivors"
+    ],
+    "files_changed": ["src/render-motes.ts", "src/mote.ts", "public/evolution-log.json"]
   }
 ]
