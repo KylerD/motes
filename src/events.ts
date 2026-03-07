@@ -111,7 +111,7 @@ export function applyEvent(
       applyAurora(world.motes, dt);
       break;
     case "drought":
-      applyDrought(world.motes, dt);
+      applyDrought(world, dt, event, progress);
       break;
   }
 }
@@ -300,10 +300,35 @@ function applyAurora(motes: Mote[], dt: number): void {
   }
 }
 
-function applyDrought(motes: Mote[], dt: number): void {
+function applyDrought(world: World, dt: number, event: ActiveEvent, progress: number): void {
   // Drain all motes
-  for (const m of motes) {
+  for (const m of world.motes) {
     m.energy -= 0.008 * dt;
+  }
+
+  // On first tick, dry up water edges — lakes visibly shrink
+  if (progress < 0.05 && event.data.droughtApplied === undefined) {
+    event.data.droughtApplied = 1;
+    for (let x = 1; x < W - 1; x++) {
+      for (let y = 1; y < H - 1; y++) {
+        const idx = y * W + x;
+        if (world.terrain.tiles[idx] === Tile.ShallowWater) {
+          // Only convert tiles that border non-water (the exposed edges)
+          const hasLandNeighbor =
+            (world.terrain.tiles[idx - 1] !== Tile.ShallowWater &&
+             world.terrain.tiles[idx - 1] !== Tile.DeepWater) ||
+            (world.terrain.tiles[idx + 1] !== Tile.ShallowWater &&
+             world.terrain.tiles[idx + 1] !== Tile.DeepWater) ||
+            (world.terrain.tiles[(y - 1) * W + x] !== Tile.ShallowWater &&
+             world.terrain.tiles[(y - 1) * W + x] !== Tile.DeepWater) ||
+            (world.terrain.tiles[(y + 1) * W + x] !== Tile.ShallowWater &&
+             world.terrain.tiles[(y + 1) * W + x] !== Tile.DeepWater);
+          if (hasLandNeighbor) {
+            world.terrain.tiles[idx] = Tile.Sand;
+          }
+        }
+      }
+    }
   }
 }
 

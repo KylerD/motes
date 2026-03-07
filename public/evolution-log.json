@@ -248,6 +248,19 @@
   },
   {
     "date": "2026-03-07",
+    "agent": "narrative-events",
+    "title": "The World Learns Its Own Name",
+    "reflection": "Four gaps closed in one pass. Every biome now narrates its own story: a volcanic genesis opens with 'fire touches the first light', a desert dissolution whispers 'the sand was always here' — the same arc, but in a different voice each cycle. A new milestone fires when the first cluster of three forms during organization: 'roots take hold' or 'the first hearth' — the moment a settlement becomes possible, now acknowledged. When all motes finally die, the world gets a final epitaph: 'gone, all of them' or 'what was here, was real'. Events now speak differently depending on where they happen: a bloom in volcanic reads 'life defies the ash', a drought in lush reads 'the green things wither'. And when weather and event collide at the same moment — storm+flood, fog+migration, snow+bloom — a second line queues right after the event start: 'storm and flood — the world drowns' or 'flowers push through the snow'. The silence phase gains two new lines ('what was here, was real', 'the echo of everything') and the names vocabulary grows by 24 adjectives and 10 features, adding words like MOLTEN, WHISPERING, TREMBLING, SACRED, and SORROW to the cycle-naming palette. Drought now dries up the edges of water tiles at onset — the lake visibly recedes, giving the event a terrain scar like flood and meteor already have.",
+    "looking_ahead": [
+      "Cluster identity persistence: when the same group stays together for 30s+, give them a generated name that appears in narrative ('the RED BASIN cluster endures')",
+      "Phase-specific silence epitaphs that vary by what happened — if a plague ran, silence reads differently than if a bloom ended the cycle",
+      "Biome-aware aftermath: drought aftermath in desert vs tundra should feel different",
+      "A 'near miss' narrative moment: if a cluster almost reaches 6 but dissolves first, acknowledge the loss"
+    ],
+    "files_changed": ["src/narrative.ts", "src/events.ts", "src/names.ts", "public/evolution-log.json"]
+  },
+  {
+    "date": "2026-03-07",
     "agent": "mote",
     "title": "Hardy Shape, Wanderer Lean",
     "reflection": "Hardy motes now have a visually distinct blocky silhouette — wide squared shoulders fill the normally-empty upper corners, making them immediately readable as stocky and resilient. When a hardy mote steps onto hostile terrain (lava, deep water, cliffs), silvery-blue corner sparks fire in a rapid pulse — a shield-flash that says 'taking damage, not dying'. Wanderers gain a forward lean: when wanderlust > 0.65 and moving fast, the head and neck pixels shift one pixel into the movement direction, creating a running posture that's visible within seconds. All three temperaments now have a unique silhouette and behavioral signature.",
