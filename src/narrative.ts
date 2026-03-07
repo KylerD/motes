@@ -187,6 +187,73 @@ const EVENT_CASCADE_TEXTS: Partial<Record<string, string>> = {
   drought:    "no relief yet",
 };
 
+/**
+ * Silence-phase opener when the cycle had a defining event.
+ * These replace the generic silence lines so the world remembers what happened.
+ */
+const EVENT_SILENCE_EPITAPHS: Partial<Record<string, string[]>> = {
+  plague:     ["the sick and the saved, both quiet now", "survival is its own silence"],
+  bloom:      ["the colors still breathe, somewhere", "abundance returned to seed"],
+  meteor:     ["the crater holds the memory", "silence shaped by fire"],
+  eclipse:    ["the light came back — then this", "even darkness passes"],
+  flood:      ["the tide went where tides go", "the waterline has forgotten"],
+  drought:    ["the thirst passed with them", "the dry land settles"],
+  earthquake: ["the ground is still now", "the breaking is over"],
+  aurora:     ["the lights knew how to leave", "beauty passes without apology"],
+  migration:  ["they went — this is what remains", "the path empties both ways"],
+};
+
+/**
+ * Biome-specific event aftermath overrides.
+ * What lingers after each event shifts per landscape — a flood in desert
+ * feels nothing like a flood in tundra.
+ */
+const BIOME_EVENT_AFTERMATH: Partial<Record<Biome, Partial<Record<string, string>>>> = {
+  desert: {
+    flood:     "the sand drinks the last of it",
+    bloom:     "the petals dry quickly here",
+    drought:   "the desert reclaims itself",
+    meteor:    "the dune will swallow the crater",
+    plague:    "the wind scatters what remained",
+  },
+  volcanic: {
+    flood:     "the lava hardens around the memory",
+    bloom:     "ash and petal, together",
+    drought:   "the fire remembers the dryness",
+    meteor:    "one fire met another",
+    aurora:    "fire and sky conspired, then parted",
+  },
+  tundra: {
+    flood:     "the ice cracks hold the waterline",
+    bloom:     "petals freeze where they fell",
+    drought:   "cold and dry — a strange thirst remains",
+    aurora:    "the light folded back into the sky",
+    meteor:    "the crater fills with frost",
+  },
+  lush: {
+    drought:   "the green slowly remembers",
+    plague:    "the forest is quieter now",
+    flood:     "the river knows its banks again",
+    bloom:     "more than enough — always",
+  },
+};
+
+/** Fired when mote count drops to ≤50% of peak during dissolution — the mid-arc reckoning */
+const DISSOLUTION_HALF_GONE_TEXTS = [
+  "half are gone",
+  "the world grows quieter",
+  "fewer now",
+  "the balance tips toward silence",
+];
+
+/** Fired if peak cluster reached 4–5 but never 6 — they almost made something great */
+const NEAR_MISS_TEXTS = [
+  "so close to something more",
+  "almost a great gathering",
+  "they were almost enough",
+  "nearly — but not quite",
+];
+
 /** Fired when mote count first peaks at 60+ during complexity */
 const PEAK_POPULATION_TEXTS = [
   "all of them, alive at once",
@@ -264,6 +331,8 @@ export interface NarrativeState {
   narratedLastMote: boolean;
   narratedFirstCluster: boolean;
   narratedEmptyWorld: boolean;
+  narratedHalfGone: boolean;
+  narratedNearMiss: boolean;
   peakMoteCount: number;
   peakBondCount: number;
   el: HTMLElement | null;
@@ -291,6 +360,8 @@ export function createNarrative(): NarrativeState {
     narratedLastMote: false,
     narratedFirstCluster: false,
     narratedEmptyWorld: false,
+    narratedHalfGone: false,
+    narratedNearMiss: false,
     peakMoteCount: 0,
     peakBondCount: 0,
     el: document.getElementById("narrative"),
@@ -320,6 +391,8 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     ns.narratedLastMote = false;
     ns.narratedFirstCluster = false;
     ns.narratedEmptyWorld = false;
+    ns.narratedHalfGone = false;
+    ns.narratedNearMiss = false;
     ns.peakMoteCount = 0;
     ns.peakBondCount = 0;
     ns.queue = [];
@@ -352,6 +425,15 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
           fog:      "fog shrouds the first breath",
         };
         text = weatherGenesis[w.weather.type] ?? text;
+      }
+
+      // Silence epitaph: if an event defined this cycle, silence should remember it
+      if (w.phaseName === "silence" && w.event && w.eventTriggered) {
+        const epitaphPool = EVENT_SILENCE_EPITAPHS[w.event.type];
+        if (epitaphPool) {
+          const epitaphPick = Math.abs((w.cycleNumber * 999977) % epitaphPool.length);
+          text = epitaphPool[epitaphPick];
+        }
       }
 
       pushNarrative(ns, text, now, true);
@@ -465,6 +547,33 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     pushNarrative(ns, DISSOLUTION_BONDS_BREAKING_TEXTS[pick], now);
   }
 
+  // Dissolution: half gone — the world has lost half its peak population
+  if (
+    !ns.narratedHalfGone &&
+    ns.peakMoteCount >= 8 &&
+    w.motes.length > 0 &&
+    w.motes.length <= Math.floor(ns.peakMoteCount * 0.5) &&
+    w.phaseName === "dissolution"
+  ) {
+    ns.narratedHalfGone = true;
+    const pick = Math.abs((w.cycleNumber * 999901) % DISSOLUTION_HALF_GONE_TEXTS.length);
+    pushNarrative(ns, DISSOLUTION_HALF_GONE_TEXTS[pick], now);
+  }
+
+  // Near-miss: peak cluster was 4–5 but never reached 6 — acknowledge the almost
+  if (
+    !ns.narratedNearMiss &&
+    ns.peakClusterSize >= 4 &&
+    ns.peakClusterSize < 6 &&
+    !ns.narratedPeakCluster &&
+    w.phaseName === "dissolution" &&
+    w.motes.length < ns.peakMoteCount * 0.7
+  ) {
+    ns.narratedNearMiss = true;
+    const pick = Math.abs((w.cycleNumber * 999889) % NEAR_MISS_TEXTS.length);
+    pushNarrative(ns, NEAR_MISS_TEXTS[pick], now);
+  }
+
   // Last mote — the final witness
   if (
     !ns.narratedLastMote &&
@@ -526,10 +635,16 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     !isEventActive(w.event, w.time)
   ) {
     ns.eventAftermathNarrated = true;
-    const pool = EVENT_AFTERMATH[w.event.type];
-    if (pool) {
-      const pick = Math.abs((w.cycleNumber * 999979) % pool.length);
-      pushNarrative(ns, pool[pick], now);
+    // Biome-specific aftermath takes precedence over generic pool
+    const biomeAftermath = BIOME_EVENT_AFTERMATH[w.terrain.biome]?.[w.event.type];
+    if (biomeAftermath) {
+      pushNarrative(ns, biomeAftermath, now);
+    } else {
+      const pool = EVENT_AFTERMATH[w.event.type];
+      if (pool) {
+        const pick = Math.abs((w.cycleNumber * 999979) % pool.length);
+        pushNarrative(ns, pool[pick], now);
+      }
     }
   }
 

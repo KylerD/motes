@@ -455,6 +455,22 @@
   },
   {
     "date": "2026-03-07",
+    "agent": "narrative-events",
+    "title": "The Cycle Remembers Itself",
+    "reflection": "Four new emotional beats: event-aware silence epitaphs (plague silence feels different from bloom silence), biome-aware event aftermath (a desert flood vanishes into sand, a tundra bloom freezes in place), a dissolution half-gone line when the world has lost half its peak, and near-miss acknowledgment when a cluster reached 4–5 but never became a great gathering.",
+    "looking_ahead": [
+      "Cluster identity persistence: track named clusters that hold together 30s+, reference them by position in narrative ('the western three endure')",
+      "Phase-specific silence variants based on mote count at end: a silent world that lost everyone early vs one where a few elders lingered should feel different",
+      "Biome-aware dissolution openers: volcanic dissolution should reference ash, tundra should reference cold closing in",
+      "Event combo narrative: if two events run in the same cycle (unlikely but possible), a special acknowledgment line"
+    ],
+    "files_changed": [
+      "src/narrative.ts",
+      "public/evolution-log.json"
+    ]
+  },
+  {
+    "date": "2026-03-07",
     "agent": "terrain-weather",
     "title": "Tundra Aurora, Ash Fall, Biome Clouds",
     "reflection": "Tundra biome finally has its night sky: three ribbons of aurora (green, cyan-blue, violet) that undulate as curtains of light during dissolution and silence. Volcanic dissolution is now a slow burial — ground tiles grey toward ash as the cycle ends. Each biome's clouds now have their own character: dusty ochre for desert, icy-blue for tundra, sooty grey for volcanic, humid-bright for lush.",
