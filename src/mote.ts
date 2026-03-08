@@ -90,9 +90,11 @@ export function updateMote(
     m.trail.push({ x: Math.round(m.x), y: Math.round(m.y), age: 0 });
     if (m.trail.length > 10) m.trail.shift();
   }
+  // Wanderers keep trails longer: 1.5s (social) to 3.0s (full wanderer)
+  const trailMaxAge = 1.5 + m.temperament.wanderlust * 1.5;
   for (let i = m.trail.length - 1; i >= 0; i--) {
     m.trail[i].age += dt;
-    if (m.trail[i].age > 2) { m.trail.splice(i, 1); }
+    if (m.trail[i].age > trailMaxAge) { m.trail.splice(i, 1); }
   }
 
   // Tile the mote is standing on (used for both energy and movement)

@@ -43,9 +43,29 @@ export function renderMoteTrails(
     const [tr, tg, tb] = moteColors.get(m)!;
     // Wanderers leave vivid ghost trails; social/hardy motes leave faint smears
     const trailScale = 0.2 + m.temperament.wanderlust * 1.8;
+    // Trail lifetime mirrors mote.ts: 1.5s (social) to 3.0s (full wanderer)
+    const trailMaxAge = 1.5 + m.temperament.wanderlust * 1.5;
+    const isWanderer = m.temperament.wanderlust > 0.6;
+
     for (const pt of m.trail) {
-      const ta = Math.round((1 - pt.age / 2.0) * 35 * trailScale);
-      if (ta > 2) setPixel(buf, pt.x, pt.y, tr, tg, tb, ta);
+      const ageFrac = pt.age / trailMaxAge;
+
+      if (isWanderer && pt.age > 1.5) {
+        // Ghost window: mote color bleeds into warm earth — trail sinking into the ground.
+        // The landscape remembers where they walked.
+        const ghostWindow = Math.max(0.1, trailMaxAge - 1.5);
+        const ghostT = Math.min(1, (pt.age - 1.5) / ghostWindow);
+        // Warm dusty earth tone
+        const er = 115, eg = 98, eb = 72;
+        const gr = Math.round(tr * (1 - ghostT) + er * ghostT);
+        const gg = Math.round(tg * (1 - ghostT) + eg * ghostT);
+        const gb = Math.round(tb * (1 - ghostT) + eb * ghostT);
+        const ta = Math.round((1 - ageFrac) * 22 * trailScale);
+        if (ta > 1) setPixel(buf, pt.x, pt.y, gr, gg, gb, ta);
+      } else {
+        const ta = Math.round((1 - ageFrac) * 35 * trailScale);
+        if (ta > 2) setPixel(buf, pt.x, pt.y, tr, tg, tb, ta);
+      }
     }
   }
 }
@@ -169,6 +189,25 @@ export function renderMotes(
       setPixel(buf, ox + 2, oy - 2, cr, cg, cb, shoulderA);
       setPixel(buf, ox - 2, oy + 1, cr, cg, cb, Math.round(shoulderA * 0.55));
       setPixel(buf, ox + 2, oy + 1, cr, cg, cb, Math.round(shoulderA * 0.55));
+    }
+
+    // HARDY ELDER MASS — motes past age 30 with high hardiness grow wider outer shoulders.
+    // Visual bulk accumulates with survival: elders earn their mass.
+    if (isHardy && m.age > 30) {
+      const hs = (m.temperament.hardiness - 0.55) / 0.45;
+      const elderMass = Math.min(1, (m.age - 30) / 30); // 0→1 over ages 30→60
+      const massA = Math.round(hs * elderMass * 155);
+      if (massA > 3) {
+        // Outer shoulders at ±3px — wider silhouette than the inner ±2 layer
+        setPixel(buf, ox - 3, oy - 2, cr, cg, cb, massA);
+        setPixel(buf, ox + 3, oy - 2, cr, cg, cb, massA);
+        // Torso width extension
+        setPixel(buf, ox - 3, oy,     cr, cg, cb, Math.round(massA * 0.75));
+        setPixel(buf, ox + 3, oy,     cr, cg, cb, Math.round(massA * 0.75));
+        // Bright highlight at mid-shoulder for definition
+        setPixel(buf, ox - 3, oy - 1, lr, lg, lb, Math.round(massA * 0.35));
+        setPixel(buf, ox + 3, oy - 1, lr, lg, lb, Math.round(massA * 0.35));
+      }
     }
 
     // HARDY SHIELD FLASH — silvery-blue corner sparks when resisting hostile terrain

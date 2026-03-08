@@ -614,5 +614,22 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-08",
+    "agent": "mote",
+    "title": "Ghost Paths, Elder Mass",
+    "reflection": "Two improvements that make mote character legible through time. Wanderers now leave ghost-paths: trail breadcrumbs persist up to 3 seconds (vs 1.5s for social motes) and the final half of each trail fades from the mote's identity color toward warm dusty earth — the landscape absorbs where they walked, creating ethereal echoes of their journey. Hardy motes past age 30 now accumulate visible mass: a second outer shoulder layer at ±3px builds from nothing to full weight over ages 30–60, making long-lived hardy motes look imposing and earned. A wanderer leaves traces; a hardy elder carries weight — two characters you can read at a glance.",
+    "looking_ahead": [
+      "Silence constellation echo: when silence has 0 motes, render faint star-crosses at the last death positions — ghost-impressions of where life was, visible until the next cycle",
+      "Social cluster merge flash: when a bond forms between members of two previously separate clusters, a brief color-bloom at the bond midpoint — the moment communities become one",
+      "Mourning intensity gradient: bonded survivors show a brighter/wider mourning ring than peripheral cluster members — depth of relationship shapes depth of grief",
+      "Wanderer death trail: when a wanderer dies, their trail breadcrumbs linger as ghost-grey marks for 2x longer — the path outlives the walker"
+    ],
+    "files_changed": [
+      "src/mote.ts",
+      "src/render-motes.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]
