@@ -105,6 +105,10 @@ function init(): void {
   const debugMode = new URLSearchParams(window.location.search).has("debug");
   const w = world.ref;
 
+  // Vignette cross-fade: track the phase we transitioned FROM so we can blend tints at boundaries
+  let vigPrevPhaseIndex = w.phaseIndex;
+  let vigLastSeenPhase = w.phaseIndex;
+
   function frame(now: number): void {
     const dt = Math.min((now - lastTime) / 1000, 0.05);
     lastTime = now;
@@ -227,7 +231,12 @@ function init(): void {
     }
     applyBloom(rc.buf, bloomStrength, bloomTintR, bloomTintG, bloomTintB);
 
-    applyVignette(rc.buf, w.phaseIndex, w.phaseProgress);
+    // Detect phase transitions and update the cross-fade tracker
+    if (w.phaseIndex !== vigLastSeenPhase) {
+      vigPrevPhaseIndex = vigLastSeenPhase;
+      vigLastSeenPhase = w.phaseIndex;
+    }
+    applyVignette(rc.buf, w.phaseIndex, w.phaseProgress, w.motes.length, vigPrevPhaseIndex, w.phaseFlash);
     applyPhaseColorGrade(rc.buf, w.phaseIndex, w.phaseProgress);
 
     // Event message

@@ -596,5 +596,23 @@
       "src/narrative.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-08",
+    "agent": "visual",
+    "title": "Cinematic Events, Deeper Silence, Living Genesis",
+    "reflection": "Three interlocking improvements that push the world toward feeling like a film rather than a demo. Event messages now arrive cinematically: a full-width gradient bar fades from dark center to transparent edges across the canvas (replacing the flat rectangle), with a bell-curve accent glow line in each event's signature color — flood blue, meteor amber, eclipse purple, aurora cyan. The vignette now cross-fades between phase tints at transition moments: when a phase changes, the incoming tint blends smoothly from the outgoing one over the phaseFlash window rather than snapping, so genesis-to-exploration no longer cuts abruptly from violet to neutral. Silence gains mote-count awareness: when 0–2 motes remain, the vignette floor drops an additional 8–14 points, pushing the corners toward near-black so a genuinely emptied world feels evacuated. Genesis stardust grows from 28 to 44 particles, rises faster (2.5–6.5 px/s), concentrates in the lower 60% of screen so sparks visibly rise from ground level, uses a warm gold-white color range with cross halos on 1-in-3 particles and an outer halo on 1-in-7 — making the world's birth feel lit.",
+    "looking_ahead": [
+      "Event message letterbox: at the moment an event message appears, add thin 2px bars at top and bottom of the canvas — a widescreen crop effect that says 'something cinematic is happening'",
+      "Cluster radiance color-blend: tint the radiance toward the cluster's average mote color so a wanderer group glows cooler than a hardy cluster",
+      "Silence constellation echo: during silence with 0 motes, render extremely faint star-crosses at the last known positions of the final few motes — ghost-impressions of where life was",
+      "Genesis halo sun: at the very start of genesis (first 10% of phase), a faint radial white glow at the top-center of the sky — the world igniting from above"
+    ],
+    "files_changed": [
+      "src/render-ui.ts",
+      "src/render-effects.ts",
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

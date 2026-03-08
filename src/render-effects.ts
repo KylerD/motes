@@ -393,13 +393,14 @@ export function renderAtmosphericParticles(
   cycleNumber: number,
 ): void {
   if (phaseIndex === 0) {
-    // Genesis: ascending stardust — fades in fast, fades out by ~70%
+    // Genesis: ascending stardust — birth sparks rising from the ground into the sky.
+    // Fades in fast (world ignites), fades out by ~70% (stardust settles as life begins).
     const fadeIn  = Math.min(1, phaseProgress * 10);
     const fadeOut = phaseProgress > 0.65 ? Math.max(0, 1 - (phaseProgress - 0.65) / 0.35) : 1;
     const intensity = fadeIn * fadeOut;
     if (intensity < 0.02) return;
 
-    const COUNT = 28;
+    const COUNT = 44;   // more particles — the world kindling
     const seed  = cycleNumber * 7919;
     for (let i = 0; i < COUNT; i++) {
       const h1 = Math.abs(seed + i * 6271) % (W * 100);
@@ -407,26 +408,42 @@ export function renderAtmosphericParticles(
       const h3 = Math.abs(seed + i * 2311) % 100;
       const h4 = Math.abs(seed + i * 1129) % 200;
       const h5 = Math.abs(seed + i *  997) % 100;
+      const h6 = Math.abs(seed + i * 1481) % 100;  // color variance
 
+      // Particles spawn in lower 60% of screen — rising up from the ground
       const baseX     = h1 % W;
-      const baseY     = h2 % H;
-      const riseSpeed = 2.0 + h3 / 33.3;           // 2.0–5.0 px/s upward
-      const drift     = (h4 - 100) / 250;          // –0.4..+0.4 px/s horizontal
-      const twinkle   = Math.sin(time * (1.5 + h5 / 50) + i * 2.1) * 0.35 + 0.65;
+      const baseY     = Math.floor(H * 0.4) + (h2 % Math.floor(H * 0.6));
+      const riseSpeed = 2.5 + h3 / 25;           // 2.5–6.5 px/s upward (faster than before)
+      const drift     = (h4 - 100) / 200;        // gentle horizontal wander
+      const twinkle   = Math.sin(time * (1.8 + h5 / 40) + i * 2.1) * 0.3 + 0.7;
 
       const x = ((baseX + drift * time + W * 10) % W + W) % W | 0;
       const y = ((baseY - riseSpeed * time)       % H + H * 50) % H | 0;
 
-      const a = Math.round(intensity * twinkle * 160);
+      const a = Math.round(intensity * twinkle * 210);  // brighter peak
       if (a < 4) continue;
 
-      setPixel(buf, x, y, 245, 233, 190, a);
-      // 1-in-5 particles get a faint cross halo
-      if (h3 % 5 === 0) {
-        const ha = Math.round(a * 0.38);
-        setPixel(buf, x - 1, y, 255, 248, 215, ha);
-        setPixel(buf, x + 1, y, 255, 248, 215, ha);
-        setPixel(buf, x, y - 1, 255, 248, 215, ha);
+      // Warm gold–white range, with subtle color variance
+      const cr = 240 + Math.floor(h6 / 17);
+      const cg = 225 + Math.floor((h6 % 20) / 2);
+      const cb = 160 + Math.floor(h6 / 5);
+
+      setPixel(buf, x, y, cr, cg, cb, a);
+
+      // 1-in-3 particles get a full cross halo (more magical density)
+      if (h3 % 3 === 0) {
+        const ha = Math.round(a * 0.45);
+        setPixel(buf, x - 1, y, cr, cg, cb, ha);
+        setPixel(buf, x + 1, y, cr, cg, cb, ha);
+        setPixel(buf, x, y - 1, cr, cg, cb, ha);
+        setPixel(buf, x, y + 1, cr, cg, cb, Math.round(ha * 0.6));
+      }
+      // 1-in-7 get a faint outer halo (the biggest sparks)
+      if (h3 % 7 === 0) {
+        const ha2 = Math.round(a * 0.18);
+        setPixel(buf, x - 2, y, cr, cg, cb, ha2);
+        setPixel(buf, x + 2, y, cr, cg, cb, ha2);
+        setPixel(buf, x, y - 2, cr, cg, cb, ha2);
       }
     }
 
@@ -486,12 +503,30 @@ export function renderAtmosphericParticles(
   }
 }
 
-/** Vignette — darken edges with phase-colored tint. Each phase has a distinct atmospheric hue. */
-export function applyVignette(buf: ImageData, phaseIndex: number, phaseProgress: number): void {
+/** Vignette — darken edges with phase-colored tint. Each phase has a distinct atmospheric hue.
+ *
+ * @param prevPhaseIndex  Phase we transitioned FROM (for cross-fade; pass same as phaseIndex when stable)
+ * @param transitionBlend 0 = fully on new phase tint, 1 = fully on prev phase tint (use phaseFlash value)
+ * @param moteCount       Current live mote count — deepens silence vignette when near-empty
+ */
+export function applyVignette(
+  buf: ImageData,
+  phaseIndex: number,
+  phaseProgress: number,
+  moteCount = 0,
+  prevPhaseIndex = -1,
+  transitionBlend = 0,
+): void {
   // Minimum brightness at extreme corners per phase (lower = darker edges)
   // silence is most dramatic; exploration is most open
   const VIGNETTE_FLOORS = [0.57, 0.62, 0.56, 0.55, 0.46, 0.32];
-  const floor = VIGNETTE_FLOORS[Math.min(5, Math.max(0, phaseIndex))];
+  let floor = VIGNETTE_FLOORS[Math.min(5, Math.max(0, phaseIndex))];
+
+  // Mote-count-aware: during silence, deepen the vignette as the world empties
+  if (phaseIndex === 5 && moteCount <= 2) {
+    const deepen = moteCount === 0 ? 0.14 : 0.08;
+    floor = Math.max(0.14, floor - deepen);
+  }
 
   // Per-phase edge tint: [r, g, b, strength] — colors the shadow at the vignette boundary.
   // The tint is additive into the darkened edge zone, painting mood without blowing out the center.
@@ -509,9 +544,22 @@ export function applyVignette(buf: ImageData, phaseIndex: number, phaseProgress:
     [ 50,  9,  0, 0.65],
     [  0,  8, 45, 0.80],
   ];
-  const [tr, tg, tb, ts] = TINTS[Math.min(5, Math.max(0, phaseIndex))];
+  const pi = Math.min(5, Math.max(0, phaseIndex));
+  const [tr, tg, tb, ts] = TINTS[pi];
   // Blend tint in gradually over first 25% of the phase so transitions feel smooth
   const tintStrength = ts * Math.min(1, phaseProgress / 0.25);
+
+  // Cross-fade: when transitionBlend > 0, interpolate with the outgoing phase tint
+  let xtr = tr, xtg = tg, xtb = tb, xts = tintStrength;
+  if (transitionBlend > 0 && prevPhaseIndex >= 0 && prevPhaseIndex !== phaseIndex) {
+    const ppi = Math.min(5, Math.max(0, prevPhaseIndex));
+    const [ptr, ptg, ptb, pts] = TINTS[ppi];
+    const tb2 = transitionBlend;
+    xtr = tr * (1 - tb2) + ptr * tb2;
+    xtg = tg * (1 - tb2) + ptg * tb2;
+    xtb = tb * (1 - tb2) + ptb * tb2;
+    xts = tintStrength * (1 - tb2) + pts * tb2;
+  }
 
   const cx = W / 2;
   const cy = H / 2;
@@ -527,11 +575,11 @@ export function applyVignette(buf: ImageData, phaseIndex: number, phaseProgress:
       const f = Math.max(floor, fade);
       // How much darkness is in this pixel's zone (0 at center, up to 1−floor at extreme corner)
       const darkness = 1 - f;
-      const tint = darkness * tintStrength;
+      const tintFactor = darkness * xts;
       const i = (y * W + x) * 4;
-      d[i]     = Math.min(255, Math.max(0, d[i]     * f + tr * tint)) | 0;
-      d[i + 1] = Math.min(255, Math.max(0, d[i + 1] * f + tg * tint)) | 0;
-      d[i + 2] = Math.min(255, Math.max(0, d[i + 2] * f + tb * tint)) | 0;
+      d[i]     = Math.min(255, Math.max(0, d[i]     * f + xtr * tintFactor)) | 0;
+      d[i + 1] = Math.min(255, Math.max(0, d[i + 1] * f + xtg * tintFactor)) | 0;
+      d[i + 2] = Math.min(255, Math.max(0, d[i + 2] * f + xtb * tintFactor)) | 0;
     }
   }
 }

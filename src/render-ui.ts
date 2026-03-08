@@ -108,7 +108,20 @@ export function renderCursor(buf: ImageData, input: Interaction, time: number): 
   }
 }
 
-/** Render event message flash — text with dark backing for readability */
+// Per-event accent colors [r, g, b] — used for the under-glow and side gradient tint
+const EVENT_ACCENTS: Record<string, [number, number, number]> = {
+  flood:      [ 60, 130, 220],
+  bloom:      [ 80, 200, 100],
+  meteor:     [255, 140,  40],
+  migration:  [ 80, 200, 200],
+  eclipse:    [120,  60, 200],
+  earthquake: [180, 120,  40],
+  plague:     [130, 200,  60],
+  aurora:     [ 60, 200, 230],
+  drought:    [220, 160,  50],
+};
+
+/** Render event message — cinematic text card with gradient backing and event accent glow */
 export function renderEventMessage(
   buf: ImageData,
   event: ActiveEvent | null,
@@ -118,16 +131,46 @@ export function renderEventMessage(
   const textW = measureText(event.message);
   const msgX = Math.floor((W - textW) / 2);
   const msgY = Math.floor(H * 0.3);
-  // Dark semi-transparent backing rectangle
-  const padX = 5;
-  const padY = 3;
-  const bgAlpha = Math.round(event.messageAlpha * 180);
-  for (let by = msgY - padY; by <= msgY + 5 + padY; by++) {
-    for (let bx = msgX - padX; bx <= msgX + textW + padX; bx++) {
-      setPixel(buf, bx, by, 0, 0, 0, bgAlpha);
+  const alpha = event.messageAlpha;
+  const [ar, ag, ab] = EVENT_ACCENTS[event.type] ?? [220, 200, 160];
+
+  // 1 — Full-width dark gradient bar: opaque at center, fading to transparent at canvas edges
+  const barY0 = msgY - 5;
+  const barY1 = msgY + 11;
+  const fadeW = Math.floor(W * 0.22);   // horizontal fade region on each side
+  const centerAlpha = Math.round(alpha * 200);
+  for (let by = barY0; by <= barY1; by++) {
+    const yEdgeFalloff = by === barY0 || by === barY1 ? 0.35 : 1.0;
+    for (let bx = 0; bx < W; bx++) {
+      // Horizontal opacity: full in center band, fades out at edges
+      let hFade = 1.0;
+      if (bx < fadeW) hFade = bx / fadeW;
+      else if (bx > W - fadeW) hFade = (W - bx) / fadeW;
+      const ba = Math.round(centerAlpha * hFade * yEdgeFalloff);
+      if (ba < 3) continue;
+      // Tint: very subtly toward accent color at center, pure dark at edges
+      const tint = hFade * 0.08;
+      setPixel(buf, bx, by, Math.round(ar * tint), Math.round(ag * tint), Math.round(ab * tint), ba);
     }
   }
-  const colorIndex = event.messageAlpha > 0.3 ? 5 : 4;
+
+  // 2 — Accent glow line just below the text
+  const glowY = msgY + 7;
+  const glowW = Math.floor(textW * 0.7);
+  const glowX0 = Math.floor((W - glowW) / 2);
+  const glowAlpha = Math.round(alpha * 90);
+  for (let gx = 0; gx < glowW; gx++) {
+    const gFade = Math.sin((gx / glowW) * Math.PI);   // bell curve: bright at center
+    const ga = Math.round(glowAlpha * gFade);
+    if (ga < 3) continue;
+    setPixel(buf, glowX0 + gx, glowY, ar, ag, ab, ga);
+    // soft halo above and below the line
+    setPixel(buf, glowX0 + gx, glowY - 1, ar, ag, ab, Math.round(ga * 0.4));
+    setPixel(buf, glowX0 + gx, glowY + 1, ar, ag, ab, Math.round(ga * 0.25));
+  }
+
+  // 3 — Text — bright white during display, shifts toward accent on fade-out
+  const colorIndex = alpha > 0.3 ? 5 : 4;
   drawText(buf, msgX, msgY, event.message, colorIndex);
 }
 
