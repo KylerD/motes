@@ -233,5 +233,63 @@ export function renderDeathParticles(
         setPixel(buf, d.x + 1, d.y, d.r, d.g, d.b, Math.round(ma * 0.5));
       }
     }
+
+    // Wanderer death trail — ghost path that outlives the walker.
+    // Trail points saved at death persist up to 4.5s (natural 3s + 1.5s ghost extension),
+    // oldest points dying first. Color bleeds toward ghost grey as time passes.
+    if (d.trail && d.trail.length > 0 && age < 4.5) {
+      const maxAge = 4.5;
+      for (const pt of d.trail) {
+        const effectiveAge = pt.age + age;   // trail point age grows as death ages
+        if (effectiveAge > maxAge) continue;
+        const ageFrac = effectiveAge / maxAge;
+        const ghostT = Math.min(1, age / 1.5); // fully grey after 1.5s
+        // Bleed from mote color toward cold ghost grey
+        const gr = Math.round(d.r * (1 - ghostT) + 88 * ghostT);
+        const gg = Math.round(d.g * (1 - ghostT) + 82 * ghostT);
+        const gb = Math.round(d.b * (1 - ghostT) + 78 * ghostT);
+        const ta = Math.round((1 - ageFrac) * 26 * (1 - ghostT * 0.4));
+        if (ta > 2) setPixel(buf, pt.x, pt.y, gr, gg, gb, ta);
+      }
+    }
+  }
+}
+
+/** Silence constellation — faint star-crosses at every death position from the cycle.
+ *  Only renders during the silence phase with no motes alive.
+ *  Each death site becomes a tiny memorial: the world remembers who walked here. */
+export function renderSilenceConstellation(
+  buf: ImageData,
+  allDeaths: Array<{ x: number; y: number; r: number; g: number; b: number }>,
+  phaseName: string,
+  motesCount: number,
+  time: number,
+): void {
+  if (phaseName !== "silence" || motesCount > 0 || allDeaths.length === 0) return;
+
+  // Gentle, slow breathing — the world inhales its memories
+  const breathe = Math.sin(time * 0.38) * 0.18 + 0.82;
+
+  for (let i = 0; i < allDeaths.length; i++) {
+    const d = allDeaths[i];
+    // Earlier deaths are dimmer — they happened longer ago, further from memory
+    const recency = i / Math.max(1, allDeaths.length - 1); // 0 = oldest, 1 = most recent
+    const baseAlpha = Math.round((5 + recency * 12) * breathe);
+    if (baseAlpha < 2) continue;
+
+    // Shift toward cold ghost white — desaturated, barely there
+    const gr = Math.round(d.r * 0.55 + 145 * 0.45);
+    const gg = Math.round(d.g * 0.55 + 138 * 0.45);
+    const gb = Math.round(d.b * 0.55 + 148 * 0.45);
+
+    const x = Math.round(d.x);
+    const y = Math.round(d.y) - 1;
+
+    // Tiny 5-pixel cross — center bright, arms dim
+    setPixel(buf, x,     y,     gr, gg, gb, baseAlpha);
+    setPixel(buf, x - 1, y,     gr, gg, gb, Math.round(baseAlpha * 0.50));
+    setPixel(buf, x + 1, y,     gr, gg, gb, Math.round(baseAlpha * 0.50));
+    setPixel(buf, x,     y - 1, gr, gg, gb, Math.round(baseAlpha * 0.50));
+    setPixel(buf, x,     y + 1, gr, gg, gb, Math.round(baseAlpha * 0.40));
   }
 }

@@ -21,7 +21,7 @@ import {
   applyVignette, applyPhaseColorGrade, createMeteorState,
   applyBloom, renderAtmosphericParticles, renderClusterRadiance,
 } from "./render-effects";
-import { renderClusterGlow, renderBondLines, renderDeathParticles } from "./render-bonds";
+import { renderClusterGlow, renderBondLines, renderDeathParticles, renderSilenceConstellation } from "./render-bonds";
 import { renderRipples, renderCursor, renderEventMessage, renderDebugOverlay } from "./render-ui";
 import type { Mote, RenderContext, SoundEngine, Interaction } from "./types";
 
@@ -179,6 +179,7 @@ function init(): void {
     renderMotes(rc.buf, w.motes, moteColors, plagueActive, plaguePulse, w.time);
     renderBondLines(rc.buf, w.motes, moteColors, w.time);
     renderDeathParticles(rc.buf, w.deaths, w.time);
+    renderSilenceConstellation(rc.buf, w.allDeaths, w.phaseName, w.motes.length, w.time);
 
     // Meteor
     renderMeteorVisual(rc.buf, meteor, w.event, w.time, w.cycleNumber, dt);

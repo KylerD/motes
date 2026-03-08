@@ -228,6 +228,7 @@ export interface DeathRecord {
   y: number;
   r: number; g: number; b: number;
   time: number;
+  trail?: TrailPoint[];   // wanderer ghost trail — path outlives the walker
 }
 
 export interface World {
@@ -248,6 +249,7 @@ export interface World {
   event: ActiveEvent | null;
   eventTriggered: boolean;
   deaths: DeathRecord[];
+  allDeaths: Array<{ x: number; y: number; r: number; g: number; b: number }>;
   pendingEventSound: string | null;
   phaseFlash: number;
   weather: Weather;

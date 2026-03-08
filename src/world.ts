@@ -100,6 +100,7 @@ export function createWorld(): World {
     event: checkForEvent(cycleNumber),
     eventTriggered: false,
     deaths: [],
+    allDeaths: [],
     pendingEventSound: null,
     phaseFlash: 0,
     weather: createWeather(cycleNumber, terrain.biome),
@@ -138,6 +139,7 @@ export function updateWorld(world: World, dt: number): void {
     world.event = checkForEvent(currentCycle);
     world.eventTriggered = false;
     world.deaths = [];
+    world.allDeaths = [];
     world.pendingEventSound = null;
     world.weather = createWeather(currentCycle, world.terrain.biome);
   }
@@ -224,11 +226,19 @@ export function updateWorld(world: World, dt: number): void {
       dr = Math.round(dr + (220 - dr) * ageGold);
       dg = Math.round(dg + (165 - dg) * ageGold);
       db = Math.round(db + (40 - db) * ageGold);
+      // Wanderers: copy their trail so the ghost-path outlives the walker
+      const isWanderer = m.temperament.wanderlust > 0.6;
+      const trailCopy = isWanderer ? m.trail.map(pt => ({ ...pt })) : undefined;
+
       world.deaths.push({
         x: m.x, y: m.y,
         r: dr, g: dg, b: db,
         time: world.time,
+        trail: trailCopy,
       });
+
+      // Persist all death positions for the silence constellation
+      world.allDeaths.push({ x: m.x, y: m.y, r: dr, g: dg, b: db });
 
       // Death inheritance: age-scaled radius — elders are missed from further away
       const inheritRadius = 55 + Math.min(25, m.age * 1.5);

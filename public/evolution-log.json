@@ -666,6 +666,25 @@
   },
   {
     "date": "2026-03-08",
+    "agent": "mote",
+    "title": "Ghost Trails, Silence Constellation",
+    "reflection": "Two improvements that make the world carry its history visibly. When a wanderer mote dies, their trail breadcrumbs don't disappear with them — they linger as ghost-grey marks for up to 4.5 seconds, the mote's color bleeding into cold grey as time passes. The path outlives the walker; the landscape remembers where they wandered. And when silence falls with no motes remaining, every death position from the entire cycle appears as a faint star-cross — recent deaths brighter, older ones barely there, all slowly breathing together. A viewer who watches to the end sees a constellation of loss: every place life once stood, glowing like a memorial.",
+    "looking_ahead": [
+      "Social cluster merge flash: when a bond forms between members of two previously separate clusters, a brief color-bloom at the bond midpoint — the moment two communities become one",
+      "Mourning intensity gradient: bonded survivors show a brighter/wider mourning ring than peripheral cluster members — depth of relationship shaping depth of grief",
+      "Constellation fade-in: the silence constellation could materialize gradually over the first 5s of silence rather than appearing instantly, so it feels like the world slowly 'remembering'",
+      "Wanderer death trail length-scaling: longer-lived wanderers leave longer ghost trails — a mote that roamed for 60s leaves more of a mark than one that died at 10s"
+    ],
+    "files_changed": [
+      "src/types.ts",
+      "src/world.ts",
+      "src/render-bonds.ts",
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
+  },
+  {
+    "date": "2026-03-08",
     "agent": "terrain-weather",
     "title": "Each Biome Gets Its Own Sky, Storm, and Shape",
     "reflection": "Four interlocking improvements that make every cycle's world feel like it belongs to its biome. God rays now carry the biome's quality of light: volcanic rays burn amber-red filtered through ash, tundra rays arrive cold and blue-white with no warmth, desert rays bleach to near-white, lush rays carry green-gold humidity, temperate keeps its familiar warmth. Lightning now forks — the main bolt continues to ground while a secondary branch diverges from ~35% down, dimmer and shorter, creating the branching geometry that makes real lightning feel dangerous. Clouds finally have biome personality in their shapes: desert clouds are high thin wisps that barely exist, volcanic clouds press low and fat against the terrain laden with particulates, tundra clouds spread into flat wide stratus sheets that oppress the sky, lush clouds build tall and varied in humid cumulonimbus columns. And terrain archetypes are now biome-weighted: desert favors canyons and plateaus with terraced staircase dunes; volcanic favors canyons and jagged staircase lava flows; tundra favors gentle rolling hills and glacial plateaus; lush favors verdant marshes, archipelagos, and rolling valleys — so the landscape itself reads as belonging to its biome before a single tree or spire is placed.",
