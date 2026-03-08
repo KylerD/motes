@@ -71,11 +71,33 @@ export function createWeather(seed: number, biome: Biome): Weather {
     Math.floor(rng() * 3);
 
   for (let i = 0; i < cloudCount; i++) {
+    // Biome shapes the character of clouds: desert wisps high and thin, volcanic low and fat,
+    // tundra flat stratus pressing down, lush towering cumulonimbus, temperate balanced.
+    let yBase: number, yRange: number, wBase: number, wRange: number, hBase: number, hRange: number;
+    if (type === "fog") {
+      // Fog clouds are always low and spread regardless of biome
+      yBase = H * 0.3; yRange = H * 0.5; wBase = 15; wRange = 30; hBase = 3; hRange = 6;
+    } else if (biome === "desert") {
+      // High thin wisps — sun-baked, insubstantial, barely there
+      yBase = 0; yRange = H * 0.16; wBase = 8; wRange = 20; hBase = 1; hRange = 3;
+    } else if (biome === "volcanic") {
+      // Low, wide, fat — laden with particulates, pressing down toward the land
+      yBase = H * 0.06; yRange = H * 0.28; wBase = 22; wRange = 48; hBase = 5; hRange = 10;
+    } else if (biome === "tundra") {
+      // Flat wide stratus — cold air stratifies into oppressive horizontal sheets
+      yBase = H * 0.04; yRange = H * 0.20; wBase = 30; wRange = 55; hBase = 2; hRange = 4;
+    } else if (biome === "lush") {
+      // Tall varied cumulonimbus — humid air builds upward, dramatic vertical development
+      yBase = H * 0.02; yRange = H * 0.28; wBase = 12; wRange = 26; hBase = 5; hRange = 11;
+    } else {
+      // Temperate: balanced cumulus
+      yBase = 0; yRange = H * 0.35; wBase = 15; wRange = 30; hBase = 3; hRange = 6;
+    }
     clouds.push({
       x: rng() * W,
-      y: type === "fog" ? H * 0.3 + rng() * H * 0.5 : rng() * H * 0.35,
-      width: 15 + rng() * 30,
-      height: 3 + rng() * 6,
+      y: yBase + rng() * yRange,
+      width: wBase + rng() * wRange,
+      height: hBase + rng() * hRange,
       density: type === "overcast" ? 0.3 + rng() * 0.3 :
                type === "fog" ? 0.15 + rng() * 0.2 : 0.1 + rng() * 0.2,
       speed: (0.5 + rng() * 1.5) * (windStrength > 0 ? 1 : -1),

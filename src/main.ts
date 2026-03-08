@@ -141,7 +141,7 @@ function init(): void {
 
     // Weather background
     renderCelestial(rc.buf, w.weather, w.time, w.cycleProgress);
-    applyGodRays(rc.buf, w.weather, w.time, w.cycleProgress);
+    applyGodRays(rc.buf, w.weather, w.time, w.cycleProgress, w.terrain.biome);
     renderShootingStars(rc.buf, w.cycleProgress, w.cycleNumber, w.weather.type);
     applyTundraAurora(rc.buf, w.terrain.biome, w.time, w.cycleProgress, w.weather.type);
     renderClouds(rc.buf, w.weather, w.time, w.terrain.biome);

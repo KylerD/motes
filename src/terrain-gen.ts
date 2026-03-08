@@ -4,7 +4,7 @@
 import { noise2, seedNoise } from "./noise";
 import { W, H } from "./config";
 import { Tile } from "./types";
-import type { Terrain } from "./types";
+import type { Terrain, Biome } from "./types";
 import { getBiomePalette, pickBiome } from "./palette";
 import { mulberry32 } from "./rng";
 import { getSurfaceY } from "./terrain-query";
@@ -101,6 +101,37 @@ const ARCHETYPES: TerrainArchetype[] = [
   },
 ];
 
+/**
+ * Biome archetype weights — each biome favors terrain shapes that suit its character.
+ * Indices match ARCHETYPES array: rolling, canyon, archipelago, plateau, marsh, hills, staircase.
+ *
+ *  rolling   — gentle undulating plains: good for temperate, tundra, lush
+ *  canyon    — deep cuts, dramatic drops: good for desert, volcanic
+ *  archipelago — scattered islands, lots of water: good for lush, temperate
+ *  plateau   — flat-topped highlands: good for desert, tundra
+ *  marsh     — low and wet: great for lush
+ *  hills     — large slow waves: tundra, temperate
+ *  staircase — terraced steps: volcanic drama, desert dunes
+ */
+const BIOME_ARCHETYPE_WEIGHTS: Record<Biome, number[]> = {
+  temperate: [3, 1, 2, 1, 1, 3, 1],  // rolling plains and gentle hills
+  desert:    [1, 4, 0, 3, 0, 1, 3],  // canyon cuts, flat plateaus, terraced dune shelves
+  tundra:    [3, 0, 1, 2, 1, 4, 0],  // gentle rolling tundra and glacial plateaus
+  volcanic:  [0, 4, 1, 1, 0, 2, 4],  // dramatic canyons and jagged terraced flows
+  lush:      [3, 0, 3, 1, 4, 2, 0],  // rolling valleys, archipelagos, verdant marshes
+};
+
+function pickArchetype(biome: Biome, rng: () => number): TerrainArchetype {
+  const weights = BIOME_ARCHETYPE_WEIGHTS[biome];
+  const total = weights.reduce((a, b) => a + b, 0);
+  let roll = rng() * total;
+  for (let i = 0; i < weights.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) return ARCHETYPES[i];
+  }
+  return ARCHETYPES[ARCHETYPES.length - 1];
+}
+
 /** Generate a new terrain from a seed */
 export function generateTerrain(seed: number): Terrain {
   seedNoise(seed);
@@ -111,8 +142,8 @@ export function generateTerrain(seed: number): Terrain {
   const biome = pickBiome(rng());
   const bp = getBiomePalette(biome);
 
-  // Pick terrain archetype from seed
-  const arch = ARCHETYPES[Math.floor(rng() * ARCHETYPES.length)];
+  // Pick terrain archetype weighted by biome — desert gets canyons, tundra gets hills, etc.
+  const arch = pickArchetype(biome, rng);
 
   // Height map: 1D noise across width, shaped by archetype
   const heights = new Float32Array(W);

@@ -647,5 +647,24 @@
       "src/sound.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-08",
+    "agent": "terrain-weather",
+    "title": "Each Biome Gets Its Own Sky, Storm, and Shape",
+    "reflection": "Four interlocking improvements that make every cycle's world feel like it belongs to its biome. God rays now carry the biome's quality of light: volcanic rays burn amber-red filtered through ash, tundra rays arrive cold and blue-white with no warmth, desert rays bleach to near-white, lush rays carry green-gold humidity, temperate keeps its familiar warmth. Lightning now forks — the main bolt continues to ground while a secondary branch diverges from ~35% down, dimmer and shorter, creating the branching geometry that makes real lightning feel dangerous. Clouds finally have biome personality in their shapes: desert clouds are high thin wisps that barely exist, volcanic clouds press low and fat against the terrain laden with particulates, tundra clouds spread into flat wide stratus sheets that oppress the sky, lush clouds build tall and varied in humid cumulonimbus columns. And terrain archetypes are now biome-weighted: desert favors canyons and plateaus with terraced staircase dunes; volcanic favors canyons and jagged staircase lava flows; tundra favors gentle rolling hills and glacial plateaus; lush favors verdant marshes, archipelagos, and rolling valleys — so the landscape itself reads as belonging to its biome before a single tree or spire is placed.",
+    "looking_ahead": [
+      "Flood water level rise: when a flood event is active, raise the rendered waterline by a few tiles — shallow water appears at terrain edges and retreats when the event ends",
+      "Tundra aurora cluster response: when a large cluster forms under the tundra aurora, the ribbon above them briefly brightens — life calling up light",
+      "Storm particle density per biome: volcanic storms should have heavier ash fall and tighter particle clusters; lush storms should have wider, more chaotic rain",
+      "Background mountain silhouette per biome: desert bg mountains sharper and angular, tundra glacial and rounded, volcanic dark jagged masses"
+    ],
+    "files_changed": [
+      "src/weather-render.ts",
+      "src/weather.ts",
+      "src/terrain-gen.ts",
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

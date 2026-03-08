@@ -360,7 +360,7 @@ export function renderParticles(buf: ImageData, weather: Weather, biome: Biome =
   }
 }
 
-/** Render lightning flash — bright overlay across the whole scene */
+/** Render lightning flash — bright overlay across the whole scene, with a forking secondary branch */
 export function renderLightning(buf: ImageData, weather: Weather): void {
   if (!weather.lightning.active) return;
 
@@ -375,18 +375,32 @@ export function renderLightning(buf: ImageData, weather: Weather): void {
     d[i + 2] = Math.min(255, d[i + 2] + Math.round(flashA * 1.2));
   }
 
-  // Bolt: jagged vertical line from cloud to ground
+  // Main bolt: jagged vertical line from cloud to ground
   const bx = weather.lightning.x;
-  let y = 5;
-  let x = bx;
   const boltAlpha = Math.round(brightness * 255);
+  const forkY = Math.floor(H * 0.35); // fork branches off ~35% down
+  let y = 5, x = bx;
+  let forkX = bx; // x position at the fork point — recorded mid-traversal
+
   while (y < H * 0.7) {
     setPixel(buf, x, y, 255, 255, 255, boltAlpha);
     setPixel(buf, x - 1, y, 200, 210, 255, Math.round(boltAlpha * 0.4));
     setPixel(buf, x + 1, y, 200, 210, 255, Math.round(boltAlpha * 0.4));
+    if (y === forkY) forkX = x;
     y += 1;
-    // Jagged steps
     x += (Math.floor(y * 3.7 + bx) % 3) - 1;
+  }
+
+  // Fork branch — dimmer, shorter, diverges from the main bolt via a different phase offset
+  // Uses a different zigzag phase (+5.7) so it naturally separates from the main trajectory
+  const forkAlpha = Math.round(boltAlpha * 0.46);
+  const forkEnd = Math.min(Math.floor(H * 0.78), forkY + Math.floor(H * 0.26));
+  let fy = forkY, fx = forkX;
+  while (fy < forkEnd) {
+    setPixel(buf, fx, fy, 210, 225, 255, forkAlpha);
+    setPixel(buf, fx - 1, fy, 160, 180, 255, Math.round(forkAlpha * 0.35));
+    fy += 1;
+    fx += (Math.floor(fy * 3.7 + bx + 5.7) % 3) - 1;
   }
 }
 
@@ -403,6 +417,8 @@ function seedHash(n: number): number {
  * God rays — crepuscular light shafts radiating from the sun downward through the sky.
  * Strongest when the sun is high (exploration through complexity phases).
  * Blocked by storm, overcast, and fog. Dimmed by rain and snow.
+ * Each biome's sun has its own quality of light — volcanic rays burn amber-red through ash,
+ * tundra rays arrive cold and blue-white, desert rays bleach, lush rays carry warmth and green.
  * Call after renderCelestial, before renderClouds.
  */
 export function applyGodRays(
@@ -410,6 +426,7 @@ export function applyGodRays(
   weather: Weather,
   time: number,
   cycleProgress: number,
+  biome: Biome = "temperate",
 ): void {
   if (weather.type === "storm" || weather.type === "overcast" || weather.type === "fog") return;
 
@@ -422,6 +439,26 @@ export function applyGodRays(
   const weatherMod = (weather.type === "rain" || weather.type === "snow") ? 0.28 : 1.0;
   const rayStr = baseStr * weatherMod;
   if (rayStr < 0.04) return;
+
+  // Biome-tuned ray tint: each world's sun has its own character
+  let rayR: number, rayG: number, rayB: number;
+  switch (biome) {
+    case "volcanic":
+      // Amber-red filtered through ash and particulates — the sun bleeds through smoke
+      rayR = 1.38; rayG = 0.52; rayB = 0.16; break;
+    case "tundra":
+      // Cold blue-white — thin atmosphere, no warmth in these rays
+      rayR = 0.68; rayG = 0.94; rayB = 1.44; break;
+    case "desert":
+      // Bleached golden-white — intense overhead sun, almost no color left
+      rayR = 1.24; rayG = 1.02; rayB = 0.50; break;
+    case "lush":
+      // Green-gold — filtered through humidity and canopy scatter
+      rayR = 0.90; rayG = 1.14; rayB = 0.42; break;
+    default:
+      // Temperate: warm golden afternoon light
+      rayR = 1.10; rayG = 0.82; rayB = 0.30; break;
+  }
 
   const d = buf.data;
   // Clamp ray pixels to sky area — don't bleed into terrain
@@ -450,18 +487,17 @@ export function applyGodRays(
       if (a < 2) continue;
 
       const pi = (ry * W + rx) * 4;
-      // Warm golden sunlight tint
-      d[pi]     = Math.min(255, d[pi]     + Math.round(a * 1.10));
-      d[pi + 1] = Math.min(255, d[pi + 1] + Math.round(a * 0.82));
-      d[pi + 2] = Math.min(255, d[pi + 2] + Math.round(a * 0.30));
+      d[pi]     = Math.min(255, d[pi]     + Math.round(a * rayR));
+      d[pi + 1] = Math.min(255, d[pi + 1] + Math.round(a * rayG));
+      d[pi + 2] = Math.min(255, d[pi + 2] + Math.round(a * rayB));
 
       // Soft 1px glow beside each ray for feathered edge
       if (rx + 1 < W) {
         const pi2 = (ry * W + rx + 1) * 4;
         const a2 = Math.round(a * 0.28);
-        d[pi2]     = Math.min(255, d[pi2]     + Math.round(a2 * 1.10));
-        d[pi2 + 1] = Math.min(255, d[pi2 + 1] + Math.round(a2 * 0.82));
-        d[pi2 + 2] = Math.min(255, d[pi2 + 2] + Math.round(a2 * 0.30));
+        d[pi2]     = Math.min(255, d[pi2]     + Math.round(a2 * rayR));
+        d[pi2 + 1] = Math.min(255, d[pi2 + 1] + Math.round(a2 * rayG));
+        d[pi2 + 2] = Math.min(255, d[pi2 + 2] + Math.round(a2 * rayB));
       }
     }
   }
