@@ -137,6 +137,37 @@ export function renderBondLines(
         setPixel(buf, s2x,     s2y,     255,  255,  255,  sparkA);
         setPixel(buf, s2x - 1, s2y,     avgR, avgG, avgB, glowA);
         setPixel(buf, s2x + 1, s2y,     avgR, avgG, avgB, glowA);
+
+        // Bond midpoint burst — a brief starburst at the moment of connection.
+        // Only fires while the bond is very fresh (flash > 0.80): the first ~0.2s.
+        // The starburst fades in and out quickly, leaving only the sparks.
+        if (flash > 0.80) {
+          const burstT = (flash - 0.80) / 0.20;   // 1→0 during this window
+          const midX = (m.x + bonded.x) / 2;
+          const midY = (m.y + bonded.y) / 2;
+          // Bright center pixel
+          setPixel(buf, midX, midY, 255, 255, 255, Math.round(burstT * 255));
+          // 4-direction arms radiating outward; length 1–4px with falloff
+          for (let step = 1; step <= 4; step++) {
+            const falloff = 1 - step / 5;
+            const ca = Math.round(burstT * falloff * falloff * 220);
+            if (ca < 4) continue;
+            setPixel(buf, midX + step, midY,       255, 255, 255, ca);
+            setPixel(buf, midX - step, midY,       255, 255, 255, ca);
+            setPixel(buf, midX,        midY - step, 255, 255, 255, ca);
+            setPixel(buf, midX,        midY + step, 255, 255, 255, ca);
+          }
+          // Diagonal arms (bond color, dimmer) — adds a classic star shape
+          for (let step = 1; step <= 3; step++) {
+            const falloff = 1 - step / 4;
+            const da = Math.round(burstT * falloff * falloff * 140);
+            if (da < 4) continue;
+            setPixel(buf, midX + step, midY - step, avgR, avgG, avgB, da);
+            setPixel(buf, midX - step, midY - step, avgR, avgG, avgB, da);
+            setPixel(buf, midX + step, midY + step, avgR, avgG, avgB, da);
+            setPixel(buf, midX - step, midY + step, avgR, avgG, avgB, da);
+          }
+        }
       }
     }
   }
@@ -257,15 +288,24 @@ export function renderDeathParticles(
 
 /** Silence constellation — faint star-crosses at every death position from the cycle.
  *  Only renders during the silence phase with no motes alive.
- *  Each death site becomes a tiny memorial: the world remembers who walked here. */
+ *  Each death site becomes a tiny memorial: the world remembers who walked here.
+ *  The constellation materializes gradually over the first ~8 seconds of silence
+ *  rather than appearing all at once — the world slowly recalling what it lost. */
 export function renderSilenceConstellation(
   buf: ImageData,
   allDeaths: Array<{ x: number; y: number; r: number; g: number; b: number }>,
   phaseName: string,
   motesCount: number,
   time: number,
+  phaseProgress: number,
 ): void {
   if (phaseName !== "silence" || motesCount > 0 || allDeaths.length === 0) return;
+
+  // Silence phase is 24s long (0.08 of 300s cycle).
+  // Reveal over first ~8s → phaseProgress 0→0.333 → multiply × 3 and clamp to 1.
+  // Eased: slow start so it feels like gradual remembrance, not a pop.
+  const revealRaw = Math.min(1, phaseProgress * 3.0);
+  const revealFade = revealRaw * revealRaw * (3 - 2 * revealRaw); // smoothstep
 
   // Gentle, slow breathing — the world inhales its memories
   const breathe = Math.sin(time * 0.38) * 0.18 + 0.82;
@@ -274,7 +314,7 @@ export function renderSilenceConstellation(
     const d = allDeaths[i];
     // Earlier deaths are dimmer — they happened longer ago, further from memory
     const recency = i / Math.max(1, allDeaths.length - 1); // 0 = oldest, 1 = most recent
-    const baseAlpha = Math.round((5 + recency * 12) * breathe);
+    const baseAlpha = Math.round((5 + recency * 12) * breathe * revealFade);
     if (baseAlpha < 2) continue;
 
     // Shift toward cold ghost white — desaturated, barely there

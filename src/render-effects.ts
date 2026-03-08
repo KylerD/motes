@@ -90,6 +90,10 @@ export function applyBloom(buf: ImageData, strength: number, tintR = 1.0, tintG 
   }
 }
 
+// ─── Eclipse corona geometry ───────────────────────────────────────────────
+// Used only during renderEclipse — kept here to avoid repeated allocation.
+const CORONA_RAY_COUNT = 14;
+
 /** Draw aurora light curtains in the sky */
 export function renderAuroraCurtains(buf: ImageData, time: number, eventStart: number): void {
   const elapsed = time - eventStart;
@@ -141,7 +145,7 @@ export function renderAuroraCurtains(buf: ImageData, time: number, eventStart: n
   }
 }
 
-/** Render eclipse darkness, stars, and glowing mote eyes */
+/** Render eclipse darkness, stars, glowing mote eyes, and solar corona */
 export function renderEclipse(
   buf: ImageData,
   event: ActiveEvent,
@@ -149,6 +153,8 @@ export function renderEclipse(
   motes: Mote[],
   moteColors: Map<Mote, [number, number, number]>,
   cycleNumber: number,
+  celestialX = W * 0.62,
+  celestialY = H * 0.22,
 ): void {
   const eclipseElapsed = time - event.startTime;
   const eclipseProgress = eclipseElapsed / event.duration;
@@ -203,6 +209,83 @@ export function renderEclipse(
       const ha = Math.round(ga * 0.15);
       const [mcr, mcg, mcb] = moteColors.get(m)!;
       setPixel(buf, m.x, m.y, mcr, mcg, mcb, ha);
+    }
+  }
+
+  // Solar corona — appears as darkness deepens, reveals the sun's crown
+  if (darkness > 0.45) {
+    const coronaIntensity = Math.min(1, (darkness - 0.45) / 0.55);
+    const scx = Math.round(celestialX);
+    const scy = Math.round(celestialY);
+    const moonR = 7;
+
+    // ── Corona halo: exponential falloff glow ring just outside moon disc ──
+    const haloOuter = moonR + 20;
+    for (let dy = -haloOuter; dy <= haloOuter; dy++) {
+      for (let dx = -haloOuter; dx <= haloOuter; dx++) {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < moonR + 1 || dist > haloOuter) continue;
+        const t = (dist - moonR - 1) / (haloOuter - moonR - 1);
+        // Angular texture: corona is brighter along equatorial axis
+        const angle = Math.atan2(dy, dx);
+        const angTex = Math.sin(angle * 3 + time * 0.08) * 0.15 + 0.85;
+        const ga = Math.round(coronaIntensity * Math.exp(-t * 3.2) * 72 * angTex);
+        if (ga < 2) continue;
+        setPixel(buf, scx + dx, scy + dy, 255, 243, 205, ga);
+      }
+    }
+
+    // ── Corona rays: bright streaks radiating outward ──
+    const raySeed = cycleNumber * 4397;
+    for (let ri = 0; ri < CORONA_RAY_COUNT; ri++) {
+      // Deterministic base angle with small per-cycle variation
+      const baseAngle = (ri / CORONA_RAY_COUNT) * Math.PI * 2;
+      const angleJitter = ((raySeed + ri * 2311) % 100 - 50) * 0.008;
+      // Slow waving animation (same for all viewers at same UTC time)
+      const angle = baseAngle + angleJitter + Math.sin(time * 0.12 + ri * 0.94) * 0.055;
+
+      // Ray length varies per ray (deterministic + slow breathe)
+      const lenBase = 10 + ((raySeed + ri * 1733) % 14);    // 10-24px
+      const lenPulse = Math.sin(time * 0.28 + ri * 1.41) * 4;
+      const rayLen = Math.round(lenBase + lenPulse);
+
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      const perpX = -sinA;
+      const perpY = cosA;
+
+      for (let step = moonR + 1; step <= moonR + rayLen; step++) {
+        const rx = scx + cosA * step;
+        const ry = scy + sinA * step;
+        const t = (step - moonR - 1) / rayLen;
+        const ga = Math.round(coronaIntensity * (1 - t) * (1 - t) * 175);
+        if (ga < 3) continue;
+        setPixel(buf, rx, ry, 255, 249, 218, ga);
+        // Rays are slightly wider near their base for a feathered look
+        if (step < moonR + 7) {
+          setPixel(buf, rx + perpX, ry + perpY, 255, 240, 195, Math.round(ga * 0.38));
+          setPixel(buf, rx - perpX, ry - perpY, 255, 240, 195, Math.round(ga * 0.38));
+        }
+      }
+    }
+
+    // ── Moon disc: dark mass at the celestial position, eclipsing the sun ──
+    // Rendered last so it cleanly covers any corona pixels that bled inward.
+    const d = buf.data;
+    for (let dy = -moonR; dy <= moonR; dy++) {
+      for (let dx = -moonR; dx <= moonR; dx++) {
+        if (dx * dx + dy * dy > moonR * moonR) continue;
+        const px = scx + dx;
+        const py = scy + dy;
+        if (px < 0 || px >= W || py < 0 || py >= H) continue;
+        // Limb darkening: center of moon disc is deepest; edge has faint inner corona bleed
+        const edgeFrac = Math.sqrt(dx * dx + dy * dy) / moonR;
+        const dimTo = Math.round(edgeFrac * edgeFrac * 12 * coronaIntensity);
+        const idx = (py * W + px) * 4;
+        d[idx]   = Math.min(dimTo, d[idx]);
+        d[idx+1] = Math.min(dimTo, d[idx+1]);
+        d[idx+2] = Math.min(Math.round(dimTo * 1.4), d[idx+2]);
+      }
     }
   }
 }
@@ -353,25 +436,74 @@ export function renderCraterGlow(
   }
 }
 
-/** Phase transition pulse — colored flash matching each phase's mood */
+/** Phase transition pulse — colored shockwave ring expanding from canvas center.
+ *
+ * When a phase changes, phaseFlash is set to 1.0 and decays at ~1.0/s.
+ * We emit:
+ *   1. A subtle uniform screen brightening (reduced from the old approach, used for tint)
+ *   2. A bright expanding ring that travels from center to beyond the canvas edges
+ *
+ * The ring is most vivid at the leading edge and has a soft trailing glow, creating
+ * the impression of a wave of energy rolling through the world.
+ */
 export function renderPhaseFlash(buf: ImageData, phaseFlash: number, phaseIndex: number): void {
   if (phaseFlash <= 0) return;
-  // Per-phase additive RGB boost [r, g, b] applied at full flash intensity
+
+  // Per-phase RGB tint [r, g, b] — drives both the subtle screen tint and ring color
   const PHASE_FLASHES: [number, number, number][] = [
-    [ 0,  2, 18],  // 0 genesis:      cool violet
-    [14,  6,  0],  // 1 exploration:  warm gold
-    [ 8,  7,  7],  // 2 organization: soft white
-    [12,  5,  0],  // 3 complexity:   vivid warm
-    [18,  0, -4],  // 4 dissolution:  deep amber-red
-    [ 0,  2, 16],  // 5 silence:      cold blue
+    [ 60,  50, 255],  // 0 genesis:      violet
+    [255, 200,  50],  // 1 exploration:  gold
+    [220, 220, 220],  // 2 organization: cool white
+    [255, 190,  60],  // 3 complexity:   warm amber
+    [255,  90,  20],  // 4 dissolution:  red-orange
+    [ 60, 100, 255],  // 5 silence:      cold blue
   ];
-  const tint = PHASE_FLASHES[Math.min(5, Math.max(0, phaseIndex))];
-  const f = phaseFlash;
+  const [tr, tg, tb] = PHASE_FLASHES[Math.min(5, Math.max(0, phaseIndex))];
+
+  // 1 — Subtle uniform screen tint (much reduced from before; ring carries the drama)
+  const f = phaseFlash * 0.35;
   const d = buf.data;
   for (let i = 0; i < d.length; i += 4) {
-    d[i]     = Math.min(255, Math.max(0, Math.round(d[i]     + (d[i]     * 0.07 + tint[0]) * f)));
-    d[i + 1] = Math.min(255, Math.max(0, Math.round(d[i + 1] + (d[i + 1] * 0.07 + tint[1]) * f)));
-    d[i + 2] = Math.min(255, Math.max(0, Math.round(d[i + 2] + (d[i + 2] * 0.07 + tint[2]) * f)));
+    d[i]     = Math.min(255, Math.max(0, Math.round(d[i]     + (d[i]     * 0.04 + tr * 0.04) * f)));
+    d[i + 1] = Math.min(255, Math.max(0, Math.round(d[i + 1] + (d[i + 1] * 0.04 + tg * 0.04) * f)));
+    d[i + 2] = Math.min(255, Math.max(0, Math.round(d[i + 2] + (d[i + 2] * 0.04 + tb * 0.04) * f)));
+  }
+
+  // 2 — Expanding shockwave ring
+  // phaseFlash: 1.0 (just transitioned) → 0 (done). Ring progress inverts this.
+  const ringT = 1 - phaseFlash;                         // 0 = center, 1 = fully expanded
+  // Max radius: just beyond corner-to-center distance so ring exits the screen
+  const maxR = Math.sqrt((W * 0.5) * (W * 0.5) + (H * 0.5) * (H * 0.5)) + 8;
+  const ringR = ringT * maxR;
+
+  // Ring is only visible while expanding across the screen
+  if (ringR < maxR && phaseFlash > 0.02) {
+    const cx = W * 0.5;
+    const cy = H * 0.5;
+    // Leading edge is bright (ringR), trailing soft glow extends inward ~12px
+    const trailWidth = 12;
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const dist = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
+        const delta = dist - ringR;            // + = outside (ahead of ring), − = inside (behind)
+        if (delta > 2 || delta < -trailWidth) continue;
+
+        let ringFalloff: number;
+        if (delta >= -2 && delta <= 2) {
+          // Leading edge: bright band
+          ringFalloff = 1 - Math.abs(delta) / 2;
+        } else {
+          // Trailing glow: fade from edge inward
+          ringFalloff = Math.max(0, 1 - (-delta - 2) / (trailWidth - 2));
+          ringFalloff *= ringFalloff;  // quadratic fade for soft trailing look
+        }
+
+        const ra = Math.round(phaseFlash * ringFalloff * 160);
+        if (ra < 4) continue;
+        setPixel(buf, x, y, tr, tg, tb, ra);
+      }
+    }
   }
 }
 

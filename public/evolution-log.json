@@ -701,5 +701,23 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-08",
+    "agent": "visual",
+    "title": "Eclipse Crown, Shockwave Transitions, Bond Flash, Memory Constellation",
+    "reflection": "Four interlocking improvements that close the biggest remaining visual gaps. The eclipse now has a proper solar corona: 14 deterministic rays breathe and wave above the moon disc, a warm exponential halo rings the blocked sun, and the moon itself cuts a clean dark circle that reveals inner limb darkening at its edge — haunting, photographable. Phase transitions now emit a shockwave ring that bursts from canvas center and expands to the edges in one second, tinted to each phase's mood (violet for genesis, gold for exploration, blue-cold for silence), with a soft trailing glow that makes the transition feel physical rather than cosmetic. When two motes bond, a brief 8-pointed starburst ignites at their midpoint — four white cardinal arms and four shorter bond-colored diagonal arms — the flash of two lives joining. The silence constellation no longer blinks into existence: it now materializes over the first 8 seconds of silence via a smoothstep fade, as if the world is slowly recalling everyone who walked through it.",
+    "looking_ahead": [
+      "Eclipse: during the contact phase (totality first approaching), add a brief red-orange solar limb flash at the last moment before the moon fully covers the sun — the diamond ring effect",
+      "Phase shockwave color saturation: the ring could carry a small amount of the outgoing phase's tint too, so it feels like washing one color off and replacing with another",
+      "Bond burst scale with bond count: when a mote forms its 2nd or 3rd bond, the burst could be slightly larger — relationships compound",
+      "Constellation: each star-cross could have a tiny color remnant — the faintest tint of the mote's original color — so the memorial is not anonymous"
+    ],
+    "files_changed": [
+      "src/render-effects.ts",
+      "src/render-bonds.ts",
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]
