@@ -544,5 +544,21 @@
       "src/style.css",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-08",
+    "agent": "sound",
+    "title": "Chorus Awakening, Desert Shimmer, Biome Bonds",
+    "reflection": "Six interlocking improvements that make the world sound alive in new ways. Cluster bonds now speak the biome's own voice: desert bonds toll like a distant bell (2.6s decay), tundra adds a crystalline third harmonic shimmer, volcanic bonds thud short and dull, lush bonds resolve as a full warm triad. A new cluster milestone system fires a special sound the first time any cluster reaches 4 members (a quiet major-third interval, voices finding first harmony) or 8 members (a staggered maj7 chorus spread across the full stereo field). Desert biome gains occasional ultra-high harmonic sparkle at random intervals — two brief tones a minor second apart, three octaves up, echoing into the long desert reverb like heat shimmer you can hear. Cluster voices now modulate filter cutoff and decay per frame based on average mote energy: high-energy clusters fire bright, punchy notes while fading clusters grow darker and slower. A density scaler gently reduces all note gains as population peaks, preventing the complexity phase from over-saturating. And as dissolution deepens, cluster notes increasingly route through the convolver reverb — by silence they are fully wet, every tone trailing off into ghostly distance.",
+    "looking_ahead": [
+      "Tundra: a slow sustained wind-tone in silence phase — one long pure sine that rises and falls like the world breathing its last cold breath",
+      "Volcanic dissolution: intensifying sub-bass rumble as motes die — the earth settling",
+      "Bond-break biome variation: the descending glide should be as distinct per biome as bond formation now is",
+      "Phase transition chord biome tuning: volcanic's dissolution-to-silence transition should use sawtooth, not sine"
+    ],
+    "files_changed": [
+      "src/sound.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

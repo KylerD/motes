@@ -254,6 +254,9 @@ const engineSpawnCooldown = new WeakMap<SoundEngine, number>();
 const engineBondBreakCooldown = new WeakMap<SoundEngine, number>();
 const engineVolcanicAccentTime = new WeakMap<SoundEngine, number>();
 const engineLonelyDroneTime = new WeakMap<SoundEngine, number>();
+const engineDesertShimmerTime = new WeakMap<SoundEngine, number>();
+const engineMilestone4Time = new WeakMap<SoundEngine, number>();
+const engineMilestone8Time = new WeakMap<SoundEngine, number>();
 
 // Phase multipliers for ambient bed gain — drives the sonic arc
 const PHASE_AMBIENT_MULT = [0.30, 0.60, 0.85, 1.00, 0.65, 0.10];
@@ -460,6 +463,31 @@ export function updateSound(
   clusters.sort((a, b) => b.length - a.length);
   const active = clusters.slice(0, MAX_VOICES);
 
+  // Mote-count-aware mixing: gently reduce gain as population peaks to prevent saturation
+  const densityScale = Math.max(0.55, 1.1 - motes.length * 0.009);
+
+  // Phase-based reverb routing: dissolution & silence send notes through reverb → ghostly distance
+  // Starts crossfading in mid-dissolution, fully wet in silence
+  const reverbProb = phaseIndex >= 5 ? 1.0 : phaseIndex === 4 ? 0.35 + phaseProgress * 0.65 : 0;
+
+  // Cluster growth milestones — fire a special sound when a cluster first reaches size 4 or 8
+  for (const cluster of active) {
+    const sz = cluster.length;
+    if (sz === 4) {
+      const last4 = engineMilestone4Time.get(engine) ?? -999;
+      if (now - last4 > 25.0) {
+        engineMilestone4Time.set(engine, now);
+        playClusterMilestone(engine, scale, profile, 4);
+      }
+    } else if (sz >= 8) {
+      const last8 = engineMilestone8Time.get(engine) ?? -999;
+      if (now - last8 > 50.0) {
+        engineMilestone8Time.set(engine, now);
+        playClusterMilestone(engine, scale, profile, 8);
+      }
+    }
+  }
+
   for (let i = 0; i < MAX_VOICES; i++) {
     const slot = voiceSlots[i];
 
@@ -487,19 +515,37 @@ export function updateSound(
 
         const sz = cluster.length;
         const waveform = sz < 4 ? profile.waveSmall : sz < 8 ? profile.waveMed : profile.waveLarge;
-        const noteGain = Math.log2(cluster.length + 1) / Math.log2(MAX_VOICES + 1) * totalEnergy * 0.15;
+
+        // Energy-mapped brightness: high-energy clusters → brighter filter, shorter decay
+        // Low-energy clusters → darker, slower-decaying notes
+        const energyFilterBoost = 0.65 + totalEnergy * 0.70;
+        const energyDecayMod  = 1.25 - totalEnergy * 0.45;
+        const effectiveFilter = filterFreq * energyFilterBoost;
+        const effectiveDecay  = decay * energyDecayMod;
+
+        const noteGain = Math.log2(sz + 1) / Math.log2(MAX_VOICES + 1) * totalEnergy * 0.15 * densityScale;
         const detune = (cx / W - 0.5) * profile.detuneRange * 0.5; // halved: panning now carries the spatial load
         const pan = (cx / W * 2 - 1) * profile.panStrength;
 
-        triggerNote(engine, freq, waveform, noteGain, decay, filterFreq, detune, false, pan);
+        const useRev = Math.random() < reverbProb;
+        triggerNote(engine, freq, waveform, noteGain, effectiveDecay, effectiveFilter, detune, useRev, pan);
         // Harmonic enrichment: clusters of 6+ gain a quiet 5th partial → ensemble depth
         if (sz >= 6 && Math.random() < 0.42) {
           triggerNote(engine, freq * Math.pow(2, 7 / 12), "sine",
-            noteGain * 0.28, decay * 1.5, filterFreq * 0.55, 0, true, pan * 0.65);
+            noteGain * 0.28, effectiveDecay * 1.5, effectiveFilter * 0.55, 0, true, pan * 0.65);
         }
       }
     } else {
       slot.lastNoteTime = 0;
+    }
+  }
+
+  // Desert shimmer — occasional very-high harmonic sparkle: heat haze made audible
+  if (biome === "desert") {
+    const lastShimmer = engineDesertShimmerTime.get(engine) ?? 0;
+    if (now - lastShimmer > 0.9 && Math.random() < 0.028) {
+      engineDesertShimmerTime.set(engine, now);
+      playDesertShimmer(engine, profile, scale);
     }
   }
 
@@ -700,7 +746,7 @@ function playSpawnPing(
   osc.stop(now + 0.42);
 }
 
-/** Two-note ascending chime on bond formation — a perfect fifth finding harmony */
+/** Two-note ascending chime on bond formation — voiced per biome */
 export function playBondForm(
   engine: SoundEngine,
   yNorm: number,
@@ -708,6 +754,7 @@ export function playBondForm(
   profile?: BiomeSoundProfile,
 ): void {
   const p = profile ?? BIOME_SOUND.temperate;
+  const biome = engineCurrentBiome.get(engine) ?? "temperate";
   const ctx = engine.ctx;
   const now = ctx.currentTime;
 
@@ -715,29 +762,71 @@ export function playBondForm(
   const freq1 = p.rootFreq * Math.pow(2, scale[idx] / 12) * 2;
   const freq2 = freq1 * Math.pow(2, 7 / 12); // perfect fifth above
 
+  // Per-biome bond voice: wave type, decay length, and gain
+  interface BondVoice { wave: OscillatorType; decay1: number; decay2: number; g1: number; g2: number; }
+  const bondVoice: Record<string, BondVoice> = {
+    temperate: { wave: "sine",     decay1: 0.55, decay2: 0.65, g1: 0.032, g2: 0.025 },
+    desert:    { wave: "sine",     decay1: 2.60, decay2: 2.80, g1: 0.028, g2: 0.018 }, // long bell toll
+    tundra:    { wave: "sine",     decay1: 1.10, decay2: 1.70, g1: 0.030, g2: 0.022 }, // glassy, sustaining
+    volcanic:  { wave: "triangle", decay1: 0.22, decay2: 0.18, g1: 0.020, g2: 0.014 }, // short, dull thud
+    lush:      { wave: "sine",     decay1: 0.75, decay2: 0.95, g1: 0.034, g2: 0.027 }, // warm & full
+  };
+  const bv = bondVoice[biome] ?? bondVoice.temperate;
+
   const osc1 = ctx.createOscillator();
   const gain1 = ctx.createGain();
-  osc1.type = "sine";
+  osc1.type = bv.wave;
   osc1.frequency.value = freq1;
   gain1.gain.setValueAtTime(0.001, now);
-  gain1.gain.linearRampToValueAtTime(0.032, now + 0.02);
-  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+  gain1.gain.linearRampToValueAtTime(bv.g1, now + 0.02);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.02 + bv.decay1);
   osc1.connect(gain1);
   gain1.connect(engine.reverb);
   osc1.start(now);
-  osc1.stop(now + 0.6);
+  osc1.stop(now + 0.02 + bv.decay1 + 0.05);
 
   const osc2 = ctx.createOscillator();
   const gain2 = ctx.createGain();
-  osc2.type = "sine";
+  osc2.type = bv.wave;
   osc2.frequency.value = freq2;
   gain2.gain.setValueAtTime(0.001, now + 0.065);
-  gain2.gain.linearRampToValueAtTime(0.025, now + 0.085);
-  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+  gain2.gain.linearRampToValueAtTime(bv.g2, now + 0.085);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.065 + bv.decay2);
   osc2.connect(gain2);
   gain2.connect(engine.reverb);
   osc2.start(now + 0.065);
-  osc2.stop(now + 0.7);
+  osc2.stop(now + 0.065 + bv.decay2 + 0.05);
+
+  // Tundra: crystalline high partial — ice chime shimmer
+  if (biome === "tundra") {
+    const osc3 = ctx.createOscillator();
+    const gain3 = ctx.createGain();
+    osc3.type = "sine";
+    osc3.frequency.value = freq1 * 3.0; // 3rd harmonic
+    gain3.gain.setValueAtTime(0.001, now);
+    gain3.gain.linearRampToValueAtTime(0.010, now + 0.01);
+    gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+    osc3.connect(gain3);
+    gain3.connect(engine.reverb);
+    osc3.start(now);
+    osc3.stop(now + 0.92);
+  }
+
+  // Lush: add the major third so the bond lands as a full warm triad
+  if (biome === "lush") {
+    const freq3 = freq1 * Math.pow(2, 4 / 12);
+    const osc3 = ctx.createOscillator();
+    const gain3 = ctx.createGain();
+    osc3.type = "sine";
+    osc3.frequency.value = freq3;
+    gain3.gain.setValueAtTime(0.001, now + 0.12);
+    gain3.gain.linearRampToValueAtTime(0.019, now + 0.14);
+    gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.14 + 0.70);
+    osc3.connect(gain3);
+    gain3.connect(engine.reverb);
+    osc3.start(now + 0.12);
+    osc3.stop(now + 0.12 + 0.76);
+  }
 }
 
 /** Two tones falling apart on bond break — inverse of playBondForm */
@@ -1162,6 +1251,79 @@ function ping(
   panner.connect(engine.reverb);
   osc.start(now);
   osc.stop(now + 0.85);
+}
+
+/** Desert heat shimmer — two brief ultra-high harmonic pings, slight interval apart */
+function playDesertShimmer(engine: SoundEngine, profile: BiomeSoundProfile, scale: number[]): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+  const idx = Math.floor(Math.random() * scale.length);
+  // Three octaves above the scale note — glittering in the heat
+  const baseFreq = profile.rootFreq * Math.pow(2, scale[idx] / 12) * 8;
+
+  for (let i = 0; i < 2; i++) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const panner = ctx.createStereoPanner();
+    osc.type = "sine";
+    osc.frequency.value = baseFreq * (i === 0 ? 1.0 : 1.125); // minor second interval
+    panner.pan.value = (Math.random() * 2 - 1) * 0.75;
+    const t = now + i * 0.038;
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.007 + Math.random() * 0.005, t + 0.013);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55 + Math.random() * 0.45);
+    osc.connect(gain);
+    gain.connect(panner);
+    panner.connect(engine.reverb);
+    osc.start(t);
+    osc.stop(t + 1.1);
+  }
+}
+
+/** Cluster milestone — special sound when a cluster first reaches size 4 (harmony) or 8 (chorus) */
+function playClusterMilestone(engine: SoundEngine, scale: number[], profile: BiomeSoundProfile, size: number): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+
+  if (size >= 8) {
+    // Full chorus awakening — staggered maj7 chord spread wide across stereo
+    const semitones = [0, 4, 7, 11, 14];
+    semitones.forEach((semi, i) => {
+      const freq = profile.rootFreq * Math.pow(2, semi / 12) * 2;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const panner = ctx.createStereoPanner();
+      osc.type = profile.waveLarge;
+      osc.frequency.value = freq;
+      panner.pan.value = (i / (semitones.length - 1) * 2 - 1) * 0.88;
+      const t = now + i * 0.058;
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.024, t + 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 2.8);
+      osc.connect(gain);
+      gain.connect(panner);
+      panner.connect(engine.reverb);
+      osc.start(t);
+      osc.stop(t + 2.9);
+    });
+  } else {
+    // Small cluster finding first harmony — two voices, a gentle major third arriving together
+    const freq1 = profile.rootFreq * Math.pow(2, scale[0] / 12) * 2;
+    const freq2 = freq1 * Math.pow(2, 4 / 12); // major third
+    for (const [freq, delay] of [[freq1, 0.0], [freq2, 0.07]] as [number, number][]) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = profile.waveSmall;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.001, now + delay);
+      gain.gain.linearRampToValueAtTime(0.016, now + delay + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 1.25);
+      osc.connect(gain);
+      gain.connect(engine.reverb);
+      osc.start(now + delay);
+      osc.stop(now + delay + 1.35);
+    }
+  }
 }
 
 /** Create a looping stereo noise buffer source */
