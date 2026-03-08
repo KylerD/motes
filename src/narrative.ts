@@ -1,8 +1,8 @@
 // narrative.ts — Ambient story moments. Phase arc, milestones, event drama.
 
-import type { World, PhaseName, Biome } from "./types";
+import type { World, PhaseName, Biome, Mote } from "./types";
 import { isEventActive, getEventTriggerPoint } from "./events";
-import { CYCLE_DURATION } from "./config";
+import { W, CYCLE_DURATION } from "./config";
 
 // --- Narrative pools ---
 
@@ -49,33 +49,49 @@ const PHASE_ENTRY: Record<PhaseName, string[]> = {
 };
 
 /**
- * Biome-specific phase entry overrides.
+ * Biome-specific phase entry overrides — all 6 phases, all 5 biomes.
  * When a biome has text for the current phase, use that pool instead of generic.
  */
 const BIOME_PHASE_ENTRY: Partial<Record<Biome, Partial<Record<PhaseName, string[]>>>> = {
+  temperate: {
+    genesis:      ["something stirs in the quiet", "the world opens gently", "neither fire nor ice — just this"],
+    exploration:  ["they wander without urgency", "the gentle world spreads wide", "curiosity in all directions"],
+    organization: ["they settle where the ground is kind", "a place among other places", "community in the ordinary"],
+    complexity:   ["this world holds more than it shows", "deep roots in familiar ground", "the everyday made extraordinary"],
+    dissolution:  ["things end as they began — quietly", "the ordinary world lets go", "a gentle unraveling"],
+    silence:      ["the quiet world rests", "back to what it was", "familiar, and gone"],
+  },
   volcanic: {
-    genesis:     ["fire touches the first light", "ash and awakening", "the mountain opens its eye"],
-    exploration: ["they brave the heat", "curiosity stronger than the ash", "the lava fields call them"],
-    dissolution: ["fire takes what fire made", "the mountain reclaims its own", "returning to ash"],
-    silence:     ["embers settle", "the caldera rests", "only the smoke remembers"],
+    genesis:      ["fire touches the first light", "ash and awakening", "the mountain opens its eye"],
+    exploration:  ["they brave the heat", "curiosity stronger than the ash", "the lava fields call them"],
+    organization: ["bonds form in the fire", "they cluster against the heat", "the mountain watches them gather"],
+    complexity:   ["life at its most defiant", "thriving in the impossible heat", "the caldera's richest hour"],
+    dissolution:  ["fire takes what fire made", "the mountain reclaims its own", "returning to ash"],
+    silence:      ["embers settle", "the caldera rests", "only the smoke remembers"],
   },
   desert: {
-    genesis:     ["heat rises on a waking world", "the silence wakes", "sand remembers nothing"],
-    exploration: ["the vast emptiness calls", "they scatter like wind-seeds", "the dunes offer no shelter"],
-    dissolution: ["heat claims the last light", "the sand was always here", "the desert outlasts all of them"],
-    silence:     ["the desert outlasts everything", "the dunes shift and forget"],
+    genesis:      ["heat rises on a waking world", "the silence wakes", "sand remembers nothing"],
+    exploration:  ["the vast emptiness calls", "they scatter like wind-seeds", "the dunes offer no shelter"],
+    organization: ["they shelter in each other", "clusters against the vast", "the desert allows a few to gather"],
+    complexity:   ["more alive than the sand expected", "the most this silence has ever held"],
+    dissolution:  ["heat claims the last light", "the sand was always here", "the desert outlasts all of them"],
+    silence:      ["the desert outlasts everything", "the dunes shift and forget"],
   },
   tundra: {
-    genesis:     ["cold greets the first stir", "frost on the first breath", "ice remembers everything"],
-    exploration: ["the cold does not welcome them", "they seek warmth across open ice"],
-    dissolution: ["winter closes over them", "the cold was always patient"],
-    silence:     ["only ice endures", "the tundra smooths everything flat"],
+    genesis:      ["cold greets the first stir", "frost on the first breath", "ice remembers everything"],
+    exploration:  ["the cold does not welcome them", "they seek warmth across open ice"],
+    organization: ["warmth found in each other", "the cold drives them together", "shelter in the open white"],
+    complexity:   ["thriving in the impossible cold", "the tundra's fullest hour", "more than ice expected of them"],
+    dissolution:  ["winter closes over them", "the cold was always patient"],
+    silence:      ["only ice endures", "the tundra smooths everything flat"],
   },
   lush: {
-    genesis:     ["life wakes hungry for itself", "abundance stirs", "the green world begins"],
-    complexity:  ["the world overflows", "life beyond counting", "a full and living place"],
-    dissolution: ["even the green things fade", "plenty yields to quiet"],
-    silence:     ["green returns to seed", "the forest holds the memory"],
+    genesis:      ["life wakes hungry for itself", "abundance stirs", "the green world begins"],
+    exploration:  ["abundance calls in all directions", "they scatter into the plenty", "too much world to see at once"],
+    organization: ["the green world gathers its own", "roots in the overgrowth", "finding home in abundance"],
+    complexity:   ["the world overflows", "life beyond counting", "a full and living place"],
+    dissolution:  ["even the green things fade", "plenty yields to quiet"],
+    silence:      ["green returns to seed", "the forest holds the memory"],
   },
 };
 
@@ -302,6 +318,48 @@ const EMPTY_WORLD_TEXTS = [
   "the silence is complete",
 ];
 
+/**
+ * Fired when the same cluster of 3+ motes persists for 30+ seconds.
+ * Text varies by centroid position (west / center / east).
+ */
+function clusterEnduranceText(centroidX: number, cycleNumber: number): string {
+  const pos = centroidX / W;
+  if (pos < 0.35) {
+    const pool = ["to the west, they hold", "the western few endure", "something holds in the west"];
+    return pool[Math.abs(cycleNumber * 7919) % pool.length];
+  } else if (pos > 0.65) {
+    const pool = ["to the east, they hold", "the eastern few endure", "something holds in the east"];
+    return pool[Math.abs(cycleNumber * 8191) % pool.length];
+  } else {
+    const pool = ["the center holds", "they refuse to let go", "together still", "something persists"];
+    return pool[Math.abs(cycleNumber * 9001) % pool.length];
+  }
+}
+
+/** Silence opener when no bonds ever formed — a lonely cycle */
+const SILENCE_LONELY_TEXTS = [
+  "a world that never bonded",
+  "each one passed alone",
+  "they were here, but never together",
+  "the silence of strangers",
+];
+
+/** Silence opener when many motes survived into the ending */
+const SILENCE_SURVIVORS_TEXTS = [
+  "so many outlasted the ending",
+  "the cycle found them still here",
+  "they held on longer than most",
+  "a stubborn world",
+];
+
+/** Silence opener when an elder mote is still alive */
+const SILENCE_ELDER_TEXTS = [
+  "an elder saw it all",
+  "there is one who remembers",
+  "the last witness endures",
+  "the oldest one carries it forward",
+];
+
 // --- State ---
 
 interface NarrativeEvent {
@@ -335,6 +393,10 @@ export interface NarrativeState {
   narratedNearMiss: boolean;
   peakMoteCount: number;
   peakBondCount: number;
+  // Cluster identity tracking
+  trackedClusterMotes: Mote[] | null;
+  trackedClusterStart: number;
+  narratedClusterIdentity: boolean;
   el: HTMLElement | null;
 }
 
@@ -364,6 +426,9 @@ export function createNarrative(): NarrativeState {
     narratedNearMiss: false,
     peakMoteCount: 0,
     peakBondCount: 0,
+    trackedClusterMotes: null,
+    trackedClusterStart: 0,
+    narratedClusterIdentity: false,
     el: document.getElementById("narrative"),
   };
 }
@@ -395,6 +460,9 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     ns.narratedNearMiss = false;
     ns.peakMoteCount = 0;
     ns.peakBondCount = 0;
+    ns.trackedClusterMotes = null;
+    ns.trackedClusterStart = 0;
+    ns.narratedClusterIdentity = false;
     ns.queue = [];
     ns.el.textContent = "";
     ns.el.style.opacity = "0";
@@ -427,13 +495,31 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
         text = weatherGenesis[w.weather.type] ?? text;
       }
 
-      // Silence epitaph: if an event defined this cycle, silence should remember it
-      if (w.phaseName === "silence" && w.event && w.eventTriggered) {
-        const epitaphPool = EVENT_SILENCE_EPITAPHS[w.event.type];
-        if (epitaphPool) {
-          const epitaphPick = Math.abs((w.cycleNumber * 999977) % epitaphPool.length);
-          text = epitaphPool[epitaphPick];
+      // Silence opener: event epitaph first, then cycle-quality variants, then biome/generic
+      if (w.phaseName === "silence") {
+        if (w.event && w.eventTriggered) {
+          const epitaphPool = EVENT_SILENCE_EPITAPHS[w.event.type];
+          if (epitaphPool) {
+            const epitaphPick = Math.abs((w.cycleNumber * 999977) % epitaphPool.length);
+            text = epitaphPool[epitaphPick];
+          }
+        } else if (ns.peakBondCount === 0 && ns.peakMoteCount >= 5) {
+          // No bonds ever formed — lonely cycle
+          const pick2 = Math.abs((w.cycleNumber * 999971) % SILENCE_LONELY_TEXTS.length);
+          text = SILENCE_LONELY_TEXTS[pick2];
+        } else if (
+          w.motes.length >= Math.max(3, Math.floor(ns.peakMoteCount * 0.25)) &&
+          ns.peakMoteCount >= 10
+        ) {
+          // Many motes survived into silence
+          const pick3 = Math.abs((w.cycleNumber * 999967) % SILENCE_SURVIVORS_TEXTS.length);
+          text = SILENCE_SURVIVORS_TEXTS[pick3];
+        } else if (w.motes.some(m => m.age > 25)) {
+          // An elder is still alive at silence
+          const pick4 = Math.abs((w.cycleNumber * 999961) % SILENCE_ELDER_TEXTS.length);
+          text = SILENCE_ELDER_TEXTS[pick4];
         }
+        // else: use the biome/generic pool text already selected
       }
 
       pushNarrative(ns, text, now, true);
@@ -522,6 +608,53 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     ns.narratedPeakPopulation = true;
     const pick = Math.abs((w.cycleNumber * 999937) % PEAK_POPULATION_TEXTS.length);
     pushNarrative(ns, PEAK_POPULATION_TEXTS[pick], now);
+  }
+
+  // Cluster identity: track the same large cluster over time
+  // Fires when a cluster of 3+ holds together for 30+ seconds
+  if (
+    !ns.narratedClusterIdentity &&
+    (w.phaseName === "organization" || w.phaseName === "complexity")
+  ) {
+    // Find the largest cluster of 3+
+    let largest: Mote[] | null = null;
+    for (const c of w.clusters) {
+      if (c.length >= 3 && (!largest || c.length > largest.length)) largest = c;
+    }
+
+    if (largest) {
+      if (!ns.trackedClusterMotes) {
+        // Start tracking a new large cluster
+        ns.trackedClusterMotes = largest;
+        ns.trackedClusterStart = now;
+      } else {
+        // Measure continuity: how many motes from the tracked cluster are still here?
+        const prevSet = new Set(ns.trackedClusterMotes);
+        let overlap = 0;
+        for (const m of largest) if (prevSet.has(m)) overlap++;
+        const continuity = overlap / Math.min(largest.length, ns.trackedClusterMotes.length);
+
+        if (continuity >= 0.6) {
+          // Same cluster — update membership, keep start time
+          ns.trackedClusterMotes = largest;
+          // Fire if it's been 30 seconds
+          if (now - ns.trackedClusterStart >= 30) {
+            ns.narratedClusterIdentity = true;
+            let cx = 0;
+            for (const m of largest) cx += m.x;
+            cx /= largest.length;
+            pushNarrative(ns, clusterEnduranceText(cx, w.cycleNumber), now);
+          }
+        } else {
+          // Different cluster — restart tracking
+          ns.trackedClusterMotes = largest;
+          ns.trackedClusterStart = now;
+        }
+      }
+    } else {
+      // No large cluster — clear tracking
+      ns.trackedClusterMotes = null;
+    }
   }
 
   // Dissolution: first death — the unraveling's opening beat

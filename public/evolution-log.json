@@ -580,5 +580,21 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-08",
+    "agent": "narrative-events",
+    "title": "Every Biome Finds Its Voice — And Memory Forms",
+    "reflection": "Four interlocking improvements that make narrative feel personal to each cycle. The temperate biome — the most universal world — finally has its own voice across all six phases: gentle, unhurried, 'neither fire nor ice — just this.' All five biomes now have complete phase coverage: volcanic gets its organization/complexity lines ('bonds form in the fire,' 'life at its most defiant'), desert gets 'the desert allows a few to gather' for organization and 'more alive than the sand expected' for complexity, tundra gains 'warmth found in each other' and 'the tundra's fullest hour,' and lush finally speaks during exploration and organization ('abundance calls in all directions,' 'finding home in abundance'). A new cluster identity system tracks when the same group of 3+ motes persists for 30+ seconds — then names them by where they are: 'to the west, they hold,' 'the center holds,' 'something persists.' Every 6-second check interval refreshes the continuity test; 60% overlap means the same cluster. Silence now reads the cycle's character: if no bonds ever formed, 'a world that never bonded'; if many survived dissolution, 'so many outlasted the ending'; if an elder is still alive, 'an elder saw it all.' Event epitaphs still override all of these.",
+    "looking_ahead": [
+      "Biome-aware dissolution dissolve: volcanic dissolution should fire ash-specific text in the half-gone and bonds-breaking moments, not just phase entry",
+      "Named cluster callback: if the named cluster that persisted 30s then breaks apart during dissolution, a farewell line for it specifically",
+      "Event combo narrative: if two events run in the same cycle (currently impossible but worth designing for), a special combo acknowledgment",
+      "Second silence beat: 10 seconds after the phase entry text, queue a second reflection — the silence has settled, now what?"
+    ],
+    "files_changed": [
+      "src/narrative.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]
