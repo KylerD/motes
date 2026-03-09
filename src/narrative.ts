@@ -433,6 +433,101 @@ const BIOME_DISSOLUTION_BONDS_BREAKING: Partial<Record<Biome, string[]>> = {
   lush:     ["even the green world unravels", "abundance cannot hold them"],
 };
 
+/**
+ * Biome-aware event anticipation — fires ~25s before a rare event.
+ * Each biome has its own premonition flavor; generic pool is the fallback.
+ */
+const BIOME_ANTICIPATION: Partial<Record<Biome, string[]>> = {
+  volcanic: [
+    "the mountain holds its breath",
+    "something in the deep stirs",
+    "the ash stills without reason",
+  ],
+  desert: [
+    "the sand shifts without wind",
+    "a stillness before stillness",
+    "the heat bends strangely",
+  ],
+  tundra: [
+    "the ice tightens",
+    "the cold holds its breath",
+    "something moves in the white",
+  ],
+  lush: [
+    "the leaves go still",
+    "an unfamiliar quiet in the green",
+    "the birds do not return",
+  ],
+  temperate: [
+    "a change in the quality of light",
+    "the world pauses",
+    "something approaches",
+  ],
+};
+
+/**
+ * Biome-aware first bond narration — overrides the generic "the first bond forms."
+ * The biome shapes what bonding means here.
+ */
+const BIOME_FIRST_BOND: Partial<Record<Biome, string[]>> = {
+  volcanic: ["two find each other in the ash", "a bond forms in spite of the fire"],
+  desert:   ["they find each other in the vast", "two against the emptiness"],
+  tundra:   ["warmth reaches warmth", "two lights in the cold"],
+  lush:     ["tangled, by choice", "the first belonging in the green"],
+  temperate: ["the first bond forms", "they reach, and find"],
+};
+
+/**
+ * Grand cluster endurance — when the named cluster peaked at 6+.
+ * Grander than the standard positional texts; these name the scale of the thing.
+ */
+const GRAND_CLUSTER_ENDURANCE = [
+  "a true settlement holds",
+  "the great gathering endures",
+  "they built something real here",
+];
+
+/**
+ * Grand cluster farewell by position — when a 6+ cluster finally breaks.
+ * The loss of something great deserves its own words.
+ */
+function grandClusterFarewellText(pos: "west" | "center" | "east", cycleNumber: number): string {
+  if (pos === "west") {
+    const pool = ["the western settlement has fallen", "what the west built is scattered now"];
+    return pool[Math.abs(cycleNumber * 6011) % pool.length];
+  } else if (pos === "east") {
+    const pool = ["the eastern settlement has fallen", "what the east built is scattered now"];
+    return pool[Math.abs(cycleNumber * 7013) % pool.length];
+  } else {
+    const pool = [
+      "the great settlement is gone",
+      "what they built together is scattered",
+      "the heart of it was real, once",
+    ];
+    return pool[Math.abs(cycleNumber * 8017) % pool.length];
+  }
+}
+
+/**
+ * Silence third beat — fires in the final seconds of silence (phaseProgress > 0.85).
+ * Ultra-brief. The last word the world says before the next cycle.
+ */
+const SILENCE_THIRD_BEAT = [
+  "begin again",
+  "always",
+  "and again",
+  "the world waits",
+];
+
+/** Per-biome third beat — quieter and specific */
+const BIOME_SILENCE_THIRD_BEAT: Partial<Record<Biome, string[]>> = {
+  volcanic: ["the fire waits", "always, the fire"],
+  tundra:   ["the ice is patient", "always, the cold"],
+  desert:   ["the sand remains", "always, the dunes"],
+  lush:     ["seeds wait in the dark", "always, the green"],
+  temperate: ["begin again", "quietly, again"],
+};
+
 // --- State ---
 
 interface NarrativeEvent {
@@ -473,6 +568,8 @@ export interface NarrativeState {
   clusterFarewellPos: "west" | "center" | "east" | null;
   narratedClusterFarewell: boolean;
   narratedSilenceSecondBeat: boolean;
+  narratedSilenceThirdBeat: boolean;
+  trackedClusterPeakSize: number;
   el: HTMLElement | null;
 }
 
@@ -508,6 +605,8 @@ export function createNarrative(): NarrativeState {
     clusterFarewellPos: null,
     narratedClusterFarewell: false,
     narratedSilenceSecondBeat: false,
+    narratedSilenceThirdBeat: false,
+    trackedClusterPeakSize: 0,
     el: document.getElementById("narrative"),
   };
 }
@@ -545,6 +644,8 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     ns.clusterFarewellPos = null;
     ns.narratedClusterFarewell = false;
     ns.narratedSilenceSecondBeat = false;
+    ns.narratedSilenceThirdBeat = false;
+    ns.trackedClusterPeakSize = 0;
     ns.queue = [];
     ns.el.textContent = "";
     ns.el.style.opacity = "0";
@@ -637,10 +738,13 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
   if (w.motes.length > ns.peakMoteCount) ns.peakMoteCount = w.motes.length;
   if (bondCount > ns.peakBondCount) ns.peakBondCount = bondCount;
 
-  // First bond
+  // First bond — biome-specific flavor when available
   if (!ns.narratedFirstBond && bondCount > 0) {
     ns.narratedFirstBond = true;
-    pushNarrative(ns, "the first bond forms", now);
+    const biomeBondPool = BIOME_FIRST_BOND[w.terrain.biome];
+    const bondPool = biomeBondPool ?? ["the first bond forms"];
+    const bondPick = Math.abs((w.cycleNumber * 999953) % bondPool.length);
+    pushNarrative(ns, bondPool[bondPick], now);
   }
 
   // First elder
@@ -705,6 +809,11 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     }
 
     if (largest) {
+      // Track the peak size of the followed cluster
+      if (largest.length > ns.trackedClusterPeakSize) {
+        ns.trackedClusterPeakSize = largest.length;
+      }
+
       if (!ns.trackedClusterMotes) {
         // Start tracking a new large cluster
         ns.trackedClusterMotes = largest;
@@ -728,7 +837,15 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
             // Record position for the farewell line when this cluster eventually breaks
             const fpos = cx / W;
             ns.clusterFarewellPos = fpos < 0.35 ? "west" : fpos > 0.65 ? "east" : "center";
-            pushNarrative(ns, clusterEnduranceText(cx, w.cycleNumber), now);
+            // Grand cluster (6+) gets grander endurance text
+            let enduranceText: string;
+            if (ns.trackedClusterPeakSize >= 6) {
+              const gp = Math.abs((w.cycleNumber * 9311) % GRAND_CLUSTER_ENDURANCE.length);
+              enduranceText = GRAND_CLUSTER_ENDURANCE[gp];
+            } else {
+              enduranceText = clusterEnduranceText(cx, w.cycleNumber);
+            }
+            pushNarrative(ns, enduranceText, now);
           }
         } else {
           // Different cluster — restart tracking
@@ -813,7 +930,14 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     maxCluster < 3
   ) {
     ns.narratedClusterFarewell = true;
-    pushNarrative(ns, clusterFarewellText(ns.clusterFarewellPos, w.cycleNumber), now);
+    // Grand cluster (6+) gets an elegiac farewell; smaller clusters get the positional one
+    let farewellText: string;
+    if (ns.trackedClusterPeakSize >= 6) {
+      farewellText = grandClusterFarewellText(ns.clusterFarewellPos, w.cycleNumber);
+    } else {
+      farewellText = clusterFarewellText(ns.clusterFarewellPos, w.cycleNumber);
+    }
+    pushNarrative(ns, farewellText, now);
   }
 
   // Last mote — the final witness
@@ -851,14 +975,29 @@ export function updateNarrative(ns: NarrativeState, w: World): void {
     pushNarrative(ns, pool[pick], now);
   }
 
-  // --- Event anticipation (~25s before trigger) ---
+  // Third silence beat — final moments (phaseProgress > 0.85), the last word
+  if (
+    !ns.narratedSilenceThirdBeat &&
+    w.phaseName === "silence" &&
+    w.phaseProgress >= 0.85
+  ) {
+    ns.narratedSilenceThirdBeat = true;
+    const biomePool = BIOME_SILENCE_THIRD_BEAT[w.terrain.biome];
+    const pool = biomePool ?? SILENCE_THIRD_BEAT;
+    const pick = Math.abs((w.cycleNumber * 999847) % pool.length);
+    pushNarrative(ns, pool[pick], now);
+  }
+
+  // --- Event anticipation (~25s before trigger) — biome-aware ---
   if (w.event && !w.eventTriggered && !ns.eventAnticipated) {
     const triggerProgress = getEventTriggerPoint(w.event.type);
     const timeUntilTrigger = (triggerProgress - w.cycleProgress) * CYCLE_DURATION;
     if (timeUntilTrigger > 0 && timeUntilTrigger < 28) {
       ns.eventAnticipated = true;
-      const pick = Math.abs((w.cycleNumber * 999983) % ANTICIPATION_TEXTS.length);
-      pushNarrative(ns, ANTICIPATION_TEXTS[pick], now);
+      const biomeAnticipationPool = BIOME_ANTICIPATION[w.terrain.biome];
+      const anticipationPool = biomeAnticipationPool ?? ANTICIPATION_TEXTS;
+      const pick = Math.abs((w.cycleNumber * 999983) % anticipationPool.length);
+      pushNarrative(ns, anticipationPool[pick], now);
     }
   }
 

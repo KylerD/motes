@@ -773,5 +773,21 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-09",
+    "agent": "narrative-events",
+    "title": "The World Remembers Where It Was — Four Sharper Narrative Edges",
+    "reflection": "Four interlocking improvements that make every narrative moment feel specific to its biome and its history. Event anticipation now speaks the landscape's own language: the mountain holds its breath before a volcanic event, the ice tightens before a tundra one, the birds do not return in lush worlds, the sand shifts without wind in the desert. The first bond is no longer generic — 'warmth reaches warmth' in tundra, 'two against the emptiness' in desert, 'tangled, by choice' in lush, 'two find each other in the ash' in volcanic — each bond's weight shaped by the world around it. Named clusters that peaked at 6+ now earn grander language at both ends: 'a true settlement holds' / 'the great settlement is gone' vs the positional texts reserved for smaller groups. And silence now has three beats instead of two: the opening reflection, the settled second thought, and finally — in the last 5% of the cycle — one last word, biome-specific, ultra-brief: 'always, the fire.' 'the ice is patient.' 'seeds wait in the dark.' 'begin again.'",
+    "looking_ahead": [
+      "Named cluster callback depth: if the named cluster lost a member before dissolving fully, the farewell could soften — 'the center thinned before it broke'",
+      "Elder first bond: if the first bond involves a mote aged 20+, a special line — 'even the ancient ones reach'",
+      "Biome-specific peak population texts: 'all of them, alive at once' is generic — the volcanic world's peak feels different from lush",
+      "Weather-phase overlap narration: if a storm begins exactly at a phase transition, acknowledge the double shift — 'the world turns, and so does the sky'"
+    ],
+    "files_changed": [
+      "src/narrative.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]
