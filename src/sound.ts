@@ -259,6 +259,10 @@ const engineMilestone4Time = new WeakMap<SoundEngine, number>();
 const engineMilestone8Time = new WeakMap<SoundEngine, number>();
 const engineTundraWindTime = new WeakMap<SoundEngine, number>();
 const engineVolcanicRumbleTime = new WeakMap<SoundEngine, number>();
+const engineClusterMergeCooldown = new WeakMap<SoundEngine, number>();
+const engineMourningTime = new WeakMap<SoundEngine, number>();
+const enginePrevMoteCount = new WeakMap<SoundEngine, number>();
+const engineLushBloomTime = new WeakMap<SoundEngine, number>();
 
 // Phase multipliers for ambient bed gain — drives the sonic arc
 const PHASE_AMBIENT_MULT = [0.30, 0.60, 0.85, 1.00, 0.65, 0.10];
@@ -446,7 +450,12 @@ export function updateSound(
   const ambBed = engineAmbientBed.get(engine);
   const ambCfg = BIOME_AMBIENT[biome];
   if (ambBed) {
-    const phaseMult = PHASE_AMBIENT_MULT[phaseIndex];
+    let phaseMult = PHASE_AMBIENT_MULT[phaseIndex];
+    // Tundra: drop ambient bed much faster in dissolution/silence so the
+    // tundra wind tone (phaseIndex 5) arrives into genuine quiet rather than
+    // competing with the noise texture.
+    if (biome === "tundra" && phaseIndex === 4) phaseMult = 0.12;
+    if (biome === "tundra" && phaseIndex === 5) phaseMult = 0.02;
     ambBed.textureGain.gain.linearRampToValueAtTime(ambCfg.noiseTargetGain * phaseMult, now + 2.5);
     if (ambBed.droneGain && ambCfg.droneTargetGain > 0) {
       ambBed.droneGain.gain.linearRampToValueAtTime(ambCfg.droneTargetGain * phaseMult, now + 2.5);
@@ -589,6 +598,29 @@ export function updateSound(
     }
   }
 
+  // Cluster merge sounds — two communities finding each other's resonance
+  const clusterMergeCooldown = engineClusterMergeCooldown.get(engine) ?? 0;
+  if (now - clusterMergeCooldown > 1.5) {
+    for (const m of motes) {
+      if (m.clusterMergeFlash > 0.9) {
+        playClusterMerge(engine, profile, biome);
+        engineClusterMergeCooldown.set(engine, now);
+        break;
+      }
+    }
+  }
+
+  // Mourning chorus — when 2+ motes grieve together, a quiet communal chord
+  const mourningTime = engineMourningTime.get(engine) ?? 0;
+  if (now - mourningTime > 7.0) {
+    let mourningCount = 0;
+    for (const m of motes) { if (m.mourningFlash > 0.6) mourningCount++; }
+    if (mourningCount >= 2) {
+      playMourningChorus(engine, profile, biome);
+      engineMourningTime.set(engine, now);
+    }
+  }
+
   // Spawn sounds — gentle arrival ping for freshly born motes
   const spawnCooldown = engineSpawnCooldown.get(engine) ?? 0;
   if (now - spawnCooldown > 0.18) {
@@ -676,6 +708,18 @@ export function updateSound(
         wOsc.start(now);
         wOsc.stop(now + 27.0);
       }
+    }
+  }
+
+  // Lush final silence bloom — a warm major-7th chord burst as the last mote leaves.
+  // Fires exactly once: when mote count first drops to 0 in the silence phase.
+  const prevMoteCount = enginePrevMoteCount.get(engine) ?? motes.length;
+  enginePrevMoteCount.set(engine, motes.length);
+  if (biome === "lush" && phaseIndex === 5 && motes.length === 0 && prevMoteCount > 0) {
+    const lastBloom = engineLushBloomTime.get(engine) ?? -999;
+    if (now - lastBloom > 30.0) {
+      engineLushBloomTime.set(engine, now);
+      playLushFinalBloom(engine, profile);
     }
   }
 
@@ -928,6 +972,18 @@ function playBondBreak(
       gain2.connect(engine.reverb);
       osc2.start(now);
       osc2.stop(now + 1.0);
+      // 5th harmonic: the overtone ringing alone in vast emptiness long after the bell is gone
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = "sine";
+      osc3.frequency.value = freq * 5.0;
+      gain3.gain.setValueAtTime(0.001, now + 0.35);
+      gain3.gain.linearRampToValueAtTime(0.003, now + 0.60);
+      gain3.gain.exponentialRampToValueAtTime(0.001, now + 5.8);
+      osc3.connect(gain3);
+      gain3.connect(engine.reverb);
+      osc3.start(now + 0.35);
+      osc3.stop(now + 6.0);
       break;
     }
 
@@ -1501,6 +1557,122 @@ function playClusterMilestone(engine: SoundEngine, scale: number[], profile: Bio
   }
 }
 
+/** Cluster merge sound — two communities finding each other's resonance */
+function playClusterMerge(
+  engine: SoundEngine,
+  profile: BiomeSoundProfile,
+  biome: Biome,
+): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+  const rootFreq = profile.rootFreq * 2; // upper register — bright, spatial
+
+  // Per-biome intervals and character: the emotional flavour of two groups becoming one
+  interface MergeVoice {
+    semitones: number[];
+    wave: OscillatorType;
+    spacing: number;
+    decay: number;
+    vol: number;
+  }
+  const mergeVoice: Record<Biome, MergeVoice> = {
+    temperate: { semitones: [0, 4, 7],     wave: "sine",     spacing: 0.055, decay: 1.8, vol: 0.020 },
+    desert:    { semitones: [0, 5, 9],     wave: "sine",     spacing: 0.090, decay: 3.2, vol: 0.015 }, // suspended — cautious union
+    tundra:    { semitones: [0, 3, 7],     wave: "sine",     spacing: 0.075, decay: 2.4, vol: 0.013 }, // minor — cold solidarity
+    volcanic:  { semitones: [0, 3, 6],     wave: "triangle", spacing: 0.038, decay: 0.9, vol: 0.017 }, // diminished — tense merger
+    lush:      { semitones: [0, 4, 7, 11], wave: "sine",     spacing: 0.045, decay: 2.2, vol: 0.021 }, // maj7 — rich, full
+  };
+  const mv = mergeVoice[biome];
+
+  for (let i = 0; i < mv.semitones.length; i++) {
+    const freq = rootFreq * Math.pow(2, mv.semitones[i] / 12);
+    const t = now + i * mv.spacing;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const panner = ctx.createStereoPanner();
+    osc.type = mv.wave;
+    osc.frequency.value = freq;
+    panner.pan.value = ((i / Math.max(mv.semitones.length - 1, 1)) * 2 - 1) * profile.panStrength * 0.65;
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(mv.vol, t + 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + mv.decay);
+    osc.connect(gain);
+    gain.connect(panner);
+    panner.connect(engine.reverb);
+    osc.start(t);
+    osc.stop(t + mv.decay + 0.1);
+  }
+}
+
+/** Communal mourning chord — when motes grieve together, a shared low tone */
+function playMourningChorus(
+  engine: SoundEngine,
+  profile: BiomeSoundProfile,
+  biome: Biome,
+): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+  const baseFreq = profile.rootFreq; // low register — weight and gravity of collective loss
+
+  // Minor triad (or biome variant) — collective sorrow voiced differently by each world
+  const semitoneSets: Record<Biome, number[]> = {
+    temperate: [0, 3, 7],      // natural minor triad
+    desert:    [0, 3, 7],      // minor triad — hollowed-out grief
+    tundra:    [0, 2, 7],      // open fifth + 2nd — suspended, unresolved cold
+    volcanic:  [0, 3, 6],      // diminished — raw anguish
+    lush:      [0, 3, 7, 10],  // minor 7th — warm, bittersweet
+  };
+  const semitones = semitoneSets[biome];
+
+  for (let i = 0; i < semitones.length; i++) {
+    const freq = baseFreq * Math.pow(2, semitones[i] / 12);
+    const t = now + i * 0.05;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    // Very quiet, very long — grief that lingers, doesn't announce itself
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.007, t + 0.15);
+    gain.gain.setValueAtTime(0.007, t + 0.55);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 3.8);
+    osc.connect(gain);
+    gain.connect(engine.reverb);
+    osc.start(t);
+    osc.stop(t + 4.0);
+  }
+}
+
+/** Lush final silence bloom — a warm major-7th chord burst as the last mote disappears */
+function playLushFinalBloom(engine: SoundEngine, profile: BiomeSoundProfile): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+  const rootFreq = profile.rootFreq;
+  // Full spread: root through two octaves — the world's last exhalation of warmth
+  const semitones = [0, 4, 7, 12, 16, 19]; // root, M3, P5, octave, M3', P5'
+
+  for (let i = 0; i < semitones.length; i++) {
+    const freq = rootFreq * Math.pow(2, semitones[i] / 12);
+    const t = now + i * 0.07;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const panner = ctx.createStereoPanner();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    panner.pan.value = ((i / (semitones.length - 1)) * 2 - 1) * 0.75;
+    const vol = Math.max(0.006, 0.028 - i * 0.003);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.10);
+    gain.gain.setValueAtTime(vol, t + 0.45);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 5.5);
+    osc.connect(gain);
+    gain.connect(panner);
+    panner.connect(engine.reverb);
+    osc.start(t);
+    osc.stop(t + 5.7);
+  }
+}
+
 /** Create a looping stereo noise buffer source */
 function createNoiseSource(ctx: AudioContext, duration: number): AudioBufferSourceNode {
   const len = Math.floor(ctx.sampleRate * duration);
@@ -1639,11 +1811,36 @@ export function playPhaseTransition(engine: SoundEngine, phaseIndex: number, bio
       note(7,  1, 0.4, 3.8, 0.012);
       break;
 
-    case 1: // exploration — ascending major arpeggio
-      note(0,  2, 0.00, 1.1, 0.019);
-      note(4,  2, 0.09, 1.0, 0.017);
-      note(7,  2, 0.18, 1.0, 0.016);
-      note(12, 2, 0.27, 1.3, 0.021);
+    case 1: // exploration — ascending major arpeggio (tundra: slow detuned ice sweep)
+      if (biome === "tundra") {
+        // Two sines spread across stereo, detuned ±14 cents apart, slowly converging —
+        // cold air finding a harmonic center, colder and less resolved than a crisp arpeggio
+        for (const [detune, pan] of [[-14, -0.78], [14, 0.78]] as [number, number][]) {
+          const sweepOsc = ctx.createOscillator();
+          const sweepGain = ctx.createGain();
+          const sweepPan = ctx.createStereoPanner();
+          sweepOsc.type = "sine";
+          sweepOsc.frequency.value = p.rootFreq * 2;
+          sweepOsc.detune.value = detune;
+          // Slowly converge toward zero — two voices seeking unison but never quite arriving
+          sweepOsc.detune.linearRampToValueAtTime(detune * 0.15, now + 6.0);
+          sweepPan.pan.value = pan;
+          sweepGain.gain.setValueAtTime(0.001, now);
+          sweepGain.gain.linearRampToValueAtTime(0.014, now + 2.2);
+          sweepGain.gain.setValueAtTime(0.014, now + 3.8);
+          sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 6.5);
+          sweepOsc.connect(sweepGain);
+          sweepGain.connect(sweepPan);
+          sweepPan.connect(engine.reverb);
+          sweepOsc.start(now);
+          sweepOsc.stop(now + 6.7);
+        }
+      } else {
+        note(0,  2, 0.00, 1.1, 0.019);
+        note(4,  2, 0.09, 1.0, 0.017);
+        note(7,  2, 0.18, 1.0, 0.016);
+        note(12, 2, 0.27, 1.3, 0.021);
+      }
       break;
 
     case 2: // organization — warm major triad landing
