@@ -525,6 +525,177 @@ export function applyHeatHaze(buf: ImageData, terrain: Terrain, time: number, cy
 }
 
 /**
+ * Water mist — soft wisps rising from water bodies at dawn and dusk.
+ * Creates the sense that the world breathes: lakes exhale in the morning cold,
+ * rivers steam at twilight. Per-biome mist color; volcanic uses ember drift instead.
+ */
+export function renderWaterMist(
+  buf: ImageData,
+  terrain: Terrain,
+  time: number,
+  cycleProgress: number,
+): void {
+  if (terrain.biome === "volcanic") return; // volcanic gets ember drift
+
+  // Mist peaks at dawn (genesis) and dusk (dissolution → silence)
+  const dawnStr = cycleProgress < 0.20 ? Math.sin(cycleProgress / 0.20 * Math.PI * 0.5) * 0.88 : 0;
+  const duskStr = cycleProgress > 0.72 ? Math.min(1.0, (cycleProgress - 0.72) / 0.18) * 0.92 : 0;
+  const mistStr = Math.max(dawnStr, duskStr, 0.10); // faint mid-day shimmer always present
+  if (mistStr < 0.04) return;
+
+  // Biome mist color: each world's water exhales its own character
+  const [mr, mg, mb]: [number, number, number] =
+    terrain.biome === "tundra"   ? [195, 212, 238] :  // icy blue-white
+    terrain.biome === "lush"     ? [158, 198, 172] :  // humid green-white
+    terrain.biome === "desert"   ? [208, 185, 148] :  // warm sandy haze
+                                   [178, 192, 214];   // temperate cool grey
+
+  for (let x = 0; x < W; x++) {
+    const surfaceY = getSurfaceY(terrain, x);
+    const worldH = H - surfaceY;
+
+    // Only from water-level surfaces
+    if (worldH > terrain.waterLevel + 4) continue;
+    if (worldH < terrain.waterLevel - 10) continue;
+
+    // Two-frequency noise shapes the mist column — each column breathes independently
+    const n1 = noise2(x * 0.065 + time * 0.07, 88.3) * 0.5 + 0.5;
+    const n2 = noise2(x * 0.110 - time * 0.04, 52.7) * 0.5 + 0.5;
+    const mistColumn = n1 * 0.65 + n2 * 0.35;
+
+    const maxRise = Math.floor(2 + mistColumn * 20 * mistStr);
+    if (maxRise < 2) continue;
+
+    for (let dy = 0; dy < maxRise; dy++) {
+      const y = surfaceY - 1 - dy;
+      if (y < 0) break;
+
+      // Quadratic fade: dense near water, thins with height
+      const hFade = Math.pow(1.0 - dy / maxRise, 2.4);
+      // Horizontal tendril shimmer — organic mist texture
+      const tendrilN = noise2(x * 0.20 + time * 0.26, dy * 0.30 + time * 0.15) * 0.5 + 0.5;
+
+      const a = Math.round(hFade * tendrilN * mistStr * 54);
+      if (a < 3) continue;
+      setPixel(buf, x, y, mr, mg, mb, a);
+    }
+  }
+}
+
+/**
+ * Volcanic ember drift — glowing sparks floating upward from lava surfaces.
+ * Lava doesn't just shimmer; it breathes fire upward. Each ember cools as it rises:
+ * yellow-hot near the lava, dimming to orange-red at altitude before winking out.
+ */
+export function renderVolcanicEmbers(
+  buf: ImageData,
+  terrain: Terrain,
+  time: number,
+  cycleProgress: number,
+): void {
+  if (terrain.biome !== "volcanic") return;
+
+  // Embers peak during complexity and early dissolution — the volcano's height of activity
+  const emberStr =
+    cycleProgress > 0.55 && cycleProgress < 0.92
+      ? Math.sin((cycleProgress - 0.55) / 0.37 * Math.PI) * 0.90
+      : 0.28;
+
+  for (let x = 2; x < W - 2; x++) {
+    const surfaceY = getSurfaceY(terrain, x);
+    const worldH = H - surfaceY;
+
+    // Emit only from near-lava-level terrain
+    if (worldH > terrain.waterLevel + 5) continue;
+    if (worldH < terrain.waterLevel - 6) continue;
+
+    // Sparse noise gate: not every lava column emits every frame
+    const emitN = noise2(x * 0.30, time * 0.50 + 91.5) * 0.5 + 0.5;
+    if (emitN < 0.48) continue;
+
+    // How high has this ember risen? Animated with drift
+    const riseN = noise2(x * 0.24 + time * 0.64, x * 0.11 - time * 0.40) * 0.5 + 0.5;
+    const riseH = Math.floor(riseN * 16 * emberStr);
+    if (riseH < 1) continue;
+
+    const emberY = surfaceY - 1 - riseH;
+    if (emberY < 0) continue;
+
+    // Temperature: yellow-white at lava, cools to orange-red with height
+    const heat = 1.0 - riseN * 0.55;
+    const r = 255;
+    const g = Math.round(55 + heat * 165);  // 55 (dim red-orange) → 220 (bright yellow)
+    const b = Math.round(heat * 18);
+    const a = Math.round(heat * emberStr * 140);
+    if (a < 8) continue;
+
+    setPixel(buf, x, emberY, r, g, b, a);
+
+    // Secondary spark above for the brightest, hottest embers
+    if (heat > 0.70 && emberY - 1 >= 0) {
+      setPixel(buf, x, emberY - 1, 255, Math.round(g * 0.72), 0, Math.round(a * 0.30));
+    }
+  }
+}
+
+/**
+ * Tundra ice crust — during genesis and silence in tundra, ice sheets form over
+ * shallow water bodies. The ice is thickest at silence (the long cold), thinner
+ * at genesis (forming as the cycle opens). Cracked texture from noise.
+ */
+export function applyTundraIce(
+  buf: ImageData,
+  terrain: Terrain,
+  cycleProgress: number,
+): void {
+  if (terrain.biome !== "tundra") return;
+
+  // Ice thickness: strongest at genesis start and silence peak
+  const genesisIce = cycleProgress < 0.18 ? (1.0 - cycleProgress / 0.18) * 0.62 : 0;
+  const silenceIce = cycleProgress > 0.90 ? Math.min(0.82, (cycleProgress - 0.90) / 0.08) : 0;
+  const iceStr = Math.max(genesisIce, silenceIce);
+  if (iceStr < 0.05) return;
+
+  const d = buf.data;
+
+  for (let x = 0; x < W; x++) {
+    const surfaceY = getSurfaceY(terrain, x);
+    const worldH = H - surfaceY;
+
+    // Only shallow water at or near the waterline
+    if (worldH > terrain.waterLevel + 2) continue;
+    if (worldH < terrain.waterLevel - 4) continue;
+
+    const tile = terrain.tiles[surfaceY * W + x] as Tile;
+    if (tile !== Tile.ShallowWater && tile !== Tile.DeepWater) continue;
+
+    // Crackle noise: irregular ice thickness / opacity
+    const crackN = noise2(x * 0.22, surfaceY * 0.18 + terrain.seed * 0.5) * 0.5 + 0.5;
+    const iceOpacity = iceStr * (0.38 + crackN * 0.62);
+    const blendStr = iceOpacity * 0.68;
+
+    // Ice color: bright blue-white fading to dim grey at cracks
+    const iceR = Math.round(178 + crackN * 62);  // 178–240
+    const iceG = Math.round(196 + crackN * 50);  // 196–246
+    const iceB = Math.round(222 + crackN * 33);  // 222–255
+
+    const pi = (surfaceY * W + x) * 4;
+    d[pi]     = Math.min(255, Math.round(d[pi]     * (1 - blendStr) + iceR * blendStr));
+    d[pi + 1] = Math.min(255, Math.round(d[pi + 1] * (1 - blendStr) + iceG * blendStr));
+    d[pi + 2] = Math.min(255, Math.round(d[pi + 2] * (1 - blendStr) + iceB * blendStr));
+
+    // Ice surface pixel one row above — the crystalline crust sits above the water
+    if (surfaceY > 0) {
+      const aboveTile = terrain.tiles[(surfaceY - 1) * W + x] as Tile;
+      if (aboveTile === Tile.Air) {
+        const surfA = Math.round(iceStr * crackN * 130);
+        if (surfA > 5) setPixel(buf, x, surfaceY - 1, iceR, iceG, iceB, surfA);
+      }
+    }
+  }
+}
+
+/**
  * Rain puddles — small shimmering water patches on flat ground during rain/storm.
  * Only on flat, dry-land surfaces above the water line.
  * Animated ripple shimmer from simulated raindrop impacts.

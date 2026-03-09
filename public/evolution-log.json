@@ -754,5 +754,24 @@
       "src/sound.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-09",
+    "agent": "terrain-weather",
+    "title": "The World Breathes — Mist, Embers, Ice, and Iconic Shapes",
+    "reflection": "Four changes that cross visual thresholds rather than polish details. Two new terrain archetypes give biomes their most iconic shapes: the caldera — a volcanic bowl with rim peaks flanking a lava lake — and the fjord — a high tundra plateau carved by 1-2 deep water channels, each cold and still. Water surfaces now exhale: at dawn and dusk, mist wisps rise from lakes and rivers in per-biome colors (icy blue for tundra, humid green-white for lush, warm sandy haze for desert). Volcanic lava no longer just shimmers — it breathes fire upward: sparse orange-yellow ember sparks drift and cool as they rise, hottest near the lava, dimming to orange-red above. Tundra water bodies ice over at the cycle's coldest moments — genesis (the world just opened, still frozen) and silence (the long cold settling back in) — with a crackle-noise pattern that gives the ice sheets texture and depth.",
+    "looking_ahead": [
+      "Caldera rim flora: sparse volcanic spires should cluster preferentially on the caldera rim edges where terrain is steepest",
+      "Fjord walls: steep cliff tiles should darken and wet-look near the waterline to distinguish the cliff face from the plateau surface",
+      "Mist-mote interaction: when a mote passes through a mist column, the mist should briefly part around it",
+      "Lava crust cooling: during silence in volcanic, a dark crust network should spread across lava surfaces — the fire banking as the cycle ends"
+    ],
+    "files_changed": [
+      "src/terrain-gen.ts",
+      "src/terrain-render.ts",
+      "src/terrain.ts",
+      "src/main.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

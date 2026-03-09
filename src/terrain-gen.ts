@@ -99,6 +99,59 @@ const ARCHETYPES: TerrainArchetype[] = [
       }
     },
   },
+  {
+    // Caldera: high rim peaks flanking a central lava basin.
+    // Side-view: two elevated ridges ~35% from center, with the middle sunk
+    // below waterLevel so it fills with lava. Signature volcanic terrain.
+    name: "caldera",
+    freq1: 0.025, freq2: 0.09,
+    amp1: 0.10, amp2: 0.04,
+    baseHeight: [0.30, 0.40], roughness: [0.55, 0.80],
+    waterLevel: [0.24, 0.32],
+    waterFeatures: { freq: 0.03, poolThreshold: 0.88, dryThreshold: -0.75, poolRange: 3 },
+    postProcess(heights) {
+      const cx = W / 2;
+      for (let x = 0; x < W; x++) {
+        const normDist = Math.abs(x - cx) / (W / 2);
+        // Rim peaks: bell curve at ~36% from center
+        const rimPeak = Math.exp(-Math.pow((normDist - 0.36) / 0.12, 2)) * H * 0.15;
+        // Basin: smooth drop that zeros out at 22% from center
+        const basinDrop = Math.max(0, 1.0 - normDist / 0.22) * H * 0.20;
+        heights[x] = Math.max(H * 0.06, Math.min(H * 0.90,
+          heights[x] + rimPeak - basinDrop
+        ));
+      }
+    },
+  },
+  {
+    // Fjord: high flat tundra plateau with 1-2 deep water channels carved through it.
+    // The channels plunge far below waterLevel — cold deep fjords fill with still water.
+    name: "fjord",
+    freq1: 0.012, freq2: 0.055,
+    amp1: 0.08, amp2: 0.03,
+    baseHeight: [0.32, 0.44], roughness: [0.38, 0.60],
+    waterLevel: [0.28, 0.38],
+    waterFeatures: { freq: 0.03, poolThreshold: 0.92, dryThreshold: -0.80, poolRange: 2 },
+    postProcess(heights, rng) {
+      // Lift the plateau to create high, flat terrain
+      for (let x = 0; x < W; x++) {
+        heights[x] = Math.min(H * 0.90, heights[x] * 1.22);
+      }
+      // Carve 1 or 2 deep fjord channels into the plateau
+      const fjordCount = rng() < 0.45 ? 2 : 1;
+      for (let f = 0; f < fjordCount; f++) {
+        const fjordX = Math.floor(W * (0.18 + rng() * 0.64));
+        const fjordW = 9 + Math.floor(rng() * 13); // 9–22px wide
+        for (let x = 0; x < W; x++) {
+          const dist = Math.abs(x - fjordX);
+          if (dist < fjordW) {
+            const depth = Math.cos((dist / fjordW) * Math.PI * 0.5);
+            heights[x] = Math.max(H * 0.05, heights[x] - depth * H * 0.34);
+          }
+        }
+      }
+    },
+  },
 ];
 
 /**
@@ -114,11 +167,12 @@ const ARCHETYPES: TerrainArchetype[] = [
  *  staircase — terraced steps: volcanic drama, desert dunes
  */
 const BIOME_ARCHETYPE_WEIGHTS: Record<Biome, number[]> = {
-  temperate: [3, 1, 2, 1, 1, 3, 1],  // rolling plains and gentle hills
-  desert:    [1, 4, 0, 3, 0, 1, 3],  // canyon cuts, flat plateaus, terraced dune shelves
-  tundra:    [3, 0, 1, 2, 1, 4, 0],  // gentle rolling tundra and glacial plateaus
-  volcanic:  [0, 4, 1, 1, 0, 2, 4],  // dramatic canyons and jagged terraced flows
-  lush:      [3, 0, 3, 1, 4, 2, 0],  // rolling valleys, archipelagos, verdant marshes
+  //             rolling  canyon  arch  plateau  marsh  hills  staircase  caldera  fjord
+  temperate: [      3,      1,    2,      1,      1,     3,       1,        0,      0  ],
+  desert:    [      1,      4,    0,      3,      0,     1,       3,        0,      0  ],
+  tundra:    [      3,      0,    1,      2,      1,     4,       0,        0,      3  ], // fjord: glacial channels
+  volcanic:  [      0,      4,    1,      1,      0,     2,       4,        4,      0  ], // caldera: iconic volcano bowl
+  lush:      [      3,      0,    3,      1,      4,     2,       0,        0,      0  ],
 };
 
 function pickArchetype(biome: Biome, rng: () => number): TerrainArchetype {

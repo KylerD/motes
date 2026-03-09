@@ -2,7 +2,7 @@
 
 import { createRenderContext, present } from "./render";
 import { H } from "./config";
-import { renderTerrain, applyHeatHaze, applyVolcanicAsh, renderRainPuddles } from "./terrain";
+import { renderTerrain, applyHeatHaze, applyVolcanicAsh, renderRainPuddles, renderWaterMist, renderVolcanicEmbers, applyTundraIce } from "./terrain";
 import { createWorld, updateWorld } from "./world";
 import { cycleName } from "./names";
 import { createSoundEngine, initAudio, updateSound, updateWeatherSound, playDeath, playEventSound, playPhaseTransition } from "./sound";
@@ -146,9 +146,12 @@ function init(): void {
     applyTundraAurora(rc.buf, w.terrain.biome, w.time, w.cycleProgress, w.weather.type);
     renderClouds(rc.buf, w.weather, w.time, w.terrain.biome);
     applyWeatherDarkening(rc.buf, w.weather);
+    applyTundraIce(rc.buf, w.terrain, w.cycleProgress);
     renderRainPuddles(rc.buf, w.terrain, w.weather, w.time);
+    renderWaterMist(rc.buf, w.terrain, w.time, w.cycleProgress);
     applyHeatHaze(rc.buf, w.terrain, w.time, w.cycleProgress);
     applyVolcanicAsh(rc.buf, w.terrain, w.cycleProgress);
+    renderVolcanicEmbers(rc.buf, w.terrain, w.time, w.cycleProgress);
 
     // Pre-compute mote colors
     const moteColors = new Map<Mote, [number, number, number]>();
