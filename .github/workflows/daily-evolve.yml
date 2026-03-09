@@ -1,20 +1,20 @@
-name: Daily Evolution (Legacy — Manual Only)
-
-# NOTE: Scheduled evolution is now handled by 5 specialized agents:
-#   evolve-motes.yml     — Mote Agent (3x/day: 00, 08, 16 UTC)
-#   evolve-sound.yml     — Sound Agent (2x/day: 01, 13 UTC)
-#   evolve-terrain.yml   — Terrain & Weather Agent (2x/day: 02, 14 UTC)
-#   evolve-narrative.yml — Narrative & Events Agent (2x/day: 03, 15 UTC)
-#   evolve-visual.yml    — Visual Effects Agent (2x/day: 04, 20 UTC)
-#
-# This workflow is kept as a manual fallback for full-system evolution.
+name: Daily Evolution
 
 on:
   workflow_dispatch:
+  schedule:
+    # 2x daily: 06:00, 18:00 UTC
+    - cron: '0 6 * * *'
+    - cron: '0 18 * * *'
+
+concurrency:
+  group: mote-evolution
+  cancel-in-progress: false
 
 jobs:
   evolve:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: write
 
@@ -35,7 +35,7 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Daily evolution
+      - name: Evolve
         run: |
           npx -y @anthropic-ai/claude-code -p "$(cat .claude/daily-evolve.md)" \
             --dangerously-skip-permissions \
@@ -54,6 +54,6 @@ jobs:
           git config user.email "claude[bot]@users.noreply.github.com"
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m "evolve: daily improvement $(date -u +%Y-%m-%d)"
+            git commit -m "evolve: daily improvement $(date -u +%Y-%m-%d-%H%M)"
           fi
           git push

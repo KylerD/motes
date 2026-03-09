@@ -1,829 +1,128 @@
 [
   {
-    "date": "2026-03-02",
-    "title": "Add evolution log",
-    "reflection": "Created the evolution log system and daily-evolve workflow for autonomous improvement.",
-    "looking_ahead": [
-      "Make temperament visible through color",
-      "Sound envelopes for bond formation/breaking",
-      "Event permanence: meteor craters, flood channels"
-    ],
-    "files_changed": [
-      "CLAUDE.md",
-      "public/evolution-log.json",
-      ".claude/daily-evolve.md",
-      ".github/workflows/daily-evolve.yml",
-      "journal.html",
-      "src/style.css",
-      "index.html"
-    ]
-  },
-  {
-    "date": "2026-03-02",
-    "title": "Temperament colors",
-    "reflection": "Replaced single energy-colored pixel with continuous hue from temperament axes.",
-    "looking_ahead": [
-      "Sound envelopes for musical bond moments",
-      "Activate spatial hash grid for performance",
-      "Event permanence: terrain marks that persist through the cycle"
-    ],
-    "files_changed": [
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-03",
-    "title": "Blended bond colors",
-    "reflection": "Bond lines now blend the temperament colors of both endpoints. Pre-computed mote colors into a Map.",
-    "looking_ahead": [
-      "Sound envelopes for bond formation chimes",
-      "Activate spatial hash grid",
-      "Event permanence: crater tiles, waterlogged terrain"
-    ],
-    "files_changed": [
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-03",
-    "title": "Visible motes and bonds",
-    "reflection": "Motes grew from 1px to 5px crosses, bonds visible at alpha 100, spatial hash grid wired up.",
-    "looking_ahead": [
-      "Sound envelopes for bond formation",
-      "Death particles on mote expiration",
-      "Settlement markers with structural shapes"
-    ],
-    "files_changed": [
-      "src/main.ts",
-      "src/mote.ts",
-      "src/interaction.ts",
-      "src/world.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-04",
-    "title": "Phase-tinted sky",
-    "reflection": "Sky now interpolates per-phase color tints: violet at genesis, amber at dissolution, indigo at silence.",
-    "looking_ahead": [
-      "Death particles for dissolution visibility",
-      "Sound envelopes for bond chimes",
-      "Mote age visibility: gold tinge for elders"
-    ],
-    "files_changed": [
-      "src/terrain.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-04",
-    "title": "Visual overhaul",
-    "reflection": "Added breathing pulse, cluster glow, soul-rise death particles, eclipse stars, aurora curtains, narrative text.",
-    "looking_ahead": [
-      "WebGL post-processing for real bloom/glow",
-      "Creature memory: motes returning to meaningful places",
-      "Visible trails and history accumulating through the cycle",
-      "Sound evolution: phase transitions with musical moments"
-    ],
-    "files_changed": [
-      "src/main.ts",
-      "src/world.ts",
-      "src/style.css",
-      "index.html",
-      "CLAUDE.md",
-      ".claude/daily-evolve.md",
-      "public/evolution-log.json"
-    ]
-  },
-  {
     "date": "2026-03-05",
-    "title": "Architecture refactor",
-    "reflection": "Split 922-line main.ts into 25 focused files with clean layered DAG. No circular deps.",
+    "title": "Foundation and architecture",
+    "reflection": "Built evolution log, temperament colors, visible motes/bonds, phase-tinted sky, breathing pulse, cluster glow, soul-rise death, eclipse/aurora effects, narrative text. Refactored 922-line main.ts into 25-file layered DAG.",
     "looking_ahead": [
-      "WebGL post-processing for bloom/glow",
-      "Creature memory and meaningful return behaviors",
-      "Sound evolution: phase transitions with musical moments"
+      "Biome-specific sound, dramatic death particles, weather rendering",
+      "Event permanence: crater tiles, waterlogged terrain",
+      "Deeper mote personality through shape and movement"
     ],
-    "files_changed": [
-      "src/config.ts",
-      "src/types.ts",
-      "src/terrain.ts",
-      "src/terrain-gen.ts",
-      "src/terrain-query.ts",
-      "src/terrain-render.ts",
-      "src/weather.ts",
-      "src/weather-render.ts",
-      "src/narrative.ts",
-      "src/render-motes.ts",
-      "src/render-effects.ts",
-      "src/render-bonds.ts",
-      "src/render-ui.ts",
-      "src/main.ts",
-      "src/render.ts",
-      "src/palette.ts",
-      "src/world.ts",
-      "src/mote.ts",
-      "src/events.ts",
-      "src/sound.ts",
-      "src/interaction.ts",
-      "src/physics.ts",
-      "src/font.ts",
-      "CLAUDE.md",
-      "public/evolution-log.json"
-    ]
+    "note": "Compressed from 7 entries (Mar 2-5). Original entries preserved in git history.",
+    "files_changed": ["src/*", "CLAUDE.md", ".claude/daily-evolve.md", "journal.html", "index.html"]
   },
   {
     "date": "2026-03-06",
-    "agent": "mote",
-    "title": "Death Made Dramatic",
-    "reflection": "Rewrote death particles into four phases (flash, shards, spirit orb, ground echo lasting 7.5s) using the mote's actual temperament color instead of biome palette.",
+    "title": "First agent day",
+    "reflection": "Specialized agents launched. Death got 4-phase particles, biomes got unique sounds/vegetation/fog, sky learned solar arc, narrative became phase-aware with anticipation windows, cinematic post-processing added. Bond arcs, wanderer trails, cluster territories, screen-space bloom pass.",
     "looking_ahead": [
-      "Temperament movement distinction: wanderers leave longer trails, social motes pulse when bonded",
-      "Bond formation visual moment: a brief arc of light connecting two motes",
-      "Cluster identity: large clusters develop a shared color aura",
-      "Hardy motes: visual resilience cue on hostile terrain"
+      "Phase-reactive ambient beds, spatial voices",
+      "Water reflections, terrain phase-aware lighting",
+      "Biome-voiced narrative, mote shape variety"
     ],
-    "files_changed": [
-      "src/world.ts",
-      "src/render-bonds.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "sound",
-    "title": "Five Worlds, Five Voices",
-    "reflection": "Each biome now has a distinct sonic identity: root pitch, reverb, filter Q, scale per phase. Added stereo panning, LFO filter breathing, fifth-interval bond chimes, and descending death glides.",
-    "looking_ahead": [
-      "Spawn sound: gentle arrival tone per mote",
-      "Phase transition musical moment",
-      "Cluster fragmentation sound",
-      "Biome ambient texture beds"
-    ],
-    "files_changed": [
-      "src/sound.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "terrain-weather",
-    "title": "The Sky Learns to Tell Time",
-    "reflection": "Added cycle-driven solar arc, biome-aware weather particles, biome fog identity, multi-frequency water shimmer, and depth-blended background mountains.",
-    "looking_ahead": [
-      "Horizon glow at sky-terrain boundary",
-      "Desert heat shimmer distortion",
-      "Volcanic lava pools as terrain feature",
-      "Phase-reactive terrain during events"
-    ],
-    "files_changed": [
-      "src/weather-render.ts",
-      "src/terrain-render.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "narrative-events",
-    "title": "The Cycle Learns to Tell Its Own Story",
-    "reflection": "Rewrote narrative arc with deterministic per-phase openings, event anticipation windows, aftermath lines, and expanded cycle name vocabulary.",
-    "looking_ahead": [
-      "Bond formation flash between motes",
-      "Dissolution dirge for first death",
-      "Event cascade narrative for phase overlaps",
-      "Cluster identity names in narrative text"
-    ],
-    "files_changed": [
-      "src/narrative.ts",
-      "src/events.ts",
-      "src/world.ts",
-      "src/names.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "visual",
-    "title": "Cinematic Post-Processing",
-    "reflection": "Added phase-specific color grading, rebuilt aurora with 5 overlapping layers, phase flash, phase-varying vignette, and warm glowing cursor.",
-    "looking_ahead": [
-      "Bond formation arc streak",
-      "WebGL overlay for real bloom/glow",
-      "Phase-specific particle showers",
-      "Terrain color overlays per biome"
-    ],
-    "files_changed": [
-      "src/render-effects.ts",
-      "src/render-ui.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "sound",
-    "title": "Ambient Beds, Phase Chords, Spawn Pings",
-    "reflection": "Added biome ambient beds, phase transition chord signatures, spread cluster voices across scale degrees, and spawn pings.",
-    "looking_ahead": [
-      "Phase-reactive ambient bed volume",
-      "Cluster fragmentation sound",
-      "Bond-break downward glide",
-      "Event-ambient crossfade"
-    ],
-    "files_changed": [
-      "src/sound.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "mote",
-    "title": "Bond Arc, Wanderer Trails, Social Pulse",
-    "reflection": "Wanderers leave brighter trails, bonded social motes show pulsing resonance rings, bond formation gets converging spark arc.",
-    "looking_ahead": [
-      "Hardy mote terrain resilience flash",
-      "Wanderer sprite tilt toward movement",
-      "Cluster identity halo for 4+ groups",
-      "Bond break visual scatter"
-    ],
-    "files_changed": [
-      "src/render-bonds.ts",
-      "src/render-motes.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "terrain-weather",
-    "title": "Biomes Made Real",
-    "reflection": "Desert gets cacti instead of trees, volcanic gets rock spires, tundra gets dead trees. Volcanic water renders as animated lava. Added horizon glow band and tundra frost crystals.",
-    "looking_ahead": [
-      "Desert heat shimmer distortion",
-      "Phase-reactive water level during flood",
-      "Volcanic ash accumulation overlay",
-      "Lush bloom event flower multiplication"
-    ],
-    "files_changed": [
-      "src/terrain-gen.ts",
-      "src/terrain-render.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "narrative-events",
-    "title": "Five New Emotional Beats",
-    "reflection": "Added first-death dirge, peak population acknowledgment, last-survivor naming, and event-phase cascade lines with per-cycle variants.",
-    "looking_ahead": [
-      "Cluster identity persistence with names",
-      "Silent-world final reflection line",
-      "Biome-aware dissolution text",
-      "Weather-event overlap narrative"
-    ],
-    "files_changed": [
-      "src/narrative.ts",
-      "src/events.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "mote",
-    "title": "Bond Break, Cluster Territory",
-    "reflection": "Bond breaks scatter colored shards. Clusters of 4+ pulse a dashed perimeter ring; 6+ gain centroid spokes.",
-    "looking_ahead": [
-      "Hardy mote terrain resilience flash",
-      "Wanderer sprite tilt",
-      "Bond break midpoint flash",
-      "Cluster fragmentation cascade"
-    ],
-    "files_changed": [
-      "src/types.ts",
-      "src/mote.ts",
-      "src/render-motes.ts",
-      "src/render-bonds.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-06",
-    "agent": "visual",
-    "title": "Screen-Space Bloom \u2014 Creatures as Light",
-    "reflection": "Full screen-space bloom pass: threshold bright pixels, separable box blur, additive blend. Bloom strength varies by phase and spikes during eclipse. The world feels lit from within.",
-    "looking_ahead": [
-      "WebGL compositing for real-time HDR tone-map and motion blur",
-      "Per-biome bloom tint (warm for volcanic, cool for tundra)",
-      "Interaction force-field visualization around cursor",
-      "Phase-specific particle showers (genesis stardust, dissolution ash)"
-    ],
-    "files_changed": [
-      "src/render-effects.ts",
-      "src/render-ui.ts",
-      "src/main.ts",
-      "src/style.css",
-      "public/evolution-log.json"
-    ]
+    "note": "Compressed from 11 entries across 5 agents. Original entries preserved in git history.",
+    "files_changed": ["src/mote.ts", "src/render-motes.ts", "src/render-bonds.ts", "src/render-effects.ts", "src/sound.ts", "src/terrain-gen.ts", "src/terrain-render.ts", "src/weather-render.ts", "src/narrative.ts", "src/events.ts", "src/world.ts", "src/palette.ts"]
   },
   {
     "date": "2026-03-07",
-    "agent": "sound",
-    "title": "Bond Break, Breathing Beds, Spatial Voices",
-    "reflection": "Bond breaks get descending two-tone glides. Ambient beds become phase-reactive across the 5-minute arc. Cluster voices gain true stereo panning from centroid X. Biome-tuned LFOs breathe the filter cutoffs.",
+    "title": "Character and atmosphere",
+    "reflection": "Bond breaks got sound/shards, ambient beds became phase-reactive, water reflects sky, desert heat haze added. Biome-voiced narrative, first-hearth milestone. Hardy motes got blocky shape, wanderers lean into movement. Three death styles per temperament. Tundra aurora, ash fall, biome clouds. Death inheritance and grief. Phase mood through colored vignette.",
     "looking_ahead": [
-      "Cluster fragmentation sound: when a cluster loses a member, a scatter of brief high pings",
-      "Energy-mapped voice brightness: high-energy motes trigger brighter filter cutoffs and shorter decays",
-      "Per-biome phase transition variants: the dissolution chord in volcanic should be more dissonant than temperate",
-      "Mote-count-aware master mix: scale voice gain inversely with total mote count so complexity doesn't over-saturate"
+      "Cluster mourning as community grief",
+      "God rays, shooting stars, volcanic smoke",
+      "Biome dissolution voice in sound"
     ],
-    "files_changed": [
-      "src/sound.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "terrain-weather",
-    "title": "Light That Knows the Time",
-    "reflection": "Water tiles now reflect the phase-tinted sky. Terrain gets phase-aware lighting overlays. Desert heat haze shimmer and storm cloud gradients added. The world feels lit, not just drawn.",
-    "looking_ahead": [
-      "Phase-reactive water level: flood event raises the water line progressively as it plays out",
-      "Volcanic ash accumulation overlay: during dissolution, ash tint builds on rocky ground tiles",
-      "Rain puddles: small water patches form on flat ground during rain, persist for a few seconds",
-      "Tundra aurora: the northern lights effect (currently eclipse-only) should trigger in tundra fog/clear nights"
-    ],
-    "files_changed": [
-      "src/terrain-render.ts",
-      "src/terrain.ts",
-      "src/weather-render.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "narrative-events",
-    "title": "The World Learns Its Own Name",
-    "reflection": "Biomes now narrate in their own voice. First-hearth milestone fires when the first cluster of three forms. Empty-world epitaphs added. Events speak differently per biome, weather-event collisions get combo lines. Drought dries water tile edges.",
-    "looking_ahead": [
-      "Cluster identity persistence: when the same group stays together for 30s+, give them a generated name that appears in narrative ('the RED BASIN cluster endures')",
-      "Phase-specific silence epitaphs that vary by what happened \u2014 if a plague ran, silence reads differently than if a bloom ended the cycle",
-      "Biome-aware aftermath: drought aftermath in desert vs tundra should feel different",
-      "A 'near miss' narrative moment: if a cluster almost reaches 6 but dissolves first, acknowledge the loss"
-    ],
-    "files_changed": [
-      "src/narrative.ts",
-      "src/events.ts",
-      "src/names.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "visual",
-    "title": "Atmosphere Made Visible \u2014 Particles, Biome Glow, Force Field",
-    "reflection": "Phase-specific particles: genesis stardust, dissolution ash, silence dust. Bloom pass now tinted per-biome. Cursor force field visualized as a rotating ring that shifts blue-to-red with interaction speed.",
-    "looking_ahead": [
-      "WebGL compositing layer for real HDR tone-mapping \u2014 Canvas 2D can only approximate what a proper framebuffer could do",
-      "Genesis particle evolution: stardust collects into clusters, mirroring the mote bonding arc",
-      "Dissolution ash accumulation on terrain tiles: as ash falls, the ground darkens slightly \u2014 the scar of a dying cycle",
-      "Phase-reactive vignette color: silence vignette should be dark-blue, dissolution amber-red, not just darker"
-    ],
-    "files_changed": [
-      "src/render-effects.ts",
-      "src/render-ui.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "mote",
-    "title": "Hardy Shape, Wanderer Lean",
-    "reflection": "Hardy motes get blocky squared shoulders and silvery-blue shield sparks on hostile terrain. Wanderers lean forward when moving fast. All three temperaments now have unique silhouettes.",
-    "looking_ahead": [
-      "Wanderer trail fade: old trail points shift toward the terrain color, so high-wanderlust motes leave a ghost of where they've been",
-      "Social mote cluster merge: when two clusters become one (a new bond forms between cluster members), a brief color-blend flash at the bond site",
-      "Hardy elder: old hardy motes develop a second wider shoulder layer \u2014 they accumulate visual mass over their lifetime",
-      "Low-energy wanderer: a frantic fast-flicker as energy nears zero, vs social motes that dim evenly \u2014 different deaths for different characters"
-    ],
-    "files_changed": [
-      "src/types.ts",
-      "src/mote.ts",
-      "src/render-motes.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "mote",
-    "title": "Three Deaths, Three Characters",
-    "reflection": "Each temperament now dies differently. Wanderers flicker and stutter, social motes dim and reach outward, hardy motes crack with stress fractures then quake. Dying threshold widened so the arc is visible longer.",
-    "looking_ahead": [
-      "Wanderer trail terrain-fade: old trail breadcrumbs shift toward the underlying ground color, leaving ghostly echoes in the landscape",
-      "Social cluster merge flash: when a bond forms between members of two previously separate clusters, a brief color-bloom radiates from the bond midpoint",
-      "Hardy elder accumulated mass: motes past age 30 gain a second, wider shoulder layer \u2014 visual weight that grows with resilience",
-      "Death inheritance: when a mote dies, the nearest living mote briefly flashes the dead mote's color \u2014 loss made visible in survivors"
-    ],
-    "files_changed": [
-      "src/render-motes.ts",
-      "src/mote.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "sound",
-    "title": "Five Deaths, Choir Clusters, Volcanic Pulse, Last Survivor",
-    "reflection": "Each biome now has its own death voice: volcanic cracks and thuds, desert tolls like a distant bell, tundra pings a crystalline ice note with long reverb, lush dissolves into a warm chord, temperate sighs with two voices falling apart. Large clusters grow a 5th harmonic partial that fires stochastically, giving bonded groups choral depth at peak complexity. Volcanic biome gains periodic lava-bubble pops that add industrial texture between notes. The silence phase now holds a long, quietly fading drone when only 1-2 motes remain \u2014 the sound of a world breathing its last.",
-    "looking_ahead": [
-      "Desert shimmer accent: very high harmonic pings at low probability, adding the sound of heat haze",
-      "Bond formation biome tuning: the ascending fifth chime should use the biome wave type (bell for desert, crystal for tundra)",
-      "Chorus on cluster growth event: a special sound when a cluster jumps from 4 to 8+, like a crowd finding its voice",
-      "Phase 4-5 reverb swell: as dissolution deepens, very gently increase reverb tail length so everything sounds more distant and ghostly"
-    ],
-    "files_changed": [
-      "src/sound.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "narrative-events",
-    "title": "The Cycle Remembers Itself",
-    "reflection": "Four new emotional beats: event-aware silence epitaphs (plague silence feels different from bloom silence), biome-aware event aftermath (a desert flood vanishes into sand, a tundra bloom freezes in place), a dissolution half-gone line when the world has lost half its peak, and near-miss acknowledgment when a cluster reached 4\u20135 but never became a great gathering.",
-    "looking_ahead": [
-      "Cluster identity persistence: track named clusters that hold together 30s+, reference them by position in narrative ('the western three endure')",
-      "Phase-specific silence variants based on mote count at end: a silent world that lost everyone early vs one where a few elders lingered should feel different",
-      "Biome-aware dissolution openers: volcanic dissolution should reference ash, tundra should reference cold closing in",
-      "Event combo narrative: if two events run in the same cycle (unlikely but possible), a special acknowledgment line"
-    ],
-    "files_changed": [
-      "src/narrative.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "terrain-weather",
-    "title": "Tundra Aurora, Ash Fall, Biome Clouds",
-    "reflection": "Tundra biome finally has its night sky: three ribbons of aurora (green, cyan-blue, violet) that undulate as curtains of light during dissolution and silence. Volcanic dissolution is now a slow burial \u2014 ground tiles grey toward ash as the cycle ends. Each biome's clouds now have their own character: dusty ochre for desert, icy-blue for tundra, sooty grey for volcanic, humid-bright for lush.",
-    "looking_ahead": [
-      "Phase-reactive water level: flood event raises the shoreline visibly as it plays out \u2014 shallow tiles appear at terrain edges",
-      "Rain puddles: small water-colour patches on flat ground during rain, a frame or two of sparkle then fade",
-      "Tundra aurora interaction: when a large cluster forms under the aurora, the aurora briefly brightens above them",
-      "Volcanic sky darkening: as ash accumulates, the sky itself should dim and redden slightly \u2014 the world choking on its own output"
-    ],
-    "files_changed": [
-      "src/weather-render.ts",
-      "src/terrain-render.ts",
-      "src/terrain.ts",
-      "src/weather.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "mote",
-    "title": "Death Inheritance \u2014 Grief in the Survivors",
-    "reflection": "When a mote dies near others, the nearest living mote within 55px now briefly carries the dead mote's identity color as an expanding two-ring ripple. The flash starts as a bright core tinge, then radiates outward over 1.5 seconds and fades. Loss is no longer invisible to witnesses \u2014 you can see the moment a community absorbs a death.",
-    "looking_ahead": [
-      "Bonded inheritance: a bonded partner should receive a stronger, longer flash than a mere neighbor \u2014 depth of relationship shapes depth of grief",
-      "Cluster mourning: when a cluster loses a member, all remaining members could briefly pulse together in the lost mote's color",
-      "Trail echo after death: a dead mote's trail breadcrumbs should linger 2x longer and shift to grey, a ghost-path that fades on the landscape",
-      "Age-weighted inheritance radius: elder motes leave a larger inheritance footprint \u2014 their passing felt further away"
-    ],
-    "files_changed": [
-      "src/types.ts",
-      "src/mote.ts",
-      "src/world.ts",
-      "src/render-motes.ts",
-      "public/evolution-log.json"
-    ]
+    "note": "Compressed from 12 entries across 5 agents. Original entries preserved in git history.",
+    "files_changed": ["src/mote.ts", "src/render-motes.ts", "src/render-bonds.ts", "src/render-effects.ts", "src/sound.ts", "src/terrain-render.ts", "src/weather-render.ts", "src/narrative.ts", "src/events.ts", "src/world.ts"]
   },
   {
     "date": "2026-03-08",
-    "agent": "mote",
-    "title": "Cluster Mourning — Communities Grieve Together",
-    "reflection": "When a mote dies inside a cluster, all surviving members now briefly carry the dead mote's color: a fixed-radius dashed ring held close to the body (doesn't expand — grief holds rather than radiates), a core tinge flooding the mote's center, and a tiny rising wisp. Elder deaths now reach further for inheritance witnesses (age-scaled radius: 55–80px). Previously, only the nearest individual mote responded to a death; now an entire community responds simultaneously, making group identity visible at the moment of loss.",
+    "title": "Polish and spectacle",
+    "reflection": "Cluster mourning communities, chorus awakening with desert shimmer. God rays, shooting stars, volcanic smoke, rain puddles. Biome-specific narrative voice and memory. Ghost paths for wanderers, elder mass. Eclipse crown, shockwave transitions, bond flash, memory constellation. Biome skies/storms/shapes. Three ending beats in narrative. Bond break biome dissolution sounds.",
     "looking_ahead": [
-      "Cluster mourning intensity gradient: directly-bonded survivors should show a brighter/wider ring than peripheral cluster members — depth of relationship shaping depth of grief",
-      "Mourning synchrony: if two cluster members die in quick succession, the second death intensifies the mourning flash for all survivors still carrying the first loss",
-      "Wanderer trail terrain-fade: old trail breadcrumbs shift toward the underlying ground color, leaving ghostly echo-paths where motes have walked",
-      "Hardy elder mass: motes past age 30 gain a second wider shoulder layer — visual weight accumulating with resilience"
+      "Cluster merge chord and mourning chorus in sound",
+      "Caldera and fjord terrain archetypes",
+      "Last-light spotlight, chromatic aberration"
     ],
-    "files_changed": [
-      "src/types.ts",
-      "src/mote.ts",
-      "src/world.ts",
-      "src/render-motes.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-07",
-    "agent": "visual",
-    "title": "Colored Light, Colored Dark — Phase Mood Through Every Pixel",
-    "reflection": "Three interlocking changes that transform the frame into a mood instrument. The vignette edges now hold color: genesis bleeds violet into the corners, dissolution smolders amber-red at the periphery, silence seals the world in cold indigo. Large bonded clusters now emanate a soft area-light pool — biome-warm radiance that feeds bloom, so a temperate gathering glows gold and a tundra cluster shimmers cyan. The terrarium frame itself breathes in the world's own color: each biome sets a CSS custom property that drives the outer glow, so a volcanic world pulses with ember-red and a lush world exhales green.",
-    "looking_ahead": [
-      "Mote-count-aware vignette intensity: when only 1-2 motes remain in silence, push the vignette floor even lower so the world feels truly evacuated",
-      "Cluster radiance color-blend: instead of pure biome color, tint the radiance toward the cluster's average mote color — so a bonded group of wanderers (blue-green) glows cooler than a hardy cluster (amber)",
-      "Phase-transition vignette cross-fade: at the moment of phase change, briefly blend between the outgoing and incoming tint colors for a smooth cinematic shift",
-      "Genesis stardust arc: make ascending stardust particles arc toward the earliest mote positions, so they feel magnetically drawn to where life is about to form"
-    ],
-    "files_changed": [
-      "src/render-effects.ts",
-      "src/main.ts",
-      "src/style.css",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "sound",
-    "title": "Chorus Awakening, Desert Shimmer, Biome Bonds",
-    "reflection": "Six interlocking improvements that make the world sound alive in new ways. Cluster bonds now speak the biome's own voice: desert bonds toll like a distant bell (2.6s decay), tundra adds a crystalline third harmonic shimmer, volcanic bonds thud short and dull, lush bonds resolve as a full warm triad. A new cluster milestone system fires a special sound the first time any cluster reaches 4 members (a quiet major-third interval, voices finding first harmony) or 8 members (a staggered maj7 chorus spread across the full stereo field). Desert biome gains occasional ultra-high harmonic sparkle at random intervals — two brief tones a minor second apart, three octaves up, echoing into the long desert reverb like heat shimmer you can hear. Cluster voices now modulate filter cutoff and decay per frame based on average mote energy: high-energy clusters fire bright, punchy notes while fading clusters grow darker and slower. A density scaler gently reduces all note gains as population peaks, preventing the complexity phase from over-saturating. And as dissolution deepens, cluster notes increasingly route through the convolver reverb — by silence they are fully wet, every tone trailing off into ghostly distance.",
-    "looking_ahead": [
-      "Tundra: a slow sustained wind-tone in silence phase — one long pure sine that rises and falls like the world breathing its last cold breath",
-      "Volcanic dissolution: intensifying sub-bass rumble as motes die — the earth settling",
-      "Bond-break biome variation: the descending glide should be as distinct per biome as bond formation now is",
-      "Phase transition chord biome tuning: volcanic's dissolution-to-silence transition should use sawtooth, not sine"
-    ],
-    "files_changed": [
-      "src/sound.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "terrain-weather",
-    "title": "God Rays, Shooting Stars, Volcanic Smoke, Rain Puddles",
-    "reflection": "Four interlocking sky-and-surface effects that push the world from 'drawn' to 'felt'. Crepuscular god rays now radiate from the sun during exploration and complexity — 8 warm golden shafts fanning downward through the sky, shimmering slightly and strongest at mid-afternoon when the sun is highest. Volcanic biomes now have a second reddening pass on their sky during dissolution and silence: as ash settles on the terrain, the horizon itself bleeds warm amber-grey smoke upward toward the zenith, completing the visual arc that ash accumulation started on the ground. Shooting stars appear deterministically during silence — up to 2 per cycle, each with a 5-segment trailing fade, seeded from the cycle number so every viewer sees the same streak at the same moment. And flat ground tiles now show animated rain puddles during rain/storm weather: blue-grey shimmer patches with bright raindrop-impact flashes, appearing only on genuinely flat surfaces above the waterline.",
-    "looking_ahead": [
-      "Phase-reactive water level: flood event raises the shoreline visibly — a few extra ShallowWater tiles appear at the terrain edges, retreating when the event ends",
-      "Tundra aurora brightening: when a large cluster forms under the aurora, the ribbons above them should intensify — life calling up light",
-      "God rays biome tinting: volcanic rays should be amber-red filtered through ash; tundra rays should be cold blue-white; each biome's sun has its own quality of light",
-      "Storm lightning branching: the current single-line bolt could fork once, making lightning feel more natural and dangerous"
-    ],
-    "files_changed": [
-      "src/weather-render.ts",
-      "src/weather.ts",
-      "src/terrain-render.ts",
-      "src/terrain.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "narrative-events",
-    "title": "Every Biome Finds Its Voice — And Memory Forms",
-    "reflection": "Four interlocking improvements that make narrative feel personal to each cycle. The temperate biome — the most universal world — finally has its own voice across all six phases: gentle, unhurried, 'neither fire nor ice — just this.' All five biomes now have complete phase coverage: volcanic gets its organization/complexity lines ('bonds form in the fire,' 'life at its most defiant'), desert gets 'the desert allows a few to gather' for organization and 'more alive than the sand expected' for complexity, tundra gains 'warmth found in each other' and 'the tundra's fullest hour,' and lush finally speaks during exploration and organization ('abundance calls in all directions,' 'finding home in abundance'). A new cluster identity system tracks when the same group of 3+ motes persists for 30+ seconds — then names them by where they are: 'to the west, they hold,' 'the center holds,' 'something persists.' Every 6-second check interval refreshes the continuity test; 60% overlap means the same cluster. Silence now reads the cycle's character: if no bonds ever formed, 'a world that never bonded'; if many survived dissolution, 'so many outlasted the ending'; if an elder is still alive, 'an elder saw it all.' Event epitaphs still override all of these.",
-    "looking_ahead": [
-      "Biome-aware dissolution dissolve: volcanic dissolution should fire ash-specific text in the half-gone and bonds-breaking moments, not just phase entry",
-      "Named cluster callback: if the named cluster that persisted 30s then breaks apart during dissolution, a farewell line for it specifically",
-      "Event combo narrative: if two events run in the same cycle (currently impossible but worth designing for), a special combo acknowledgment",
-      "Second silence beat: 10 seconds after the phase entry text, queue a second reflection — the silence has settled, now what?"
-    ],
-    "files_changed": [
-      "src/narrative.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "visual",
-    "title": "Cinematic Events, Deeper Silence, Living Genesis",
-    "reflection": "Three interlocking improvements that push the world toward feeling like a film rather than a demo. Event messages now arrive cinematically: a full-width gradient bar fades from dark center to transparent edges across the canvas (replacing the flat rectangle), with a bell-curve accent glow line in each event's signature color — flood blue, meteor amber, eclipse purple, aurora cyan. The vignette now cross-fades between phase tints at transition moments: when a phase changes, the incoming tint blends smoothly from the outgoing one over the phaseFlash window rather than snapping, so genesis-to-exploration no longer cuts abruptly from violet to neutral. Silence gains mote-count awareness: when 0–2 motes remain, the vignette floor drops an additional 8–14 points, pushing the corners toward near-black so a genuinely emptied world feels evacuated. Genesis stardust grows from 28 to 44 particles, rises faster (2.5–6.5 px/s), concentrates in the lower 60% of screen so sparks visibly rise from ground level, uses a warm gold-white color range with cross halos on 1-in-3 particles and an outer halo on 1-in-7 — making the world's birth feel lit.",
-    "looking_ahead": [
-      "Event message letterbox: at the moment an event message appears, add thin 2px bars at top and bottom of the canvas — a widescreen crop effect that says 'something cinematic is happening'",
-      "Cluster radiance color-blend: tint the radiance toward the cluster's average mote color so a wanderer group glows cooler than a hardy cluster",
-      "Silence constellation echo: during silence with 0 motes, render extremely faint star-crosses at the last known positions of the final few motes — ghost-impressions of where life was",
-      "Genesis halo sun: at the very start of genesis (first 10% of phase), a faint radial white glow at the top-center of the sky — the world igniting from above"
-    ],
-    "files_changed": [
-      "src/render-ui.ts",
-      "src/render-effects.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "mote",
-    "title": "Ghost Paths, Elder Mass",
-    "reflection": "Two improvements that make mote character legible through time. Wanderers now leave ghost-paths: trail breadcrumbs persist up to 3 seconds (vs 1.5s for social motes) and the final half of each trail fades from the mote's identity color toward warm dusty earth — the landscape absorbs where they walked, creating ethereal echoes of their journey. Hardy motes past age 30 now accumulate visible mass: a second outer shoulder layer at ±3px builds from nothing to full weight over ages 30–60, making long-lived hardy motes look imposing and earned. A wanderer leaves traces; a hardy elder carries weight — two characters you can read at a glance.",
-    "looking_ahead": [
-      "Silence constellation echo: when silence has 0 motes, render faint star-crosses at the last death positions — ghost-impressions of where life was, visible until the next cycle",
-      "Social cluster merge flash: when a bond forms between members of two previously separate clusters, a brief color-bloom at the bond midpoint — the moment communities become one",
-      "Mourning intensity gradient: bonded survivors show a brighter/wider mourning ring than peripheral cluster members — depth of relationship shapes depth of grief",
-      "Wanderer death trail: when a wanderer dies, their trail breadcrumbs linger as ghost-grey marks for 2x longer — the path outlives the walker"
-    ],
-    "files_changed": [
-      "src/mote.ts",
-      "src/render-motes.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "sound",
-    "title": "Bond Breaks Find Their Voice — Biome Dissolution, Tundra Wind, Volcanic Earth",
-    "reflection": "Four interlocking improvements that close the gap between bond formation and bond breakage, and give two biomes a new emotional layer at the end of a cycle. Bond breaks now have five distinct signatures: desert breaks as a long descending bell toll with a fading harmonic shimmer (a note struck once in solitude); tundra breaks as two crystalline tones sliding apart in opposite directions like cracking ice; volcanic breaks as a sharp noise crack followed by a fast sub-bass drop like a cooling rock shattering; lush breaks as three voices that were briefly in harmony drifting each a whole step down. Phase transition waveforms are now biome-aware: volcanic dissolution and silence transitions use sawtooth instead of sine — the world ending through abrasion rather than softness — while lush transitions at organization and complexity use triangle for warmth. Tundra silence gains its own slow-breathing wind tone: two detuned sines at different stereo positions that take 9 seconds to rise and 9 more to fade, the frozen world drawing one last cold breath. Volcanic dissolution gains a sub-bass rumble system: sawtooth tones with a downward pitch sweep fire at intervals that compress from 8 seconds to 2 as phaseProgress nears 1.0 — the geological pressure building as the world cracks apart.",
-    "looking_ahead": [
-      "Desert bond break second voice: add a very faint high shimmer after the bell, like the overtone ringing alone in the silence",
-      "Lush silence: a brief warm chord bloom when the last mote dies — the final moment of warmth before the world ends",
-      "Tundra dissolution: the existing ambient bed could fade to near-silence faster, so the silence wind tone arrives into genuine quiet",
-      "Phase transition biome depth: tundra's exploration transition could add a slow detuned sweep instead of a crisp arpeggio — colder and less resolved"
-    ],
-    "files_changed": [
-      "src/sound.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "narrative-events",
-    "title": "Three Endings — Biome Voice, Named Farewell, Silence's Second Beat",
-    "reflection": "Three interlocking improvements that make the end of every cycle feel earned and specific. Biome dissolution now speaks in its own language at the moments that matter most: when half the population is gone, volcanic worlds say 'ash takes the rest' while tundra says 'the cold takes them one by one' and desert says 'the vast silence wins.' When bonds begin to fray, the biome determines the flavor — 'cold drives them apart' in tundra, 'fire claims what fire made' in volcanic. A new cluster farewell system watches for the moment the named cluster (the one that held together for 30+ seconds and earned its 'the center holds' text) finally breaks apart in dissolution — then speaks its specific goodbye: 'the center could not hold,' 'the western few have gone,' 'what held in the east is scattered.' And silence now has two beats: the opening reflection at phase entry, then 8 seconds later a quieter second thought — biome-specific, the world settling into itself. The caldera goes still. The dunes will not remember. Seeds in the silence.",
-    "looking_ahead": [
-      "Named cluster callback depth: if the named cluster lost a member before dissolving fully, the farewell could be gentler ('the center thinned') vs sudden ('the center could not hold')",
-      "Silence third beat at the very end: in the final 5 seconds of silence (phaseProgress > 0.80), one last word — shorter than silence itself",
-      "Biome-aware event anticipation: the pre-event anticipation texts feel generic — 'the air shifts' in a volcanic world should be more specific than in temperate",
-      "Cluster identity with remembered size: if the named cluster peaked at 6+, the endurance and farewell texts should reflect that grandeur"
-    ],
-    "files_changed": [
-      "src/narrative.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "mote",
-    "title": "Ghost Trails, Silence Constellation",
-    "reflection": "Two improvements that make the world carry its history visibly. When a wanderer mote dies, their trail breadcrumbs don't disappear with them — they linger as ghost-grey marks for up to 4.5 seconds, the mote's color bleeding into cold grey as time passes. The path outlives the walker; the landscape remembers where they wandered. And when silence falls with no motes remaining, every death position from the entire cycle appears as a faint star-cross — recent deaths brighter, older ones barely there, all slowly breathing together. A viewer who watches to the end sees a constellation of loss: every place life once stood, glowing like a memorial.",
-    "looking_ahead": [
-      "Social cluster merge flash: when a bond forms between members of two previously separate clusters, a brief color-bloom at the bond midpoint — the moment two communities become one",
-      "Mourning intensity gradient: bonded survivors show a brighter/wider mourning ring than peripheral cluster members — depth of relationship shaping depth of grief",
-      "Constellation fade-in: the silence constellation could materialize gradually over the first 5s of silence rather than appearing instantly, so it feels like the world slowly 'remembering'",
-      "Wanderer death trail length-scaling: longer-lived wanderers leave longer ghost trails — a mote that roamed for 60s leaves more of a mark than one that died at 10s"
-    ],
-    "files_changed": [
-      "src/types.ts",
-      "src/world.ts",
-      "src/render-bonds.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "terrain-weather",
-    "title": "Each Biome Gets Its Own Sky, Storm, and Shape",
-    "reflection": "Four interlocking improvements that make every cycle's world feel like it belongs to its biome. God rays now carry the biome's quality of light: volcanic rays burn amber-red filtered through ash, tundra rays arrive cold and blue-white with no warmth, desert rays bleach to near-white, lush rays carry green-gold humidity, temperate keeps its familiar warmth. Lightning now forks — the main bolt continues to ground while a secondary branch diverges from ~35% down, dimmer and shorter, creating the branching geometry that makes real lightning feel dangerous. Clouds finally have biome personality in their shapes: desert clouds are high thin wisps that barely exist, volcanic clouds press low and fat against the terrain laden with particulates, tundra clouds spread into flat wide stratus sheets that oppress the sky, lush clouds build tall and varied in humid cumulonimbus columns. And terrain archetypes are now biome-weighted: desert favors canyons and plateaus with terraced staircase dunes; volcanic favors canyons and jagged staircase lava flows; tundra favors gentle rolling hills and glacial plateaus; lush favors verdant marshes, archipelagos, and rolling valleys — so the landscape itself reads as belonging to its biome before a single tree or spire is placed.",
-    "looking_ahead": [
-      "Flood water level rise: when a flood event is active, raise the rendered waterline by a few tiles — shallow water appears at terrain edges and retreats when the event ends",
-      "Tundra aurora cluster response: when a large cluster forms under the tundra aurora, the ribbon above them briefly brightens — life calling up light",
-      "Storm particle density per biome: volcanic storms should have heavier ash fall and tighter particle clusters; lush storms should have wider, more chaotic rain",
-      "Background mountain silhouette per biome: desert bg mountains sharper and angular, tundra glacial and rounded, volcanic dark jagged masses"
-    ],
-    "files_changed": [
-      "src/weather-render.ts",
-      "src/weather.ts",
-      "src/terrain-gen.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
-  },
-  {
-    "date": "2026-03-08",
-    "agent": "visual",
-    "title": "Eclipse Crown, Shockwave Transitions, Bond Flash, Memory Constellation",
-    "reflection": "Four interlocking improvements that close the biggest remaining visual gaps. The eclipse now has a proper solar corona: 14 deterministic rays breathe and wave above the moon disc, a warm exponential halo rings the blocked sun, and the moon itself cuts a clean dark circle that reveals inner limb darkening at its edge — haunting, photographable. Phase transitions now emit a shockwave ring that bursts from canvas center and expands to the edges in one second, tinted to each phase's mood (violet for genesis, gold for exploration, blue-cold for silence), with a soft trailing glow that makes the transition feel physical rather than cosmetic. When two motes bond, a brief 8-pointed starburst ignites at their midpoint — four white cardinal arms and four shorter bond-colored diagonal arms — the flash of two lives joining. The silence constellation no longer blinks into existence: it now materializes over the first 8 seconds of silence via a smoothstep fade, as if the world is slowly recalling everyone who walked through it.",
-    "looking_ahead": [
-      "Eclipse: during the contact phase (totality first approaching), add a brief red-orange solar limb flash at the last moment before the moon fully covers the sun — the diamond ring effect",
-      "Phase shockwave color saturation: the ring could carry a small amount of the outgoing phase's tint too, so it feels like washing one color off and replacing with another",
-      "Bond burst scale with bond count: when a mote forms its 2nd or 3rd bond, the burst could be slightly larger — relationships compound",
-      "Constellation: each star-cross could have a tiny color remnant — the faintest tint of the mote's original color — so the memorial is not anonymous"
-    ],
-    "files_changed": [
-      "src/render-effects.ts",
-      "src/render-bonds.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
+    "note": "Compressed from 10 entries across 5 agents. Original entries preserved in git history.",
+    "files_changed": ["src/mote.ts", "src/render-motes.ts", "src/render-bonds.ts", "src/render-effects.ts", "src/render-ui.ts", "src/sound.ts", "src/terrain-gen.ts", "src/terrain-render.ts", "src/weather-render.ts", "src/narrative.ts", "src/events.ts", "src/world.ts", "src/palette.ts"]
   },
   {
     "date": "2026-03-09",
     "agent": "mote",
     "title": "Cluster merge flash, mourning gradient",
-    "reflection": "Two improvements that make bonds matter more visibly. When a bond forms between two motes who are already bonded to others — two communities becoming one — an expanding color wave erupts at the joining point: an inner white ring at the spark of contact, an outer colored ring that sweeps outward to radius 22 as the flash decays, and a brief soft area bloom at peak intensity. This is distinct from the regular bond starburst: larger, slower, saturated with the blended color of both groups. Mourning now reflects depth of relationship: direct bond partners grieve at full intensity (ring at radius 5, vivid body tinge, rising wisp) while peripheral cluster members who weren't personally bonded show a quieter, 55%-intensity version — same color, but softer presence. A cluster that lost a bonded friend mourns as a community, but the ones who knew them best show it most.",
+    "reflection": "Cluster merges get expanding color wave (inner white ring, outer colored ring). Mourning now reflects bond depth: direct partners grieve at full intensity, peripheral members at 55%.",
     "looking_ahead": [
-      "Wanderer death trail length-scaling: longer-lived wanderers leave longer ghost trails — a mote that roamed for 60s leaves more of a mark than one that died at 10s",
-      "Constellation star-cross color tinting: each memorial cross carries the faintest tint of its mote's original color — so the silence is not anonymous",
-      "Social dying: reaching arms could also reach toward specific bonded partners, not just outward — a directed desperation",
-      "Cluster merge cascade: if a merge creates a cluster of 8+, trigger an additional brief identity ring pulse — the new community asserting itself"
+      "Wanderer death trail length-scaling by age",
+      "Constellation star-cross color tinting",
+      "Social dying toward bonded partners",
+      "Cluster merge cascade at 8+"
     ],
-    "files_changed": [
-      "src/types.ts",
-      "src/mote.ts",
-      "src/render-bonds.ts",
-      "src/world.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/types.ts", "src/mote.ts", "src/render-bonds.ts", "src/world.ts"]
   },
   {
     "date": "2026-03-09",
     "agent": "sound",
-    "title": "Cluster Merge Chord, Mourning Chorus, Lush Last Bloom",
-    "reflection": "Six interlocking improvements that close the gap between what the world looks like and what it sounds like. The most visible mote events now have matching audio: when two clusters merge (a community-joining moment the visual already marks with an expanding wave), the sound fires a per-biome ascending arpeggio — suspended fourths for the cautious desert, a minor triad for cold tundra solidarity, a diminished spark for volcanic tension, a rich major-7th sweep for lush. When 2+ motes are simultaneously in mourning grief, a quiet communal chord hums beneath the world — biome-voiced (minor for temperate, open fifth for tundra, diminished for volcanic, minor-7th for lush), very low and long-decaying, the sound of collective loss rather than individual death. Lush biome now has a final ceremony: when the last mote dies in silence, a full major-7th chord bloom fires across the full stereo field — six notes spread over two octaves staggered 70ms apart, warm and unhurried, the world's last exhalation of warmth before quiet. Desert bond-breaks now leave a 5th harmonic overtone that enters 350ms after the bell, barely audible, and hangs for nearly 6 seconds — the echo ringing alone in the emptiness long after the note itself is gone. Tundra's ambient texture bed now drops to 12% during dissolution (vs the global 65%) so the slow-breathing wind tone in silence finally arrives into genuine quiet instead of competing with noise. And tundra's exploration phase transition is no longer a crisp ascending major arpeggio — it's two sine waves ±14 cents apart spread across the full stereo field, slowly converging toward unison over 6 seconds, two voices seeking harmony but never quite arriving.",
+    "title": "Cluster merge chord, mourning chorus, lush last bloom",
+    "reflection": "Cluster merges get biome-voiced ascending arpeggios. 2+ mourning motes trigger communal chord. Lush gets major-7th last bloom. Desert bond-breaks leave 5th harmonic overtone. Tundra beds drop to 12% in dissolution.",
     "looking_ahead": [
-      "Cluster merge cascade: if the merge creates a cluster of 8+, add a secondary brief identity ring to the merge chord — the new community asserting its size",
-      "Mourning chorus spatial positioning: pan the mourning voices toward the mourning cluster's centroid — grief located in space",
-      "Volcanic mourning: the diminished chord could add a descending noise burst — a crack in the earth as grief registers",
-      "Lush bloom biome-cascade: if a bloom event happens to co-occur with silence, the two chord blooms should interleave rather than stack — a rare audio spectacle"
+      "Cluster merge cascade audio for 8+ clusters",
+      "Mourning chorus spatial positioning",
+      "Volcanic mourning descending noise burst",
+      "Lush bloom event interleave with silence"
     ],
-    "files_changed": [
-      "src/sound.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/sound.ts"]
   },
   {
     "date": "2026-03-09",
     "agent": "terrain-weather",
-    "title": "The World Breathes — Mist, Embers, Ice, and Iconic Shapes",
-    "reflection": "Four changes that cross visual thresholds rather than polish details. Two new terrain archetypes give biomes their most iconic shapes: the caldera — a volcanic bowl with rim peaks flanking a lava lake — and the fjord — a high tundra plateau carved by 1-2 deep water channels, each cold and still. Water surfaces now exhale: at dawn and dusk, mist wisps rise from lakes and rivers in per-biome colors (icy blue for tundra, humid green-white for lush, warm sandy haze for desert). Volcanic lava no longer just shimmers — it breathes fire upward: sparse orange-yellow ember sparks drift and cool as they rise, hottest near the lava, dimming to orange-red above. Tundra water bodies ice over at the cycle's coldest moments — genesis (the world just opened, still frozen) and silence (the long cold settling back in) — with a crackle-noise pattern that gives the ice sheets texture and depth.",
+    "title": "Mist, embers, ice, caldera and fjord",
+    "reflection": "Two new archetypes: caldera (volcanic bowl with rim peaks flanking lava lake) and fjord (tundra plateau with deep water channels). Water exhales mist at dawn/dusk. Lava breathes ember sparks. Tundra water ices over at genesis and silence.",
     "looking_ahead": [
-      "Caldera rim flora: sparse volcanic spires should cluster preferentially on the caldera rim edges where terrain is steepest",
-      "Fjord walls: steep cliff tiles should darken and wet-look near the waterline to distinguish the cliff face from the plateau surface",
-      "Mist-mote interaction: when a mote passes through a mist column, the mist should briefly part around it",
-      "Lava crust cooling: during silence in volcanic, a dark crust network should spread across lava surfaces — the fire banking as the cycle ends"
+      "Caldera rim flora clustering",
+      "Fjord cliff darkening near waterline",
+      "Mist-mote interaction",
+      "Lava crust cooling in silence"
     ],
-    "files_changed": [
-      "src/terrain-gen.ts",
-      "src/terrain-render.ts",
-      "src/terrain.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/terrain-gen.ts", "src/terrain-render.ts", "src/terrain.ts", "src/main.ts"]
   },
   {
     "date": "2026-03-09",
     "agent": "narrative-events",
-    "title": "The World Remembers Where It Was — Four Sharper Narrative Edges",
-    "reflection": "Four interlocking improvements that make every narrative moment feel specific to its biome and its history. Event anticipation now speaks the landscape's own language: the mountain holds its breath before a volcanic event, the ice tightens before a tundra one, the birds do not return in lush worlds, the sand shifts without wind in the desert. The first bond is no longer generic — 'warmth reaches warmth' in tundra, 'two against the emptiness' in desert, 'tangled, by choice' in lush, 'two find each other in the ash' in volcanic — each bond's weight shaped by the world around it. Named clusters that peaked at 6+ now earn grander language at both ends: 'a true settlement holds' / 'the great settlement is gone' vs the positional texts reserved for smaller groups. And silence now has three beats instead of two: the opening reflection, the settled second thought, and finally — in the last 5% of the cycle — one last word, biome-specific, ultra-brief: 'always, the fire.' 'the ice is patient.' 'seeds wait in the dark.' 'begin again.'",
+    "title": "Biome voice, third silence beat, grand cluster, first bond",
+    "reflection": "Event anticipation speaks biome language. First bond text is biome-specific. Named clusters that peaked at 6+ earn grander language. Silence now has three beats with biome-specific final word.",
     "looking_ahead": [
-      "Named cluster callback depth: if the named cluster lost a member before dissolving fully, the farewell could soften — 'the center thinned before it broke'",
-      "Elder first bond: if the first bond involves a mote aged 20+, a special line — 'even the ancient ones reach'",
-      "Biome-specific peak population texts: 'all of them, alive at once' is generic — the volcanic world's peak feels different from lush",
-      "Weather-phase overlap narration: if a storm begins exactly at a phase transition, acknowledge the double shift — 'the world turns, and so does the sky'"
+      "Named cluster callback with member loss",
+      "Elder first bond special line",
+      "Biome-specific peak population texts",
+      "Weather-phase overlap narration"
     ],
-    "files_changed": [
-      "src/narrative.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/narrative.ts"]
   },
   {
     "date": "2026-03-09",
     "agent": "visual",
-    "title": "Biome Color, Last Light, Chromatic Aberration, Cinema Bars",
-    "reflection": "Four interlocking improvements that make every frame feel more intentional. Phase color grading is now perceptible — roughly 2× stronger — and each biome adds its own constant color correction on top: volcanic worlds burn redder in every phase, tundra gleams ice-blue even at peak complexity, desert worlds run amber-warm, lush worlds breathe green. The grades compound: a volcanic world in dissolution gets +22r, -4g, -15b — unmistakably a dying fire. Last light is the most emotionally direct addition: when only 1–3 motes survive into late dissolution, the stage closes in around them. Everything beyond a 45-pixel spotlight radius dims (65% for the final mote alone), while a very slow atmospheric breathe keeps the darkness alive rather than digital. It's a theatrical spotlight — the world acknowledging its last act. Phase transitions now carry a brief chromatic aberration: the red channel shifts 1–3 pixels left and blue shifts right at the moment the world changes, then snaps back as phaseFlash decays. At 256×144 up-scaled to full-screen this reads as 12+ screen pixels of lens split — just enough to feel like a camera impact without obscuring the creatures. Finally, event messages now arrive with 2-pixel letterbox bars at the top and bottom of the canvas, fading with the message alpha — a widescreen crop that says 'something cinematic is happening here.'",
+    "title": "Biome color grade, last light, chromatic aberration, cinema bars",
+    "reflection": "Phase color grading 2x stronger with per-biome correction. Last-light spotlight dims world around final 1-3 motes. Phase transitions get chromatic aberration. Event messages get letterbox bars.",
     "looking_ahead": [
-      "Diamond ring effect for eclipse: at the moment totality first approaches and begins to leave, a brief brilliant orange-white flare at one edge of the moon disc — the last/first point of sunlight",
-      "Last-light warm tint: as the spotlight darkens the world around dying motes, subtly warm the spotlight interior toward amber — the last fire in the cold",
-      "Biome color grade at genesis birth: the very first frame of each cycle, biome correction should bloom in from 0 over 2 seconds — the world slowly remembering what it is",
-      "Letterbox bars during eclipse totality: the cinema bars could also appear during eclipse darkness peak, reinforcing the 'event cinema' language consistently"
+      "Diamond ring effect for eclipse",
+      "Last-light warm tint toward amber",
+      "Biome color grade bloom-in at genesis",
+      "Letterbox bars during eclipse totality"
     ],
-    "files_changed": [
-      "src/render-effects.ts",
-      "src/render-ui.ts",
-      "src/main.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/render-effects.ts", "src/render-ui.ts", "src/main.ts"]
   },
   {
     "date": "2026-03-09",
     "agent": "mote",
     "title": "Named silence, elder trails",
-    "reflection": "Two improvements that make motes feel like individuals even after they're gone. The silence constellation now carries each mote's hue identity: the most recently dead glow at 55% of their original color while the oldest are almost anonymous ghost-white at 15%. A viewer watching the silence sees a constellation of recognizable souls — the warm wanderer who crossed the left shore, the cool social cluster that held near center — rather than a uniform cloud of dots. And elder wanderers who survive longer now leave longer ghost paths: age 0–30s scales the trail buffer from 10 to 30 breadcrumbs and the trail lifetime from 3.0s to 6.0s. A mote that walked this world for 30 seconds leaves twice the trail of one that barely made it to 5. The landscape remembers proportionally to how long each creature walked it.",
+    "reflection": "Silence constellation carries each mote's hue identity (55% recent, 15% oldest). Elder wanderers leave longer ghost paths scaled by age (10-30 breadcrumbs, 3-6s lifetime).",
     "looking_ahead": [
-      "Social dying toward bonded partners: the reaching arms of a dying social mote could lean toward their nearest bond rather than extending symmetrically — a directed last goodbye",
-      "Cluster merge cascade: if a merge creates a cluster of 8+, trigger an extra identity ring pulse — the new community asserting its scale",
-      "Wanderer frenzy trail color shift: when a wanderer enters its dying frenzy state, the active trail could shift from warm to cold — the heat going out of movement",
-      "Constellation density: if many motes died in the same spot, the cross could grow brighter and slightly larger — a mass grave vs a lone death"
+      "Social dying toward bonded partners",
+      "Cluster merge cascade at 8+",
+      "Wanderer frenzy trail color shift",
+      "Constellation density for mass graves"
     ],
-    "files_changed": [
-      "src/render-bonds.ts",
-      "src/mote.ts",
-      "src/render-motes.ts",
-      "public/evolution-log.json"
-    ]
+    "files_changed": ["src/render-bonds.ts", "src/mote.ts", "src/render-motes.ts"]
   }
 ]

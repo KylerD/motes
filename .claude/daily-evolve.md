@@ -224,15 +224,50 @@ evolve: [short description]
 
 ---
 
-## Current Ecosystem
+## Domain Guide
 
-Know what you're working with:
+You have full creative authority across all domains. Each session, pick the domain with the biggest gap.
 
-- **Terrain**: Simplex noise heightmap, 12 tile types, 5 biomes, water shimmer, phase-tinted sky
-- **Motes**: Temperament-colored creatures with energy, aging, bonds, settlements
-- **Sound**: 8-voice cluster synth, bond chimes, death tones, event signatures, reverb
-- **Events**: 9 types (flood, bloom, meteor, migration, eclipse, earthquake, plague, aurora, drought)
-- **Interaction**: Cursor attraction/scatter, click pulses, ripples
+### Motes (src/mote.ts, src/render-motes.ts, src/render-bonds.ts, src/physics.ts)
+The soul of the project. Motes must be immediately readable on a 256x144 canvas:
+- **Temperament** visible through shape (hardy=blocky, wanderer=lean, social=round) and color
+- **Energy/age** visible through brightness and saturation
+- **Bonds** as visible stories — formation starburst, blended colors, break shards
+- **Clusters** as communities — glow, territory rings, shared identity
+- **Death** as the most memorable moment — temperament-specific death styles, grief inheritance
+- **Life arc**: fragile birth → vibrant youth → settled maturity → fading decline → beautiful death
+
+### Terrain & Weather (src/terrain-gen.ts, src/terrain-render.ts, src/weather-render.ts, src/palette.ts)
+The stage. Each cycle's world should feel like a distinct, beautiful place:
+- **Biomes** must look and feel different — desert cacti, volcanic spires, tundra dead trees, lush canopy
+- **Sky** sets emotional tone — phase-appropriate colors, solar arc, celestial bodies
+- **Weather** transforms mood — rain streaks, snow, fog, storm lightning, biome-specific particles
+- **Water** should feel alive — shimmer, mist, reflections, ice in cold phases
+- **Palette** must maintain mote contrast across all biomes and weather
+
+### Sound (src/sound.ts)
+The hook. Sound should make people put on headphones:
+- **Biome identity** — temperate=warm/organic, desert=sparse/bell-like, tundra=crystalline, volcanic=deep/rumbling, lush=rich/choir
+- **Phase arc** — sparse genesis → playful exploration → harmonic organization → full complexity → dissonant dissolution → near-silence
+- **Mote voices** — bond chimes, cluster harmonics, death tones, birth pings
+- **Events** — each rare event has a signature sound (eclipse drone, meteor impact, bloom chord burst)
+- Web Audio API fully: oscillators, filters, reverb, waveshaping, stereo panning
+
+### Narrative & Events (src/narrative.ts, src/events.ts, src/world.ts, src/names.ts)
+The storyteller. Brief poetic text that helps viewers understand and care:
+- **Phase narration** — each transition marked with mood-appropriate text
+- **Milestone moments** — first bond, first cluster, peak population, last survivor, elder emergence
+- **Biome voice** — each biome narrates in its own language
+- **Events** (~2% of cycles) should build anticipation, peak dramatically, leave aftermath
+- **Brevity is power** — 3-8 words per moment, never paragraphs
+
+### Visual Effects (src/render-effects.ts, src/render-ui.ts, src/render.ts, src/interaction.ts)
+The cinematographer. Every frame should be screenshot-worthy:
+- **Post-processing** — bloom pass, phase color grading, biome color correction, vignette
+- **Event effects** — eclipse corona, aurora curtains, meteor streaks, phase shockwaves
+- **Interaction** — cursor attraction force field, click pulse ripples, hover glow
+- **Cinematic** — last-light spotlight, chromatic aberration on transitions, letterbox bars
+- **UI** — elegant event messages, glass-frame terrarium feel
 
 ---
 
