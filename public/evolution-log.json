@@ -719,5 +719,24 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-09",
+    "agent": "mote",
+    "title": "Cluster merge flash, mourning gradient",
+    "reflection": "Two improvements that make bonds matter more visibly. When a bond forms between two motes who are already bonded to others — two communities becoming one — an expanding color wave erupts at the joining point: an inner white ring at the spark of contact, an outer colored ring that sweeps outward to radius 22 as the flash decays, and a brief soft area bloom at peak intensity. This is distinct from the regular bond starburst: larger, slower, saturated with the blended color of both groups. Mourning now reflects depth of relationship: direct bond partners grieve at full intensity (ring at radius 5, vivid body tinge, rising wisp) while peripheral cluster members who weren't personally bonded show a quieter, 55%-intensity version — same color, but softer presence. A cluster that lost a bonded friend mourns as a community, but the ones who knew them best show it most.",
+    "looking_ahead": [
+      "Wanderer death trail length-scaling: longer-lived wanderers leave longer ghost trails — a mote that roamed for 60s leaves more of a mark than one that died at 10s",
+      "Constellation star-cross color tinting: each memorial cross carries the faintest tint of its mote's original color — so the silence is not anonymous",
+      "Social dying: reaching arms could also reach toward specific bonded partners, not just outward — a directed desperation",
+      "Cluster merge cascade: if a merge creates a cluster of 8+, trigger an additional brief identity ring pulse — the new community asserting itself"
+    ],
+    "files_changed": [
+      "src/types.ts",
+      "src/mote.ts",
+      "src/render-bonds.ts",
+      "src/world.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

@@ -169,6 +169,54 @@ export function renderBondLines(
           }
         }
       }
+
+      // CLUSTER MERGE BLOOM — fires only when both motes were already bonded before this link.
+      // Two communities becoming one: an expanding color wave from the joining point,
+      // much larger and longer than the regular bond starburst.
+      const mergeFlash = Math.min(m.clusterMergeFlash, bonded.clusterMergeFlash);
+      if (mergeFlash > 0) {
+        const midX = (m.x + bonded.x) / 2;
+        const midY = (m.y + bonded.y) / 2;
+        const mf = mergeFlash;
+
+        // Outer expanding ring: radius sweeps from 4 → 22 as flash decays (1 → 0)
+        const outerR = 4 + (1 - mf) * 18;
+        const outerA = Math.round(mf * mf * 190);
+        if (outerA > 3) {
+          const dotCount = 20 + Math.round((1 - mf) * 16); // more dots as it expands
+          for (let i = 0; i < dotCount; i++) {
+            const angle = (i / dotCount) * Math.PI * 2;
+            setPixel(buf, midX + Math.cos(angle) * outerR, midY + Math.sin(angle) * outerR, avgR, avgG, avgB, outerA);
+          }
+        }
+
+        // Inner tight ring: stays near midpoint, fades faster — the spark of contact
+        const innerR = 3 + (1 - mf) * 5;
+        const innerA = Math.round(mf * mf * mf * 240);
+        if (innerA > 4) {
+          const innerDots = 12;
+          for (let i = 0; i < innerDots; i++) {
+            const angle = (i / innerDots) * Math.PI * 2;
+            setPixel(buf, midX + Math.cos(angle) * innerR, midY + Math.sin(angle) * innerR, 255, 255, 255, innerA);
+          }
+        }
+
+        // Soft area fill at peak (mf > 0.7) — a brief warm bloom before the rings dominate
+        if (mf > 0.7) {
+          const fillT = (mf - 0.7) / 0.3; // 1→0
+          const fillR = Math.round(fillT * 8);
+          for (let dy = -fillR; dy <= fillR; dy++) {
+            for (let dx = -fillR; dx <= fillR; dx++) {
+              const d2 = dx * dx + dy * dy;
+              if (d2 > fillR * fillR) continue;
+              const falloff = 1 - Math.sqrt(d2) / fillR;
+              const fa = Math.round(fillT * falloff * falloff * 70);
+              if (fa < 3) continue;
+              setPixel(buf, midX + dx, midY + dy, avgR, avgG, avgB, fa);
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -258,12 +258,15 @@ export function updateWorld(world: World, dt: number): void {
         nearest.inheritB = db;
       }
 
-      // Cluster mourning: when a cluster loses a member, all survivors carry the dead mote's color
+      // Cluster mourning: when a cluster loses a member, survivors carry the dead mote's color.
+      // Bonded survivors grieve more intensely than peripheral cluster members.
       for (const cluster of world.clusters) {
         if (cluster.includes(m)) {
           for (const other of cluster) {
             if (other !== m && other.energy > 0) {
-              other.mourningFlash = 1.0;
+              // Direct bond partners grieve at full intensity; others at 55%
+              const wasBonded = other.bonds.includes(m);
+              other.mourningFlash = wasBonded ? 1.0 : 0.55;
               other.mourningR = dr;
               other.mourningG = dg;
               other.mourningB = db;

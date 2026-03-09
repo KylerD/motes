@@ -51,6 +51,7 @@ export function createMote(
     mourningR: 0,
     mourningG: 0,
     mourningB: 0,
+    clusterMergeFlash: 0,
     grounded: false,
     direction: rng() < 0.5 ? -1 : 1,
     spawnFlash: 1.0,
@@ -82,6 +83,7 @@ export function updateMote(
   m.bondBreakFlash = Math.max(0, m.bondBreakFlash - dt * 2.5);
   m.inheritFlash = Math.max(0, m.inheritFlash - dt * 0.65); // ~1.5s grief window
   m.mourningFlash = Math.max(0, m.mourningFlash - dt * 0.5); // ~2s community mourning
+  m.clusterMergeFlash = Math.max(0, m.clusterMergeFlash - dt * 1.8); // ~0.55s merge bloom
 
   // Record trail breadcrumbs
   m.trailTimer += dt;
@@ -236,6 +238,8 @@ export function updateMote(
   if (closestUnbonded && closestDist < BOND_DIST) {
     m.bondTimer += dt;
     if (m.bondTimer > BOND_TIME / bondStrength) {
+      // Cluster merge: both motes already have bonds → two communities becoming one
+      const isMerge = m.bonds.length > 0 && closestUnbonded.bonds.length > 0;
       m.bonds.push(closestUnbonded);
       closestUnbonded.bonds.push(m);
       m.bondTimer = 0;
@@ -243,6 +247,10 @@ export function updateMote(
       closestUnbonded.bondFlash = 1;
       m.energy = Math.min(1, m.energy + 0.03);
       closestUnbonded.energy = Math.min(1, closestUnbonded.energy + 0.03);
+      if (isMerge) {
+        m.clusterMergeFlash = 1.0;
+        closestUnbonded.clusterMergeFlash = 1.0;
+      }
     }
   } else {
     m.bondTimer = Math.max(0, m.bondTimer - dt * 0.3);
