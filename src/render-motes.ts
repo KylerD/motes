@@ -43,8 +43,9 @@ export function renderMoteTrails(
     const [tr, tg, tb] = moteColors.get(m)!;
     // Wanderers leave vivid ghost trails; social/hardy motes leave faint smears
     const trailScale = 0.2 + m.temperament.wanderlust * 1.8;
-    // Trail lifetime mirrors mote.ts: 1.5s (social) to 3.0s (full wanderer)
-    const trailMaxAge = 1.5 + m.temperament.wanderlust * 1.5;
+    // Trail lifetime mirrors mote.ts: elder wanderers remember longer (1.5s–6.0s)
+    const trailAgeFactor = Math.min(1, m.age / 30);
+    const trailMaxAge = 1.5 + m.temperament.wanderlust * (1.5 + trailAgeFactor * 3.0);
     const isWanderer = m.temperament.wanderlust > 0.6;
 
     for (const pt of m.trail) {

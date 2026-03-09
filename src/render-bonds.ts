@@ -365,10 +365,14 @@ export function renderSilenceConstellation(
     const baseAlpha = Math.round((5 + recency * 12) * breathe * revealFade);
     if (baseAlpha < 2) continue;
 
-    // Shift toward cold ghost white — desaturated, barely there
-    const gr = Math.round(d.r * 0.55 + 145 * 0.45);
-    const gg = Math.round(d.g * 0.55 + 138 * 0.45);
-    const gb = Math.round(d.b * 0.55 + 148 * 0.45);
+    // Color-tinted ghost: recent deaths retain their hue; oldest fade to anonymous white.
+    // recency=0 (oldest) → 15% original color; recency=1 (most recent) → 55% original color.
+    // The silence is not anonymous — the world remembers who each light was.
+    const colorHold = 0.15 + recency * 0.40;
+    const ghostR = 145, ghostG = 138, ghostB = 148;
+    const gr = Math.round(d.r * colorHold + ghostR * (1 - colorHold));
+    const gg = Math.round(d.g * colorHold + ghostG * (1 - colorHold));
+    const gb = Math.round(d.b * colorHold + ghostB * (1 - colorHold));
 
     const x = Math.round(d.x);
     const y = Math.round(d.y) - 1;

@@ -807,5 +807,23 @@
       "src/main.ts",
       "public/evolution-log.json"
     ]
+  },
+  {
+    "date": "2026-03-09",
+    "agent": "mote",
+    "title": "Named silence, elder trails",
+    "reflection": "Two improvements that make motes feel like individuals even after they're gone. The silence constellation now carries each mote's hue identity: the most recently dead glow at 55% of their original color while the oldest are almost anonymous ghost-white at 15%. A viewer watching the silence sees a constellation of recognizable souls — the warm wanderer who crossed the left shore, the cool social cluster that held near center — rather than a uniform cloud of dots. And elder wanderers who survive longer now leave longer ghost paths: age 0–30s scales the trail buffer from 10 to 30 breadcrumbs and the trail lifetime from 3.0s to 6.0s. A mote that walked this world for 30 seconds leaves twice the trail of one that barely made it to 5. The landscape remembers proportionally to how long each creature walked it.",
+    "looking_ahead": [
+      "Social dying toward bonded partners: the reaching arms of a dying social mote could lean toward their nearest bond rather than extending symmetrically — a directed last goodbye",
+      "Cluster merge cascade: if a merge creates a cluster of 8+, trigger an extra identity ring pulse — the new community asserting its scale",
+      "Wanderer frenzy trail color shift: when a wanderer enters its dying frenzy state, the active trail could shift from warm to cold — the heat going out of movement",
+      "Constellation density: if many motes died in the same spot, the cross could grow brighter and slightly larger — a mass grave vs a lone death"
+    ],
+    "files_changed": [
+      "src/render-bonds.ts",
+      "src/mote.ts",
+      "src/render-motes.ts",
+      "public/evolution-log.json"
+    ]
   }
 ]

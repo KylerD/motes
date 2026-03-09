@@ -86,14 +86,18 @@ export function updateMote(
   m.clusterMergeFlash = Math.max(0, m.clusterMergeFlash - dt * 1.8); // ~0.55s merge bloom
 
   // Record trail breadcrumbs
+  // Elder wanderers accumulate longer histories: age 0→30s scales buffer 10→30 pts.
+  // A mote that's walked this world for 30 seconds leaves more of a mark than one at 5.
+  const trailAgeFactor = Math.min(1, m.age / 30);
   m.trailTimer += dt;
   if (m.trailTimer >= 0.15) {
     m.trailTimer = 0;
     m.trail.push({ x: Math.round(m.x), y: Math.round(m.y), age: 0 });
-    if (m.trail.length > 10) m.trail.shift();
+    const maxTrail = Math.floor(10 + m.temperament.wanderlust * trailAgeFactor * 20);
+    if (m.trail.length > maxTrail) m.trail.shift();
   }
-  // Wanderers keep trails longer: 1.5s (social) to 3.0s (full wanderer)
-  const trailMaxAge = 1.5 + m.temperament.wanderlust * 1.5;
+  // Elder wanderers remember longer: young=1.5-3.0s, elder=1.5-6.0s
+  const trailMaxAge = 1.5 + m.temperament.wanderlust * (1.5 + trailAgeFactor * 3.0);
   for (let i = m.trail.length - 1; i >= 0; i--) {
     m.trail[i].age += dt;
     if (m.trail[i].age > trailMaxAge) { m.trail.splice(i, 1); }
