@@ -15,9 +15,9 @@ export function computeMoteColor(m: Mote, _bp: BiomePalette): [number, number, n
   ) % 360;
 
   const sat = 0.65 + m.temperament.sociability * 0.30;
-  const light = 0.45 + m.energy * 0.25;
+  const light = 0.50 + m.energy * 0.25;
 
-  let [r, g, b] = hsl2rgb(hue, Math.min(1, sat), Math.min(0.75, light));
+  let [r, g, b] = hsl2rgb(hue, Math.min(1, sat), Math.min(0.78, light));
 
   // Age: elders shift toward warm gold
   const ageGold = Math.min(1, Math.max(0, (m.age - 8) / 22)) * 0.40;
@@ -26,9 +26,9 @@ export function computeMoteColor(m: Mote, _bp: BiomePalette): [number, number, n
   b += (40 - b) * ageGold;
 
   // Brightness floor — motes must never blend into dark terrain
-  r = Math.max(80, r);
-  g = Math.max(80, g);
-  b = Math.max(80, b);
+  r = Math.max(90, r);
+  g = Math.max(90, g);
+  b = Math.max(90, b);
 
   return [Math.round(r), Math.round(g), Math.round(b)];
 }

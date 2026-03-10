@@ -113,9 +113,26 @@ export function renderBondLines(
       const avgG = Math.round((g1 + g2) / 2);
       const avgB = Math.round((b1 + b2) / 2);
 
+      // BOND AGE: bonds start cool blue-white (new connection, fresh energy),
+      // mature to mote colors (familiarity), then warm to amber-gold (proven, ancient bond).
+      // Reading the world: a gold-glowing bond is a long relationship — its eventual break is a loss.
+      const bondAge = ((m.bondAges.get(bonded) ?? 0) + (bonded.bondAges.get(m) ?? 0)) / 2;
+      const youngT = Math.max(0, 1 - bondAge / 8);       // 1→0 over first 8s (cool flash fading)
+      const oldT = Math.min(1, Math.max(0, (bondAge - 25) / 45)); // 0→1 from 25s→70s (warming)
+      const ancientT = Math.min(1, Math.max(0, (bondAge - 70) / 30)); // 0→1 beyond 70s (deep gold)
+
+      // Age-tinted base color: young=cool blue-white, old=warm amber, ancient=deep gold
+      const ageR = Math.round(avgR - youngT * 20 + oldT * 55 + ancientT * 20);
+      const ageG = Math.round(avgG + youngT * 15 + oldT * 20);
+      const ageB = Math.round(avgB + youngT * 50 - oldT * 55 - ancientT * 20);
+      const baseR = Math.min(255, Math.max(0, ageR));
+      const baseG = Math.min(255, Math.max(0, ageG));
+      const baseB = Math.min(255, Math.max(0, ageB));
+
       const flash = Math.max(m.bondFlash, bonded.bondFlash);
       const bondPulse = Math.sin(time * 3 + m.x * 0.05 + bonded.x * 0.05) * 0.15 + 0.85;
-      const bondAlpha = Math.round((160 + flash * 95) * bondPulse);
+      // Old bonds are slightly brighter — they've earned it
+      const bondAlpha = Math.round((160 + flash * 95 + oldT * 35 + ancientT * 20) * bondPulse);
 
       // STRESSED BOND: when either mote is dying, the bond glows with urgent warmth.
       // The relationship shows its strain — the line between them burns brighter as time runs out.
@@ -123,13 +140,13 @@ export function renderBondLines(
         m.energy < 0.3 ? 1 - m.energy / 0.3 : 0,
         bonded.energy < 0.3 ? 1 - bonded.energy / 0.3 : 0,
       );
-      let br = avgR, bg = avgG, bb = avgB;
+      let br = baseR, bg = baseG, bb = baseB;
       let finalAlpha = bondAlpha;
       if (stressLevel > 0) {
         // Shift toward hot orange-white as stress peaks — the bond fights to hold
-        br = Math.min(255, avgR + Math.round(stressLevel * (255 - avgR) * 0.65));
-        bg = Math.min(255, avgG + Math.round(stressLevel * (110 - avgG) * 0.35));
-        bb = Math.max(0, avgB - Math.round(stressLevel * avgB * 0.55));
+        br = Math.min(255, baseR + Math.round(stressLevel * (255 - baseR) * 0.65));
+        bg = Math.min(255, baseG + Math.round(stressLevel * (110 - baseG) * 0.35));
+        bb = Math.max(0, baseB - Math.round(stressLevel * baseB * 0.55));
         // Fast urgent pulse (3x normal speed) — the bond flickers with effort
         const stressPulse = Math.sin(time * 10 + m.x * 0.1) * 0.25 + 0.75;
         finalAlpha = Math.min(255, Math.round(bondAlpha * (1 + stressLevel * 0.65) * stressPulse));
@@ -138,6 +155,16 @@ export function renderBondLines(
       drawLine(buf, m.x, m.y, bonded.x, bonded.y, br, bg, bb, finalAlpha);
       const glowAlpha = Math.round(finalAlpha * 0.35);
       drawLine(buf, m.x, m.y - 1, bonded.x, bonded.y - 1, br, bg, bb, glowAlpha);
+
+      // ANCIENT BOND GLOW — bonds past 70s earn a faint warm outer halo.
+      // These are the oldest relationships in the world; they deserve to be seen.
+      if (ancientT > 0.05) {
+        const ancientGlow = Math.round(ancientT * 28 * bondPulse);
+        if (ancientGlow > 3) {
+          drawLine(buf, m.x, m.y + 1, bonded.x, bonded.y + 1, br, bg, bb, ancientGlow);
+          drawLine(buf, m.x - 1, m.y, bonded.x - 1, bonded.y, br, bg, bb, Math.round(ancientGlow * 0.55));
+        }
+      }
       // Extra thickness pixel for stressed bonds — makes them physically wider, unmissable
       if (stressLevel > 0.25) {
         const extraAlpha = Math.round(stressLevel * 70 * (Math.sin(time * 10 + m.x * 0.1) * 0.2 + 0.8));

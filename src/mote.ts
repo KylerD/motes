@@ -39,6 +39,7 @@ export function createMote(
       hardiness: rng(),
     },
     bonds: [],
+    bondAges: new Map(),
     bondTimer: 0,
     bondFlash: 0,
     bondBreakFlash: 0,
@@ -243,6 +244,11 @@ export function updateMote(
   // Clamp accumulated attraction so groups don't death-ball
   socialFx += Math.max(-10, Math.min(10, socialAttract));
 
+  // Age all existing bonds
+  for (const b of m.bonds) {
+    m.bondAges.set(b, (m.bondAges.get(b) ?? 0) + dt);
+  }
+
   // Break bonds with distant motes (elders hold bonds longer)
   const breakMult = ageElder ? 1.4 : 1.0;
   for (let i = m.bonds.length - 1; i >= 0; i--) {
@@ -251,6 +257,8 @@ export function updateMote(
     const bdy = b.y - m.y;
     if (bdx * bdx + bdy * bdy > BOND_DIST * BOND_DIST * 6 * breakMult) {
       b.bonds = b.bonds.filter((o) => o !== m);
+      b.bondAges.delete(m);
+      m.bondAges.delete(b);
       m.bonds.splice(i, 1);
       m.bondBreakFlash = 1;
       b.bondBreakFlash = 1;
@@ -265,6 +273,8 @@ export function updateMote(
       const isMerge = m.bonds.length > 0 && closestUnbonded.bonds.length > 0;
       m.bonds.push(closestUnbonded);
       closestUnbonded.bonds.push(m);
+      m.bondAges.set(closestUnbonded, 0);
+      closestUnbonded.bondAges.set(m, 0);
       m.bondTimer = 0;
       m.bondFlash = 1;
       closestUnbonded.bondFlash = 1;
@@ -372,7 +382,9 @@ export function updateMote(
 function cleanupBonds(m: Mote): void {
   for (const bonded of m.bonds) {
     bonded.bonds = bonded.bonds.filter((b) => b !== m);
+    bonded.bondAges.delete(m);
   }
   m.bonds = [];
+  m.bondAges.clear();
 }
 

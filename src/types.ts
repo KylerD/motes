@@ -86,6 +86,7 @@ export interface Mote {
   age: number;
   temperament: Temperament;
   bonds: Mote[];
+  bondAges: Map<Mote, number>;  // seconds each bond has been alive
   bondTimer: number;
   bondFlash: number;
   grounded: boolean;

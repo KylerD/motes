@@ -138,5 +138,19 @@
     "visual_verification": "dissolution-start shows warm bond lines glowing between final survivors; silence-start has 3-4 motes with visible bond connections. Red trails visible on fast-moving wanderers.",
     "quality_delta": "mote brightness 0.51 → 0.50 (seed variation only, not from changes)",
     "files_changed": ["src/render-motes.ts", "src/mote.ts", "src/render-bonds.ts"]
+  },
+  {
+    "date": "2026-03-10",
+    "title": "Bond age colors",
+    "reflection": "Bonds now age visually: fresh bonds are cool blue-white, proven bonds warm to amber-gold, ancient bonds earn an outer glow. Mote brightness floor raised.",
+    "looking_ahead": [
+      "Audio cue when ancient bond breaks (loss of long relationship)",
+      "Cluster merge cascade at 8+ members",
+      "Constellation density for mass-death graves",
+      "Bond age pulse rate slows as bond ages (old bonds breathe slowly)"
+    ],
+    "visual_verification": "Dissolution phase shows warm amber bond lines between long-bonded motes. Newly formed bonds appear as cool blue-white lines that fade to mote colors. Motes visibly brighter against terrain.",
+    "quality_delta": "mote brightness floor 80 → 90, base lightness 0.45 → 0.50",
+    "files_changed": ["src/types.ts", "src/mote.ts", "src/render-bonds.ts", "src/render-motes.ts"]
   }
 ]
