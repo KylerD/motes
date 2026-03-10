@@ -1,8 +1,67 @@
 // render-bonds.ts — Bond lines, cluster glow, death particles.
 
 import type { Mote, DeathRecord } from "./types";
+import { H } from "./config";
 import { setPixel } from "./render";
 import { drawLine } from "./render";
+
+/** Warm campfire-light on terrain beneath a cluster.
+ *  Drawn BEFORE motes so it sits on the ground under them.
+ *  Phase-scaled so complexity glows rich and genesis stays cold. */
+export function renderClusterGroundGlow(
+  buf: ImageData,
+  cluster: Mote[],
+  colors: Map<Mote, [number, number, number]>,
+  phaseIndex: number,
+  time: number,
+): void {
+  // Phase multiplier — ground warmth tracks the life arc
+  const PHASE_STR = [0.0, 0.18, 0.52, 1.0, 0.58, 0.08];
+  const phaseStr = PHASE_STR[Math.min(5, Math.max(0, phaseIndex))];
+  if (phaseStr < 0.04) return;
+
+  // Average mote color + find lowest (ground-level) mote Y
+  let cx = 0, avgR = 0, avgG = 0, avgB = 0, groundY = 0;
+  for (const m of cluster) {
+    cx += m.x;
+    if (m.y > groundY) groundY = m.y;
+    const [r, g, b] = colors.get(m)!;
+    avgR += r; avgG += g; avgB += b;
+  }
+  cx /= cluster.length;
+  avgR = Math.round(avgR / cluster.length);
+  avgG = Math.round(avgG / cluster.length);
+  avgB = Math.round(avgB / cluster.length);
+
+  // Warm the glow toward amber campfire — ground absorbs the cluster's light
+  const glowR = Math.min(255, Math.round(avgR * 1.12 + 22));
+  const glowG = Math.min(255, Math.round(avgG * 0.92 + 8));
+  const glowB = Math.min(255, Math.round(avgB * 0.68));
+
+  // Ellipse: horizontal spread, shallow height — light pooling on flat ground
+  const glowW = Math.min(26, 9 + cluster.length * 2.8);
+  const glowH = Math.min(5, 2 + cluster.length * 0.55);
+  const peakAlpha = Math.min(38, 11 + cluster.length * 3.8) * phaseStr;
+
+  // Breathe — synchronized with the cluster glow pulse
+  const pulse = Math.sin(time * 1.3 + cx * 0.09) * 0.13 + 0.87;
+
+  const rcx = Math.round(cx);
+  const rgy = Math.min(H - 1, Math.round(groundY) + 1); // just below ground mote
+
+  for (let dy = -Math.ceil(glowH); dy <= Math.ceil(glowH) + 1; dy++) {
+    for (let dx = -Math.ceil(glowW); dx <= Math.ceil(glowW); dx++) {
+      const normX = dx / glowW;
+      const normY = dy / glowH;
+      const d2 = normX * normX + normY * normY;
+      if (d2 > 1) continue;
+      const falloff = 1 - Math.sqrt(d2);
+      const a = Math.round(peakAlpha * falloff * falloff * falloff * pulse);
+      if (a < 2) continue;
+      setPixel(buf, rcx + dx, rgy + dy, glowR, glowG, glowB, a);
+    }
+  }
+}
 
 /** Draw soft glow + identity ring around bonded clusters */
 export function renderClusterGlow(
@@ -10,6 +69,7 @@ export function renderClusterGlow(
   cluster: Mote[],
   colors: Map<Mote, [number, number, number]>,
   time: number,
+  phaseIndex = 3,
 ): void {
   let cx = 0, cy = 0, avgR = 0, avgG = 0, avgB = 0;
   for (const m of cluster) {
@@ -22,9 +82,13 @@ export function renderClusterGlow(
   avgG = Math.round(avgG / cluster.length);
   avgB = Math.round(avgB / cluster.length);
 
+  // Phase scaling — glow strongest at complexity, weakest at genesis/silence
+  const PHASE_GLOW = [0.55, 0.70, 0.88, 1.0, 0.72, 0.38];
+  const phaseScale = PHASE_GLOW[Math.min(5, Math.max(0, phaseIndex))];
+
   const radius = Math.min(16, 6 + cluster.length * 1.5);
   const pulse = Math.sin(time * 2 + cx * 0.1) * 0.15 + 0.85;
-  const maxAlpha = Math.min(30, 10 + cluster.length * 3) * pulse;
+  const maxAlpha = Math.min(30, 10 + cluster.length * 3) * pulse * phaseScale;
 
   const rcx = Math.round(cx);
   const rcy = Math.round(cy);

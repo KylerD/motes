@@ -22,7 +22,7 @@ import {
   applyBloom, renderAtmosphericParticles, renderClusterRadiance,
   applyChromaticAberration, applyLastLight,
 } from "./render-effects";
-import { renderClusterGlow, renderBondLines, renderDeathParticles, renderSilenceConstellation } from "./render-bonds";
+import { renderClusterGroundGlow, renderClusterGlow, renderBondLines, renderDeathParticles, renderSilenceConstellation } from "./render-bonds";
 import { renderRipples, renderCursor, renderEventMessage, renderDebugOverlay } from "./render-ui";
 import type { Mote, RenderContext, SoundEngine, Interaction } from "./types";
 
@@ -171,10 +171,17 @@ function init(): void {
       renderAuroraCurtains(rc.buf, w.time, w.event.startTime);
     }
 
+    // Cluster ground glow (beneath motes — warm terrain light)
+    for (const cluster of w.clusters) {
+      if (cluster.length >= 2) {
+        renderClusterGroundGlow(rc.buf, cluster, moteColors, w.phaseIndex, w.time);
+      }
+    }
+
     // Cluster glow (behind motes)
     for (const cluster of w.clusters) {
-      if (cluster.length >= 3) {
-        renderClusterGlow(rc.buf, cluster, moteColors, w.time);
+      if (cluster.length >= 2) {
+        renderClusterGlow(rc.buf, cluster, moteColors, w.time, w.phaseIndex);
       }
     }
 

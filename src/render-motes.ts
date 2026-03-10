@@ -26,9 +26,9 @@ export function computeMoteColor(m: Mote, _bp: BiomePalette): [number, number, n
   b += (40 - b) * ageGold;
 
   // Brightness floor — motes must never blend into dark terrain
-  r = Math.max(90, r);
-  g = Math.max(90, g);
-  b = Math.max(90, b);
+  r = Math.max(105, r);
+  g = Math.max(105, g);
+  b = Math.max(105, b);
 
   return [Math.round(r), Math.round(g), Math.round(b)];
 }
@@ -117,9 +117,9 @@ export function renderMotes(
       : 0;
 
     // Brighter core color
-    const lr = Math.min(255, Math.round(cr * 1.4));
-    const lg = Math.min(255, Math.round(cg * 1.4));
-    const lb = Math.min(255, Math.round(cb * 1.4));
+    const lr = Math.min(255, Math.round(cr * 1.55));
+    const lg = Math.min(255, Math.round(cg * 1.55));
+    const lb = Math.min(255, Math.round(cb * 1.55));
 
     // DARK OUTLINE — head area shifts with lean; body/feet anchored
     setPixel(buf, ox - 1 + lean, oy - 3, 4, 4, 8, 245);

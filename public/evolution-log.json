@@ -9,7 +9,13 @@
       "Deeper mote personality through shape and movement"
     ],
     "note": "Compressed from 7 entries (Mar 2-5). Original entries preserved in git history.",
-    "files_changed": ["src/*", "CLAUDE.md", ".claude/daily-evolve.md", "journal.html", "index.html"]
+    "files_changed": [
+      "src/*",
+      "CLAUDE.md",
+      ".claude/daily-evolve.md",
+      "journal.html",
+      "index.html"
+    ]
   },
   {
     "date": "2026-03-06",
@@ -21,7 +27,20 @@
       "Biome-voiced narrative, mote shape variety"
     ],
     "note": "Compressed from 11 entries across 5 agents. Original entries preserved in git history.",
-    "files_changed": ["src/mote.ts", "src/render-motes.ts", "src/render-bonds.ts", "src/render-effects.ts", "src/sound.ts", "src/terrain-gen.ts", "src/terrain-render.ts", "src/weather-render.ts", "src/narrative.ts", "src/events.ts", "src/world.ts", "src/palette.ts"]
+    "files_changed": [
+      "src/mote.ts",
+      "src/render-motes.ts",
+      "src/render-bonds.ts",
+      "src/render-effects.ts",
+      "src/sound.ts",
+      "src/terrain-gen.ts",
+      "src/terrain-render.ts",
+      "src/weather-render.ts",
+      "src/narrative.ts",
+      "src/events.ts",
+      "src/world.ts",
+      "src/palette.ts"
+    ]
   },
   {
     "date": "2026-03-07",
@@ -33,7 +52,18 @@
       "Biome dissolution voice in sound"
     ],
     "note": "Compressed from 12 entries across 5 agents. Original entries preserved in git history.",
-    "files_changed": ["src/mote.ts", "src/render-motes.ts", "src/render-bonds.ts", "src/render-effects.ts", "src/sound.ts", "src/terrain-render.ts", "src/weather-render.ts", "src/narrative.ts", "src/events.ts", "src/world.ts"]
+    "files_changed": [
+      "src/mote.ts",
+      "src/render-motes.ts",
+      "src/render-bonds.ts",
+      "src/render-effects.ts",
+      "src/sound.ts",
+      "src/terrain-render.ts",
+      "src/weather-render.ts",
+      "src/narrative.ts",
+      "src/events.ts",
+      "src/world.ts"
+    ]
   },
   {
     "date": "2026-03-08",
@@ -45,7 +75,21 @@
       "Last-light spotlight, chromatic aberration"
     ],
     "note": "Compressed from 10 entries across 5 agents. Original entries preserved in git history.",
-    "files_changed": ["src/mote.ts", "src/render-motes.ts", "src/render-bonds.ts", "src/render-effects.ts", "src/render-ui.ts", "src/sound.ts", "src/terrain-gen.ts", "src/terrain-render.ts", "src/weather-render.ts", "src/narrative.ts", "src/events.ts", "src/world.ts", "src/palette.ts"]
+    "files_changed": [
+      "src/mote.ts",
+      "src/render-motes.ts",
+      "src/render-bonds.ts",
+      "src/render-effects.ts",
+      "src/render-ui.ts",
+      "src/sound.ts",
+      "src/terrain-gen.ts",
+      "src/terrain-render.ts",
+      "src/weather-render.ts",
+      "src/narrative.ts",
+      "src/events.ts",
+      "src/world.ts",
+      "src/palette.ts"
+    ]
   },
   {
     "date": "2026-03-09",
@@ -58,7 +102,12 @@
       "Social dying toward bonded partners",
       "Cluster merge cascade at 8+"
     ],
-    "files_changed": ["src/types.ts", "src/mote.ts", "src/render-bonds.ts", "src/world.ts"]
+    "files_changed": [
+      "src/types.ts",
+      "src/mote.ts",
+      "src/render-bonds.ts",
+      "src/world.ts"
+    ]
   },
   {
     "date": "2026-03-09",
@@ -71,7 +120,9 @@
       "Volcanic mourning descending noise burst",
       "Lush bloom event interleave with silence"
     ],
-    "files_changed": ["src/sound.ts"]
+    "files_changed": [
+      "src/sound.ts"
+    ]
   },
   {
     "date": "2026-03-09",
@@ -84,7 +135,12 @@
       "Mist-mote interaction",
       "Lava crust cooling in silence"
     ],
-    "files_changed": ["src/terrain-gen.ts", "src/terrain-render.ts", "src/terrain.ts", "src/main.ts"]
+    "files_changed": [
+      "src/terrain-gen.ts",
+      "src/terrain-render.ts",
+      "src/terrain.ts",
+      "src/main.ts"
+    ]
   },
   {
     "date": "2026-03-09",
@@ -97,7 +153,9 @@
       "Biome-specific peak population texts",
       "Weather-phase overlap narration"
     ],
-    "files_changed": ["src/narrative.ts"]
+    "files_changed": [
+      "src/narrative.ts"
+    ]
   },
   {
     "date": "2026-03-09",
@@ -110,7 +168,11 @@
       "Biome color grade bloom-in at genesis",
       "Letterbox bars during eclipse totality"
     ],
-    "files_changed": ["src/render-effects.ts", "src/render-ui.ts", "src/main.ts"]
+    "files_changed": [
+      "src/render-effects.ts",
+      "src/render-ui.ts",
+      "src/main.ts"
+    ]
   },
   {
     "date": "2026-03-09",
@@ -123,21 +185,29 @@
       "Wanderer frenzy trail color shift",
       "Constellation density for mass graves"
     ],
-    "files_changed": ["src/render-bonds.ts", "src/mote.ts", "src/render-motes.ts"]
+    "files_changed": [
+      "src/render-bonds.ts",
+      "src/mote.ts",
+      "src/render-motes.ts"
+    ]
   },
   {
     "date": "2026-03-09",
     "title": "Dying makes a story",
-    "reflection": "Dying wanderers leave red-hot trails — their final run blazes. Social motes with bonds walk toward partners before dying. Stressed bonds glow urgent orange-white.",
+    "reflection": "Dying wanderers leave red-hot trails \u2014 their final run blazes. Social motes with bonds walk toward partners before dying. Stressed bonds glow urgent orange-white.",
     "looking_ahead": [
       "Cluster merge cascade at 8+ cluster members",
-      "Bond age visualization — old bonds glow warmer",
+      "Bond age visualization \u2014 old bonds glow warmer",
       "Audio for social death walk and wanderer frenzy",
       "Constellation density for mass-death graves"
     ],
     "visual_verification": "dissolution-start shows warm bond lines glowing between final survivors; silence-start has 3-4 motes with visible bond connections. Red trails visible on fast-moving wanderers.",
-    "quality_delta": "mote brightness 0.51 → 0.50 (seed variation only, not from changes)",
-    "files_changed": ["src/render-motes.ts", "src/mote.ts", "src/render-bonds.ts"]
+    "quality_delta": "mote brightness 0.51 \u2192 0.50 (seed variation only, not from changes)",
+    "files_changed": [
+      "src/render-motes.ts",
+      "src/mote.ts",
+      "src/render-bonds.ts"
+    ]
   },
   {
     "date": "2026-03-10",
@@ -150,7 +220,30 @@
       "Bond age pulse rate slows as bond ages (old bonds breathe slowly)"
     ],
     "visual_verification": "Dissolution phase shows warm amber bond lines between long-bonded motes. Newly formed bonds appear as cool blue-white lines that fade to mote colors. Motes visibly brighter against terrain.",
-    "quality_delta": "mote brightness floor 80 → 90, base lightness 0.45 → 0.50",
-    "files_changed": ["src/types.ts", "src/mote.ts", "src/render-bonds.ts", "src/render-motes.ts"]
+    "quality_delta": "mote brightness floor 80 \u2192 90, base lightness 0.45 \u2192 0.50",
+    "files_changed": [
+      "src/types.ts",
+      "src/mote.ts",
+      "src/render-bonds.ts",
+      "src/render-motes.ts"
+    ]
+  },
+  {
+    "date": "2026-03-10",
+    "title": "cluster ground glow",
+    "reflection": "Clusters now cast warm campfire light on the terrain below them. Phase-scaled: bright amber at complexity, dim at silence. Pairs (2+ motes) now earn the identity ring.",
+    "looking_ahead": [
+      "Star field visible in genesis/silence for night atmosphere",
+      "Stronger phase sky contrast between genesis night and complexity day",
+      "Mote curiosity \u2014 facing toward nearest unbonded neighbor",
+      "Water reflection intensity tracking sky brightness by phase"
+    ],
+    "visual_verification": "After screenshot shows warm amber-orange elliptical glow on terrain beneath active clusters. 2-member cluster ring appears in exploration phase. Phase-scaling visible: strong glow in dissolution/complexity, reduced in silence.",
+    "quality_delta": "Visible motes 6.4 -> 15.1 avg (timing variance + improved brightness). No regressions.",
+    "files_changed": [
+      "src/render-bonds.ts",
+      "src/render-motes.ts",
+      "src/main.ts"
+    ]
   }
 ]
