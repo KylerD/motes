@@ -41,35 +41,47 @@ function getMoonArc(cycleProgress: number): { x: number; y: number; visible: boo
   return { x, y, visible: y < H * 0.85 };
 }
 
-/** Render a star field — fades in during dissolution/silence */
+/** Render a star field — fades in at genesis (pre-dawn) and at dissolution/dusk */
 function renderStarField(buf: ImageData, time: number, cycleProgress: number, weatherType: string): void {
-  // Stars emerge from ~78% of cycle
-  const intensity = Math.max(0, Math.min(1, (cycleProgress - 0.78) / 0.12));
+  // Morning stars: full at genesis, fade out through early exploration (dawn)
+  const morningIntensity = cycleProgress < 0.06  ? 1.0
+    : cycleProgress < 0.18 ? 1.0 - (cycleProgress - 0.06) / 0.12
+    : 0;
+
+  // Evening stars: fade in at late dissolution, full through silence
+  const eveningIntensity = Math.max(0, Math.min(1, (cycleProgress - 0.78) / 0.10));
+
+  const intensity = Math.max(morningIntensity, eveningIntensity);
   if (intensity <= 0) return;
 
   // Storm/overcast blocks most stars, fog dims them
   const weatherFactor =
     weatherType === "storm" || weatherType === "overcast" ? 0.08 :
-    weatherType === "fog" ? 0.25 : 1.0;
-  const baseAlpha = intensity * weatherFactor * 180;
+    weatherType === "fog" ? 0.30 : 1.0;
+  const baseAlpha = intensity * weatherFactor * 195;
   if (baseAlpha < 4) return;
 
-  // 70 deterministic stars across the upper sky
-  for (let i = 0; i < 70; i++) {
+  // 140 deterministic stars across the upper sky
+  for (let i = 0; i < 140; i++) {
     const sx = Math.abs((i * 8191 + 23747) % W);
-    const sy = Math.abs((i * 5381 + 11317) % Math.floor(H * 0.55));
-    const twinkle = Math.sin(time * (1.0 + i * 0.23) + i * 1.9) * 0.35 + 0.65;
+    const sy = Math.abs((i * 5381 + 11317) % Math.floor(H * 0.58));
+    const twinkle = Math.sin(time * (1.0 + i * 0.23) + i * 1.9) * 0.32 + 0.68;
     const sa = Math.round(baseAlpha * twinkle);
     if (sa < 5) continue;
 
-    // Stars vary: warm yellow-white, cool blue-white, faint red giants
-    const kind = i % 7;
+    // Stars vary: warm yellow-white giants, cool blue-white, faint common white
+    const kind = i % 9;
     if (kind === 0) {
-      setPixel(buf, sx, sy, 255, 240, 190, sa);  // warm giant
+      // Bright warm giant — 2-pixel cross for prominence
+      setPixel(buf, sx, sy, 255, 240, 180, sa);
+      setPixel(buf, sx + 1, sy, 255, 240, 180, Math.round(sa * 0.5));
+      setPixel(buf, sx - 1, sy, 255, 240, 180, Math.round(sa * 0.5));
     } else if (kind === 1) {
-      setPixel(buf, sx, sy, 180, 200, 255, sa);  // blue-white
+      setPixel(buf, sx, sy, 180, 205, 255, sa);  // blue-white
+    } else if (kind === 2) {
+      setPixel(buf, sx, sy, 255, 210, 150, Math.round(sa * 0.75)); // amber
     } else {
-      setPixel(buf, sx, sy, 215, 220, 235, sa);  // common white
+      setPixel(buf, sx, sy, 215, 220, 238, sa);  // common white
     }
   }
 }

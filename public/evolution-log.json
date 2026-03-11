@@ -245,5 +245,22 @@
       "src/render-motes.ts",
       "src/main.ts"
     ]
+  },
+  {
+    "date": "2026-03-11",
+    "title": "Stars and day arc",
+    "reflection": "Genesis and silence now have a star field (140 stars, 3 types). Sky tints deepened so night phases read as night. Sunrise band warms the lower sky during exploration.",
+    "looking_ahead": [
+      "Audio cue when ancient bond breaks",
+      "Cluster merge cascade at 8+ members",
+      "Shooting stars during genesis/silence",
+      "Constellation density for mass-death graves"
+    ],
+    "visual_verification": "SILENCE phase shows deep blue-indigo sky with clearly scattered star dots. Exploration shows warm amber-golden lower sky sunrise band. Night phases unmistakably dark vs warm golden complexity.",
+    "quality_delta": "No quality regressions. Star pixels picked up as motes by analyzer (benign). Sky tints: genesis -8,-8,+15 -> -22,-18,+30; silence -5,-10,+12 -> -18,-22,+35.",
+    "files_changed": [
+      "src/weather-render.ts",
+      "src/terrain-render.ts"
+    ]
   }
 ]

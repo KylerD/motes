@@ -35,12 +35,12 @@ function tileColor(tile: Tile, bp: BiomePalette): number {
  * Top of sky gets full tint; horizon fades to 30% tint for a natural gradient blend.
  */
 const SKY_TINTS: RGB[] = [
-  [-8,  -8,  15],  // genesis:      cool violet — pre-dawn, a world not yet awake
-  [ 0,   0,   0],  // exploration:  neutral — clear day, open sky
-  [ 5,   3,  -3],  // organization: slight warmth — mid-day building
-  [ 8,   4,  -5],  // complexity:   warm afternoon — peak light
-  [20,   8, -15],  // dissolution:  golden hour — amber light, things fading
-  [-5, -10,  12],  // silence:      indigo dusk — the world going to sleep
+  [-22, -18,  30],  // genesis:      deep indigo night — stars visible, world not yet awake
+  [  4,   2,  -6],  // exploration:  cool dawn light — clear day opening
+  [  8,   5,  -5],  // organization: slight warmth — mid-day building
+  [ 12,   6,  -8],  // complexity:   warm afternoon — peak light
+  [ 24,  10, -18],  // dissolution:  golden hour — amber light, things fading
+  [-18, -22,  35],  // silence:      deep indigo return to night — the world going to sleep
 ];
 
 // Cumulative phase boundaries (fractions of cycle) — mirrors world.ts PHASE_DURATIONS
@@ -164,6 +164,13 @@ export function renderTerrain(
     lightR = -12; lightG = -8; lightB = 24;
   }
 
+  // Sunrise band: warm pink-orange wash across the lower sky during dawn (exploration start)
+  // Creates a visible transition from "dark night" to "open day"
+  const sunriseStr =
+    cycleProgress >= 0.06 && cycleProgress < 0.22
+      ? Math.sin((cycleProgress - 0.06) / 0.16 * Math.PI) * 0.78
+      : 0;
+
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const idx = y * W + x;
@@ -208,6 +215,22 @@ export function renderTerrain(
               g = Math.max(0,   g - 12 * gf);
               b = Math.min(255, b + 55 * gf);
             }
+          }
+        }
+
+        // Sunrise band: warm pink-orange wash across the lower sky at dawn
+        if (sunriseStr > 0) {
+          // Concentrate in the lower half of sky (y from H*0.1 to H*0.7)
+          const skyFrac = y / H;
+          if (skyFrac > 0.08 && skyFrac < 0.75) {
+            // Bell-shaped, peaks near skyFrac=0.55 (just above horizon)
+            const bandPeak = 0.55;
+            const bandWidth = 0.35;
+            const band = Math.max(0, 1 - Math.abs(skyFrac - bandPeak) / bandWidth);
+            const sf = band * band * sunriseStr;
+            r = Math.min(255, r + 120 * sf);
+            g = Math.min(255, g + 55 * sf);
+            b = Math.min(255, b + 35 * sf);  // slight warmth, not pure orange
           }
         }
 
