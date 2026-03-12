@@ -281,5 +281,22 @@
       "src/weather-render.ts",
       "src/terrain-render.ts"
     ]
+  },
+  {
+    "date": "2026-03-12",
+    "title": "water sky mirror",
+    "reflection": "Water now reflects the zenith sky at 2-3x previous strength with phase awareness. Dawn and golden hour peak; stars reflect in water during genesis and silence.",
+    "looking_ahead": [
+      "Audio cue when ancient bond breaks",
+      "Cluster merge cascade at 8+ members",
+      "Constellation density for mass-death graves",
+      "Bond age pulse rate slows as bond ages"
+    ],
+    "visual_verification": "Dissolution phase water takes on warm amber tone. Night phases show dark indigo water matching the night sky. Lush biome water reflects the blue-cyan zenith strongly. Star columns create twinkling reflections in still night water.",
+    "quality_delta": "mote brightness 0.50 -> 0.54 (floor 105->115). Water reflection 0.28 shallow -> 0.58*reflPhase; peak at golden hour 0.51.",
+    "files_changed": [
+      "src/terrain-render.ts",
+      "src/render-motes.ts"
+    ]
   }
 ]

@@ -8,6 +8,15 @@ import { setPixel } from "./render";
 import { PAL, lerpColor } from "./palette";
 import { getSurfaceY } from "./terrain-query";
 
+// Fixed star x-columns — same 140 stars every cycle (positions not cycle-seeded in weather-render).
+// Precomputed once for water star-reflection lookup.
+const _STAR_COLS = new Uint8Array(W);
+(function () {
+  for (let i = 0; i < 140; i++) {
+    _STAR_COLS[Math.abs((i * 8191 + 23747) % W)] = 1;
+  }
+}());
+
 /** Tile-to-palette-index mapping (uses biome palette) */
 function tileColor(tile: Tile, bp: BiomePalette): number {
   switch (tile) {
@@ -137,11 +146,27 @@ export function renderTerrain(
 
   const d = buf.data;
 
-  // Pre-compute sky reflection color for water tiles — mid-sky tinted by phase
-  const midSky = lerpColor(skyTop, skyBot, 0.4);
-  const skyReflR = Math.max(0, Math.min(255, midSky[0] + tint[0] * 0.6));
-  const skyReflG = Math.max(0, Math.min(255, midSky[1] + tint[1] * 0.6));
-  const skyReflB = Math.max(0, Math.min(255, midSky[2] + tint[2] * 0.6));
+  // Phase index from cycle progress — drives water reflection strength
+  const phaseIndex =
+    cycleProgress < 0.10 ? 0 : cycleProgress < 0.30 ? 1 :
+    cycleProgress < 0.55 ? 2 : cycleProgress < 0.80 ? 3 :
+    cycleProgress < 0.92 ? 4 : 5;
+
+  // Night-phase star-reflection intensity: genesis fades out by 18%, silence fades in from 78%
+  const nightReflStr =
+    phaseIndex === 0 ? (cycleProgress < 0.06 ? 1.0 : Math.max(0, 1 - (cycleProgress - 0.06) / 0.12)) :
+    phaseIndex === 5 ? Math.min(1, (cycleProgress - 0.92) / 0.06) : 0;
+
+  // Sky at zenith (top of screen) — what still water mirrors looking straight up.
+  // Full phase tint applied: night water goes indigo-dark, golden-hour water warms.
+  const skyReflR = Math.max(0, Math.min(255, skyTop[0] + tint[0]));
+  const skyReflG = Math.max(0, Math.min(255, skyTop[1] + tint[1]));
+  const skyReflB = Math.max(0, Math.min(255, skyTop[2] + tint[2]));
+
+  // Phase reflection multiplier — dawn/dusk and night produce the strongest mirror surface.
+  // Golden hour (dissolution) is peak: the world's most beautiful moment reflected in water.
+  const REFL_PHASE = [0.65, 0.82, 0.40, 0.50, 0.88, 0.70];
+  const reflPhase = REFL_PHASE[phaseIndex];
 
   // Phase-driven terrain lighting: sunlight angle/color shifts through the cycle
   const inGoldenHour = cycleProgress >= 0.68 && cycleProgress < 0.92;
@@ -268,14 +293,29 @@ export function renderTerrain(
         d[pi + 2] = 8;
         d[pi + 3] = 255;
       } else if (tile === Tile.DeepWater || tile === Tile.ShallowWater) {
-        // Water with sky reflection: blend phase-tinted sky into the water surface
+        // Water as sky mirror — phase-aware reflection with per-column ripple distortion.
+        // Shallow water catches the most light; deep water reflects the dark depths.
         const ci = tileColor(tile, bp);
         const wc = PAL[ci];
-        const refl = tile === Tile.ShallowWater ? 0.28 : 0.14;
-        d[pi]     = Math.round(Math.min(255, wc[0] + (skyReflR - wc[0]) * refl));
-        d[pi + 1] = Math.round(Math.min(255, wc[1] + (skyReflG - wc[1]) * refl));
-        d[pi + 2] = Math.round(Math.min(255, wc[2] + (skyReflB - wc[2]) * refl));
+        // Two-frequency ripple: organic, slightly phase-shifted per column
+        const rip = Math.sin(x * 0.22 + time * 1.6 + y * 0.07) * 0.5 + 0.5;
+        const ripStr = 0.88 + rip * 0.12;  // 0.88 → 1.00 modulation
+        const baseRefl = tile === Tile.ShallowWater ? 0.58 : 0.30;
+        const refl = baseRefl * reflPhase * ripStr;
+        d[pi]     = Math.min(255, Math.round(wc[0] * (1 - refl) + skyReflR * refl));
+        d[pi + 1] = Math.min(255, Math.round(wc[1] * (1 - refl) + skyReflG * refl));
+        d[pi + 2] = Math.min(255, Math.round(wc[2] * (1 - refl) + skyReflB * refl));
         d[pi + 3] = 255;
+        // Star reflections — twinkling specks in still water during genesis and silence
+        if (nightReflStr > 0.05 && _STAR_COLS[x]) {
+          const starRip = Math.sin(x * 0.55 + time * 2.2) * 0.45 + 0.55;
+          const starA = Math.round(nightReflStr * 62 * starRip);
+          if (starA > 5) {
+            d[pi]     = Math.min(255, d[pi]     + starA);
+            d[pi + 1] = Math.min(255, d[pi + 1] + starA);
+            d[pi + 2] = Math.min(255, d[pi + 2] + Math.round(starA * 1.25));  // blue-white shimmer
+          }
+        }
       } else {
         const ci = tileColor(tile, bp);
         if (ci >= 0) {
