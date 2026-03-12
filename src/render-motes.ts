@@ -411,6 +411,35 @@ export function renderMotes(
       setPixel(buf, ox, oy - 1, 10, 10, 25, Math.round(m.bondBreakFlash * 140));
     }
 
+    // ANCIENT BOND BREAK — an old relationship ends. Slow expanding amber ring, warmer
+    // and longer than the sharp shard scatter. The ring grows as it fades — like a memory
+    // widening until it dissolves. Two rings: inner bright amber, outer faint gold.
+    if (m.ancientBondBreakFlash > 0) {
+      const af = m.ancientBondBreakFlash;
+      // Inner ring: expands from r=3 to r=14 as flash decays 1→0
+      const innerR = Math.round(3 + (1 - af) * 11);
+      const innerA = Math.round(af * 200);
+      if (innerA > 4) {
+        for (let i = 0; i < 24; i++) {
+          const angle = (i / 24) * Math.PI * 2;
+          setPixel(buf, ox + Math.cos(angle) * innerR, (oy - 1) + Math.sin(angle) * innerR,
+            255, 185, 75, innerA);
+        }
+      }
+      // Outer ring: lags behind, fainter deep gold
+      if (af < 0.75) {
+        const outerR = Math.round(innerR + 6);
+        const outerA = Math.round(af * 90);
+        if (outerA > 3) {
+          for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            setPixel(buf, ox + Math.cos(angle) * outerR, (oy - 1) + Math.sin(angle) * outerR,
+              230, 150, 50, outerA);
+          }
+        }
+      }
+    }
+
     // CLUSTER MOURNING — all surviving cluster members briefly carry the dead mote's color.
     // A stationary ring held close to the body (doesn't expand — grief holds, it doesn't radiate),
     // body tinge, and a rising wisp like a thought going up to where the spirit went.

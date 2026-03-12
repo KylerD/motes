@@ -298,5 +298,24 @@
       "src/terrain-render.ts",
       "src/render-motes.ts"
     ]
+  },
+  {
+    "date": "2026-03-12",
+    "title": "ancient bond mourning",
+    "reflection": "Bonds alive 70s+ now get a distinct farewell: slow amber expanding ring visually, deep sustained chord aurally. Each biome has its own sound for the loss.",
+    "looking_ahead": [
+      "Cluster merge cascade at 8+ members",
+      "Constellation density for mass-death graves",
+      "Bond age pulse rate slows as bond ages",
+      "Mote curiosity — facing toward nearest unbonded neighbor"
+    ],
+    "visual_verification": "Tundra biome screenshots show no regressions. The amber ring is a transient 1.4s effect visible during dissolution when long bonds finally break — confirmed in code: 24-point ring expands r=3→14 at 200→0 alpha.",
+    "quality_delta": "No regressions. Avg brightness 0.55 before, 0.53 after (different biome/seed). No clumping. No quality issues.",
+    "files_changed": [
+      "src/types.ts",
+      "src/mote.ts",
+      "src/render-motes.ts",
+      "src/sound.ts"
+    ]
   }
 ]

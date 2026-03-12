@@ -263,6 +263,7 @@ const engineClusterMergeCooldown = new WeakMap<SoundEngine, number>();
 const engineMourningTime = new WeakMap<SoundEngine, number>();
 const enginePrevMoteCount = new WeakMap<SoundEngine, number>();
 const engineLushBloomTime = new WeakMap<SoundEngine, number>();
+const engineAncientBondBreakTime = new WeakMap<SoundEngine, number>();
 
 // Phase multipliers for ambient bed gain — drives the sonic arc
 const PHASE_AMBIENT_MULT = [0.30, 0.60, 0.85, 1.00, 0.65, 0.10];
@@ -593,6 +594,18 @@ export function updateSound(
       if (m.bondBreakFlash > 0.9) {
         playBondBreak(engine, 1 - m.y / H, scale, profile);
         engineBondBreakCooldown.set(engine, now);
+        break;
+      }
+    }
+  }
+
+  // Ancient bond break — deep sorrowful chord when a long relationship ends (70s+ bonds)
+  const ancientBreakTime = engineAncientBondBreakTime.get(engine) ?? 0;
+  if (now - ancientBreakTime > 3.0) {
+    for (const m of motes) {
+      if (m.ancientBondBreakFlash > 0.9) {
+        playAncientBondBreak(engine, 1 - m.y / H, profile, biome);
+        engineAncientBondBreakTime.set(engine, now);
         break;
       }
     }
@@ -1097,6 +1110,135 @@ function playBondBreak(
       gain2.connect(engine.reverb);
       osc2.start(now + 0.03);
       osc2.stop(now + 0.35);
+      break;
+    }
+  }
+}
+
+/**
+ * Ancient bond break — played when a bond older than 70s severs.
+ * Much slower and deeper than the regular bond break. Two voices that shared
+ * a long journey, now separating into silence. Biome-voiced, long decay.
+ */
+function playAncientBondBreak(
+  engine: SoundEngine,
+  yNorm: number,
+  profile: BiomeSoundProfile,
+  biome: Biome,
+): void {
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+  // Use a low octave — ancient bonds lived deep
+  const baseFreq = profile.rootFreq * (1.0 + yNorm * 0.5);
+
+  switch (biome) {
+    case "desert": {
+      // Two bell tones that were ringing in unison slowly drift a semitone apart,
+      // then fall together into silence — a long parting in the vast open.
+      const freq1 = baseFreq * 2;
+      const freq2 = baseFreq * 2 * Math.pow(2, -1 / 12); // minor second below
+      for (const [f, pan, vol] of [[freq1, -0.3, 0.022], [freq2, 0.3, 0.018]] as [number, number, number][]) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const panner = ctx.createStereoPanner();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now);
+        osc.frequency.exponentialRampToValueAtTime(f * Math.pow(2, -5 / 12), now + 5.0);
+        panner.pan.value = pan;
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.setValueAtTime(vol * 0.9, now + 1.5);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 5.5);
+        osc.connect(gain); gain.connect(panner); panner.connect(engine.reverb);
+        osc.start(now); osc.stop(now + 6.0);
+      }
+      break;
+    }
+
+    case "tundra": {
+      // Two crystalline tones that drifted together now slowly pull apart —
+      // one rises, one falls, both fade into the frozen dark.
+      const freq1 = baseFreq * 4;
+      const osc1 = ctx.createOscillator(), gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(freq1, now);
+      osc1.frequency.exponentialRampToValueAtTime(freq1 * Math.pow(2, 4 / 12), now + 4.5);
+      gain1.gain.setValueAtTime(0.001, now);
+      gain1.gain.linearRampToValueAtTime(0.018, now + 0.3);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 5.0);
+      osc1.connect(gain1); gain1.connect(engine.reverb);
+      osc1.start(now); osc1.stop(now + 5.5);
+
+      const osc2 = ctx.createOscillator(), gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(freq1 * Math.pow(2, 7 / 12), now + 0.1);
+      osc2.frequency.exponentialRampToValueAtTime(freq1 * Math.pow(2, -3 / 12), now + 4.5);
+      gain2.gain.setValueAtTime(0.001, now + 0.1);
+      gain2.gain.linearRampToValueAtTime(0.016, now + 0.35);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 4.8);
+      osc2.connect(gain2); gain2.connect(engine.reverb);
+      osc2.start(now + 0.1); osc2.stop(now + 5.0);
+      break;
+    }
+
+    case "volcanic": {
+      // A slow deep sine pulse — the earth groans once, long and low, as two forces part.
+      // Subterranean, ominous, final.
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * Math.pow(2, -4 / 12), now + 4.5);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.030 * profile.masterMult, now + 0.8);
+      gain.gain.setValueAtTime(0.030 * profile.masterMult, now + 2.0);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 5.0);
+      osc.connect(gain); gain.connect(engine.reverb);
+      osc.start(now); osc.stop(now + 5.5);
+      // A faint second harmonic trails off faster
+      const osc2 = ctx.createOscillator(), gain2 = ctx.createGain();
+      osc2.type = "triangle";
+      osc2.frequency.value = baseFreq * 2;
+      gain2.gain.setValueAtTime(0.010, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+      osc2.connect(gain2); gain2.connect(engine.reverb);
+      osc2.start(now); osc2.stop(now + 3.0);
+      break;
+    }
+
+    case "lush": {
+      // A warm minor-seventh chord (root + m3 + m7) swells and slowly dissolves —
+      // abundance fading into stillness, like sunlight leaving a clearing.
+      for (const [semi, vol, pan] of [[0, 0.018, 0], [3, 0.014, -0.35], [10, 0.012, 0.35]] as [number, number, number][]) {
+        const osc = ctx.createOscillator(), gain = ctx.createGain(), panner = ctx.createStereoPanner();
+        osc.type = "sine";
+        osc.frequency.value = baseFreq * 2 * Math.pow(2, semi / 12);
+        panner.pan.value = pan;
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.5);
+        gain.gain.setValueAtTime(vol, now + 2.0);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 5.5);
+        osc.connect(gain); gain.connect(panner); panner.connect(engine.reverb);
+        osc.start(now); osc.stop(now + 6.0);
+      }
+      break;
+    }
+
+    default: { // temperate — two sine waves a perfect fifth apart slowly fall together,
+      // like two voices that shared a melody, now going quiet
+      const freq1 = baseFreq * 2;
+      const freq2 = freq1 * Math.pow(2, 7 / 12); // fifth above
+      for (const [f, vol, pan] of [[freq1, 0.020, -0.25], [freq2, 0.016, 0.25]] as [number, number, number][]) {
+        const osc = ctx.createOscillator(), gain = ctx.createGain(), panner = ctx.createStereoPanner();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now);
+        osc.frequency.exponentialRampToValueAtTime(f * Math.pow(2, -3 / 12), now + 4.0);
+        panner.pan.value = pan;
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.4);
+        gain.gain.setValueAtTime(vol, now + 1.5);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 4.5);
+        osc.connect(gain); gain.connect(panner); panner.connect(engine.reverb);
+        osc.start(now); osc.stop(now + 5.0);
+      }
       break;
     }
   }

@@ -107,6 +107,7 @@ export interface Mote {
   mourningG: number;
   mourningB: number;
   clusterMergeFlash: number;
+  ancientBondBreakFlash: number;
 }
 
 // ---- Physics ----

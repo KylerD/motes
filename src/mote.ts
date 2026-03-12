@@ -53,6 +53,7 @@ export function createMote(
     mourningG: 0,
     mourningB: 0,
     clusterMergeFlash: 0,
+    ancientBondBreakFlash: 0,
     grounded: false,
     direction: rng() < 0.5 ? -1 : 1,
     spawnFlash: 1.0,
@@ -85,6 +86,7 @@ export function updateMote(
   m.inheritFlash = Math.max(0, m.inheritFlash - dt * 0.65); // ~1.5s grief window
   m.mourningFlash = Math.max(0, m.mourningFlash - dt * 0.5); // ~2s community mourning
   m.clusterMergeFlash = Math.max(0, m.clusterMergeFlash - dt * 1.8); // ~0.55s merge bloom
+  m.ancientBondBreakFlash = Math.max(0, m.ancientBondBreakFlash - dt * 0.7); // ~1.4s mournful ring
 
   // Record trail breadcrumbs
   // Elder wanderers accumulate longer histories: age 0→30s scales buffer 10→30 pts.
@@ -256,12 +258,18 @@ export function updateMote(
     const bdx = b.x - m.x;
     const bdy = b.y - m.y;
     if (bdx * bdx + bdy * bdy > BOND_DIST * BOND_DIST * 6 * breakMult) {
+      const brokenAge = m.bondAges.get(b) ?? 0;
       b.bonds = b.bonds.filter((o) => o !== m);
       b.bondAges.delete(m);
       m.bondAges.delete(b);
       m.bonds.splice(i, 1);
       m.bondBreakFlash = 1;
       b.bondBreakFlash = 1;
+      // Ancient bonds (70s+) earn a mournful farewell ring
+      if (brokenAge >= 70) {
+        m.ancientBondBreakFlash = 1.0;
+        b.ancientBondBreakFlash = 1.0;
+      }
     }
   }
 
@@ -381,8 +389,11 @@ export function updateMote(
 
 function cleanupBonds(m: Mote): void {
   for (const bonded of m.bonds) {
+    const age = m.bondAges.get(bonded) ?? 0;
     bonded.bonds = bonded.bonds.filter((b) => b !== m);
     bonded.bondAges.delete(m);
+    // Ancient bonds severed by death earn their own farewell ring on the survivor
+    if (age >= 70) bonded.ancientBondBreakFlash = 1.0;
   }
   m.bonds = [];
   m.bondAges.clear();
