@@ -667,6 +667,205 @@ export function renderAtmosphericParticles(
   }
 }
 
+/**
+ * Biome ambient life — organic background particles that make each world feel inhabited.
+ * Active during exploration (1), organization (2), complexity (3), peaking at complexity.
+ *
+ * lush:       fireflies blinking in the undergrowth
+ * volcanic:   ember sparks rising from the hot ground
+ * temperate:  pollen seeds drifting on the breeze
+ * tundra:     ice crystal glints catching the light
+ * desert:     heat dust spiraling in warm thermals
+ *
+ * Rendered before bloom so the particles glow softly.
+ */
+export function renderBiomeAmbientLife(
+  buf: ImageData,
+  biome: string,
+  phaseIndex: number,
+  phaseProgress: number,
+  time: number,
+  cycleNumber: number,
+): void {
+  if (phaseIndex < 1 || phaseIndex > 3) return;
+
+  // Intensity ramps across phases and within each phase
+  const PHASE_STR = [0, 0.35, 0.70, 1.0, 0, 0];
+  const phaseStr = PHASE_STR[phaseIndex];
+  const ramp = Math.min(1, phaseProgress / 0.18);
+  const intensity = phaseStr * ramp;
+  if (intensity < 0.03) return;
+
+  if (biome === "lush")       renderFireflies(buf, intensity, time, cycleNumber);
+  else if (biome === "volcanic") renderVolcanicAtmosphere(buf, intensity, time, cycleNumber);
+  else if (biome === "temperate") renderPollenDrift(buf, intensity, time, cycleNumber);
+  else if (biome === "tundra")  renderTundraSparkles(buf, intensity, time, cycleNumber);
+  else if (biome === "desert")  renderDesertDust(buf, intensity, time, cycleNumber);
+}
+
+// ─── Biome life helpers ─────────────────────────────────────────────────────
+
+/** Lush: fireflies — tiny warm-green lights that blink independently */
+function renderFireflies(buf: ImageData, intensity: number, time: number, cycleNumber: number): void {
+  const COUNT = Math.round(10 + intensity * 18); // 10–28 fireflies at peak
+  const seed = cycleNumber * 6271;
+
+  for (let i = 0; i < COUNT; i++) {
+    const h1 = Math.abs(seed + i * 4397) % (W * 100);
+    const h2 = Math.abs(seed + i * 2311) % (H * 100);
+    const h3 = Math.abs(seed + i * 1481) % 100;
+    const h4 = Math.abs(seed + i * 1129) % 200;
+    const h5 = Math.abs(seed + i *  997) % 100;
+
+    const baseX = h1 % W;
+    const baseY = Math.floor(H * 0.35) + (h2 % Math.floor(H * 0.55)); // lower portion
+    const driftX = (h4 - 100) / 280;
+    const driftY = (h3 - 50) / 220;
+    const blinkRate = 1.1 + h5 / 28; // each firefly has its own blink speed
+    const blinkPhase = i * 2.73;
+
+    const x = ((baseX + driftX * time + W * 10) % W + W) % W | 0;
+    const y = ((baseY + driftY * time + H * 50) % H + H) % H | 0;
+
+    // Sharp blink: squared sine gives quick on, slow fade
+    const sinVal = Math.sin(time * blinkRate + blinkPhase);
+    const blink = Math.max(0, sinVal) * Math.max(0, sinVal);
+    const a = Math.round(intensity * blink * 195);
+    if (a < 5) continue;
+
+    // Warm yellow-green core
+    setPixel(buf, x, y, 210, 255, 100, a);
+    // Soft colored halo
+    const ha = Math.round(a * 0.42);
+    if (ha > 3) {
+      setPixel(buf, x - 1, y,     175, 240,  70, ha);
+      setPixel(buf, x + 1, y,     175, 240,  70, ha);
+      setPixel(buf, x,     y - 1, 190, 248,  85, ha);
+      setPixel(buf, x,     y + 1, 160, 225,  55, Math.round(ha * 0.7));
+    }
+  }
+}
+
+/** Volcanic: ember sparks drifting upward from the heated ground */
+function renderVolcanicAtmosphere(buf: ImageData, intensity: number, time: number, cycleNumber: number): void {
+  const COUNT = Math.round(14 + intensity * 22); // 14–36 sparks
+  const seed = cycleNumber * 5381;
+
+  for (let i = 0; i < COUNT; i++) {
+    const h1 = Math.abs(seed + i * 6271) % (W * 100);
+    const h2 = Math.abs(seed + i * 3779) % (H * 100);
+    const h3 = Math.abs(seed + i * 1733) % 100;
+    const h4 = Math.abs(seed + i * 2719) % 200;
+
+    const baseX = h1 % W;
+    const baseY = Math.floor(H * 0.45) + (h2 % Math.floor(H * 0.55)); // bottom half
+    const riseSpeed = 1.6 + h3 / 30; // 1.6–4.9 px/s upward
+    const drift = (h4 - 100) / 380;
+
+    const x = ((baseX + drift * time + Math.sin(time * 0.9 + i * 0.6) * 1.8 + W * 10) % W + W) % W | 0;
+    const y = ((baseY - riseSpeed * time + H * 50) % H + H) % H | 0;
+
+    const twinkle = Math.sin(time * 2.8 + i * 1.1) * 0.22 + 0.78;
+    const a = Math.round(intensity * twinkle * (32 + h3 % 20));
+    if (a < 3) continue;
+
+    // Orange / red / yellow ember tones
+    const heat = h3 % 3;
+    if (heat === 0) setPixel(buf, x, y, 255,  95, 25, Math.min(255, a)); // hot orange
+    else if (heat === 1) setPixel(buf, x, y, 255, 175, 45, Math.min(255, a)); // yellow
+    else                 setPixel(buf, x, y, 255,  45, 10, Math.min(255, a)); // deep red
+  }
+}
+
+/** Temperate: pollen seeds on the breeze */
+function renderPollenDrift(buf: ImageData, intensity: number, time: number, cycleNumber: number): void {
+  const COUNT = Math.round(12 + intensity * 20); // 12–32 pollen specks
+  const seed = cycleNumber * 4397;
+
+  for (let i = 0; i < COUNT; i++) {
+    const h1 = Math.abs(seed + i * 5003) % (W * 100);
+    const h2 = Math.abs(seed + i * 2897) % (H * 100);
+    const h3 = Math.abs(seed + i * 1021) % 100;
+    const h4 = Math.abs(seed + i * 1847) % 200;
+
+    const baseX = h1 % W;
+    const baseY = h2 % H;
+    const riseSpeed = 0.7 + h3 / 62; // very slow rise
+    const drift = (h4 - 100) / 230;
+
+    const x = ((baseX + drift * time + Math.sin(time * 0.38 + i * 1.2) * 2.2 + W * 10) % W + W) % W | 0;
+    const y = ((baseY - riseSpeed * time + H * 50) % H + H) % H | 0;
+
+    const twinkle = Math.sin(time * 1.1 + i * 2.3) * 0.28 + 0.72;
+    const a = Math.round(intensity * twinkle * (22 + h3 % 14));
+    if (a < 3) continue;
+
+    setPixel(buf, x, y, 245, 238, 175, Math.min(255, a)); // soft pale-yellow
+  }
+}
+
+/** Tundra: ice crystals catching and releasing light */
+function renderTundraSparkles(buf: ImageData, intensity: number, time: number, cycleNumber: number): void {
+  const COUNT = Math.round(8 + intensity * 16); // 8–24 crystal glints
+  const seed = cycleNumber * 7919;
+
+  for (let i = 0; i < COUNT; i++) {
+    const h1 = Math.abs(seed + i * 4691) % (W * 100);
+    const h2 = Math.abs(seed + i * 3337) % (H * 100);
+    const h3 = Math.abs(seed + i * 1597) % 100;
+    const h4 = Math.abs(seed + i * 2803) % 200;
+
+    const baseX = h1 % W;
+    const baseY = h2 % H;
+    const fallSpeed = 0.55 + h3 / 48;
+    const drift = (h4 - 100) / 330;
+
+    const x = ((baseX + drift * time + W * 10) % W + W) % W | 0;
+    const y = ((baseY + fallSpeed * time) % H) | 0;
+
+    // Sharp sparkle: high-powered sine — almost always off, briefly brilliant
+    const raw = Math.sin(time * (2.2 + h3 / 22) + i * 3.7);
+    const sparkle = Math.pow(Math.max(0, raw), 3);
+    const a = Math.round(intensity * sparkle * 210);
+    if (a < 6) continue;
+
+    setPixel(buf, x, y, 195, 225, 255, a); // ice-blue white
+    if (sparkle > 0.5) {
+      const ha = Math.round(a * 0.48);
+      setPixel(buf, x - 1, y,     175, 210, 255, ha);
+      setPixel(buf, x + 1, y,     175, 210, 255, ha);
+      setPixel(buf, x,     y - 1, 210, 235, 255, ha);
+    }
+  }
+}
+
+/** Desert: heat dust spiraling in warm thermals */
+function renderDesertDust(buf: ImageData, intensity: number, time: number, cycleNumber: number): void {
+  const COUNT = Math.round(10 + intensity * 16); // 10–26 dust motes
+  const seed = cycleNumber * 3371;
+
+  for (let i = 0; i < COUNT; i++) {
+    const h1 = Math.abs(seed + i * 5003) % (W * 100);
+    const h2 = Math.abs(seed + i * 2287) % (H * 100);
+    const h3 = Math.abs(seed + i * 1361) % 100;
+    const h4 = Math.abs(seed + i * 2017) % 200;
+
+    const baseX = h1 % W;
+    const baseY = Math.floor(H * 0.35) + (h2 % Math.floor(H * 0.55));
+    const riseSpeed = 0.5 + h3 / 85;
+    const sway = (h4 - 100) / 175;
+
+    const x = ((baseX + sway * time + Math.sin(time * 0.55 + i * 0.8) * 3.0 + W * 10) % W + W) % W | 0;
+    const y = ((baseY - riseSpeed * time + H * 50) % H + H) % H | 0;
+
+    const shimmer = Math.sin(time * 0.85 + i * 1.6) * 0.28 + 0.72;
+    const a = Math.round(intensity * shimmer * (18 + h3 % 13));
+    if (a < 3) continue;
+
+    setPixel(buf, x, y, 215, 190, 128, Math.min(255, a)); // warm sandy beige
+  }
+}
+
 /** Vignette — darken edges with phase-colored tint. Each phase has a distinct atmospheric hue.
  *
  * @param prevPhaseIndex  Phase we transitioned FROM (for cross-fade; pass same as phaseIndex when stable)

@@ -317,5 +317,22 @@
       "src/render-motes.ts",
       "src/sound.ts"
     ]
+  },
+  {
+    "date": "2026-03-13",
+    "title": "biome ambient life",
+    "reflection": "Each biome gets organic atmosphere during organization/complexity: lush=fireflies, volcanic=embers, tundra=ice sparkles, temperate=pollen, desert=heat dust. Absent outside phases 1–3.",
+    "looking_ahead": [
+      "Synchronized cluster heartbeat — bonded motes pulse in unison",
+      "Firefly audio — soft clicking chirps in lush biome",
+      "Cluster merge cascade at 8+ members",
+      "Bond age pulse slows as bond ages"
+    ],
+    "visual_verification": "Tundra biome complexity screenshot shows scattered ice-blue glints in the air above terrain. Organization phase shows fewer, exploration even fewer. Dissolution and silence have no ambient particles as designed.",
+    "quality_delta": "Avg visible count 7.4→18.7 (analyzer detects particles as motes). Clumping 0.80→0.00. Brightness 0.51→0.50 (particles dilute mote avg, benign).",
+    "files_changed": [
+      "src/render-effects.ts",
+      "src/main.ts"
+    ]
   }
 ]

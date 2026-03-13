@@ -19,7 +19,7 @@ import {
   renderAuroraCurtains, renderEclipse, applyAuroraBoost,
   renderMeteorVisual, renderCraterGlow, renderPhaseFlash,
   applyVignette, applyPhaseColorGrade, createMeteorState,
-  applyBloom, renderAtmosphericParticles, renderClusterRadiance,
+  applyBloom, renderAtmosphericParticles, renderBiomeAmbientLife, renderClusterRadiance,
   applyChromaticAberration, applyLastLight,
 } from "./render-effects";
 import { renderClusterGroundGlow, renderClusterGlow, renderBondLines, renderDeathParticles, renderSilenceConstellation } from "./render-bonds";
@@ -223,6 +223,8 @@ function init(): void {
 
     // Phase-specific atmospheric particles — rendered pre-bloom so they glow
     renderAtmosphericParticles(rc.buf, w.phaseIndex, w.phaseProgress, w.time, w.cycleNumber);
+    // Biome ambient life — fireflies, embers, pollen, ice sparkles, heat dust
+    renderBiomeAmbientLife(rc.buf, w.terrain.biome, w.phaseIndex, w.phaseProgress, w.time, w.cycleNumber);
 
     // Cluster radiance — soft area light from large bonded clusters, feeds into bloom
     renderClusterRadiance(rc.buf, w.clusters, w.terrain.biome, w.phaseIndex, w.time);
