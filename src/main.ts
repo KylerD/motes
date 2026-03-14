@@ -22,7 +22,7 @@ import {
   applyBloom, renderAtmosphericParticles, renderBiomeAmbientLife, renderClusterRadiance,
   applyChromaticAberration, applyLastLight,
 } from "./render-effects";
-import { renderClusterGroundGlow, renderClusterGlow, renderBondLines, renderDeathParticles, renderSilenceConstellation } from "./render-bonds";
+import { renderClusterGroundGlow, renderClusterGlow, renderBondLines, renderProtoAttractions, renderDeathParticles, renderSilenceConstellation } from "./render-bonds";
 import { renderRipples, renderCursor, renderEventMessage, renderDebugOverlay } from "./render-ui";
 import type { Mote, RenderContext, SoundEngine, Interaction } from "./types";
 
@@ -201,6 +201,8 @@ function init(): void {
 
     // Mote trails, sprites, bonds, deaths
     renderMoteTrails(rc.buf, w.motes, moteColors);
+    // Proto-attraction arcs: faint animated dotted lines between approaching motes
+    renderProtoAttractions(rc.buf, w.motes, moteColors, w.time, w.phaseIndex);
     renderMotes(rc.buf, w.motes, moteColors, plagueActive, plaguePulse, w.time, w.phaseIndex, clusterHeartbeat);
     renderBondLines(rc.buf, w.motes, moteColors, w.time);
     renderDeathParticles(rc.buf, w.deaths, w.time);

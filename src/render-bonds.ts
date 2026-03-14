@@ -153,6 +153,77 @@ export function renderClusterGlow(
   }
 }
 
+/** Draw faint dotted arcs between nearby motes that are within bonding range.
+ *  These "proto-bonds" make the social gravity visible — viewers see two motes
+ *  noticing each other before the bond snaps into existence. */
+export function renderProtoAttractions(
+  buf: ImageData,
+  motes: Mote[],
+  moteColors: Map<Mote, [number, number, number]>,
+  time: number,
+  phaseIndex: number,
+): void {
+  // Only show social gravity in bonding-active phases (exploration through complexity)
+  if (phaseIndex < 1 || phaseIndex > 3) return;
+  // Reduce visibility in exploration (bonding just starting)
+  const phaseScale = phaseIndex === 1 ? 0.45 : 1.0;
+
+  const ATTRACT_DIST = 20; // same as BOND_DIST in mote.ts
+
+  for (let i = 0; i < motes.length; i++) {
+    const a = motes[i];
+    if (a.bonds.length >= 3) continue; // fully bonded
+
+    for (let j = i + 1; j < motes.length; j++) {
+      const b = motes[j];
+      if (b.bonds.length >= 3) continue;
+      if (a.bonds.includes(b)) continue; // already bonded — draw as bond line instead
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist2 = dx * dx + dy * dy;
+      if (dist2 > ATTRACT_DIST * ATTRACT_DIST) continue;
+
+      const dist = Math.sqrt(dist2);
+      const proximity = 1 - dist / ATTRACT_DIST; // 0 at edge, 1 at contact
+
+      // Only show arc if at least one mote is actively pursuing a bond
+      const seeking = a.bondTimer > 0 || b.bondTimer > 0;
+      if (!seeking) continue;
+
+      // Stronger arc when close and when bondTimer is high (bond about to form)
+      const seekStrength = Math.min(1, Math.max(a.bondTimer, b.bondTimer) / 0.5);
+      const baseAlpha = proximity * proximity * 38 * seekStrength * phaseScale;
+      if (baseAlpha < 4) continue;
+
+      // Average mote colors, slightly desaturated (attraction is uncertain, not committed)
+      const [ar, ag, ab_] = moteColors.get(a)!;
+      const [br, bg, bb] = moteColors.get(b)!;
+      const mr = Math.round((ar + br) * 0.44 + 40); // desaturate toward light gray
+      const mg = Math.round((ag + bg) * 0.44 + 40);
+      const mb = Math.round((ab_ + bb) * 0.44 + 40);
+
+      // Animated dotted line — dashes flow from a toward b
+      const dashPeriod = 6; // pixels per dash cycle
+      const dashFlow = (time * 18) % dashPeriod; // 18px/sec flow speed
+
+      for (let s = 1; s < dist - 1; s++) {
+        const dashPos = (s + dashFlow) % dashPeriod;
+        if (dashPos > dashPeriod * 0.45) continue; // skip gaps (dashed)
+
+        const t = s / dist;
+        const px = a.x + dx * t;
+        const py = a.y + dy * t;
+
+        // Fade at ends so arcs don't visually overlap with mote sprites
+        const endFade = Math.min(t / 0.25, (1 - t) / 0.25, 1);
+        const alpha = Math.round(baseAlpha * endFade);
+        if (alpha > 2) setPixel(buf, px, py, mr, mg, mb, alpha);
+      }
+    }
+  }
+}
+
 /** Draw bond lines between connected motes */
 export function renderBondLines(
   buf: ImageData,
@@ -194,7 +265,9 @@ export function renderBondLines(
       const baseB = Math.min(255, Math.max(0, ageB));
 
       const flash = Math.max(m.bondFlash, bonded.bondFlash);
-      const bondPulse = Math.sin(time * 3 + m.x * 0.05 + bonded.x * 0.05) * 0.15 + 0.85;
+      // Old bonds breathe slowly — new bonds pulse fast. The pace of a relationship ages with it.
+      const bondPulseHz = bondAge < 10 ? 5.0 : bondAge < 40 ? 2.5 : bondAge < 70 ? 1.0 : 0.35;
+      const bondPulse = Math.sin(time * bondPulseHz + m.x * 0.05 + bonded.x * 0.05) * 0.15 + 0.85;
       // Old bonds are slightly brighter — they've earned it
       const bondAlpha = Math.round((160 + flash * 95 + oldT * 35 + ancientT * 20) * bondPulse);
 

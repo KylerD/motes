@@ -264,6 +264,8 @@ const engineMourningTime = new WeakMap<SoundEngine, number>();
 const enginePrevMoteCount = new WeakMap<SoundEngine, number>();
 const engineLushBloomTime = new WeakMap<SoundEngine, number>();
 const engineAncientBondBreakTime = new WeakMap<SoundEngine, number>();
+const engineLushFireflyTime = new WeakMap<SoundEngine, number>();
+const engineTundraCrystalTime = new WeakMap<SoundEngine, number>();
 
 // Phase multipliers for ambient bed gain — drives the sonic arc
 const PHASE_AMBIENT_MULT = [0.30, 0.60, 0.85, 1.00, 0.65, 0.10];
@@ -720,6 +722,70 @@ export function updateSound(
         wPan.connect(engine.reverb);
         wOsc.start(now);
         wOsc.stop(now + 27.0);
+      }
+    }
+  }
+
+  // Lush fireflies — brief high-frequency sine chirps in organization/complexity.
+  // Each chirp is a single firefly: a soft blink of sound, randomly panned, randomly pitched.
+  if (biome === "lush" && phaseIndex >= 2 && phaseIndex <= 3) {
+    const lastFirefly = engineLushFireflyTime.get(engine) ?? 0;
+    const fireflyInterval = phaseIndex === 3 ? 0.7 : 1.1; // denser in complexity
+    if (now - lastFirefly > fireflyInterval && Math.random() < 0.70) {
+      engineLushFireflyTime.set(engine, now + Math.random() * 0.4); // stagger next check
+      const fCtx = engine.ctx;
+      // Two chirps slightly staggered — feels like a real insect
+      for (const [delay, freqMult] of [[0, 1.0], [0.045, 1.12]] as [number, number][]) {
+        const fOsc = fCtx.createOscillator();
+        const fGain = fCtx.createGain();
+        const fPan = fCtx.createStereoPanner();
+        fOsc.type = "sine";
+        fOsc.frequency.value = (2200 + Math.random() * 2000) * freqMult;
+        fPan.pan.value = (Math.random() * 2 - 1) * 0.85;
+        const fVol = (0.006 + Math.random() * 0.006) * profile.masterMult;
+        fGain.gain.setValueAtTime(0.0001, now + delay);
+        fGain.gain.linearRampToValueAtTime(fVol, now + delay + 0.008);
+        fGain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.055);
+        fOsc.connect(fGain);
+        fGain.connect(fPan);
+        fPan.connect(engine.reverb);
+        fOsc.start(now + delay);
+        fOsc.stop(now + delay + 0.07);
+      }
+    }
+  }
+
+  // Tundra crystal pings — resonant metallic tones, like ice shifting under pressure.
+  // Rare during organization, moderate in complexity. Long decay echoing into frozen air.
+  if (biome === "tundra" && phaseIndex >= 2 && phaseIndex <= 3) {
+    const lastCrystal = engineTundraCrystalTime.get(engine) ?? 0;
+    const crystalInterval = phaseIndex === 3 ? 3.5 : 5.5;
+    if (now - lastCrystal > crystalInterval && Math.random() < 0.80) {
+      engineTundraCrystalTime.set(engine, now);
+      const cCtx = engine.ctx;
+      // Two detuned tones for a glassy, slightly-out-of-phase shimmer
+      for (const [detune, panVal] of [[-8, -0.55], [8, 0.55]] as [number, number][]) {
+        const cOsc = cCtx.createOscillator();
+        const cFilter = cCtx.createBiquadFilter();
+        const cGain = cCtx.createGain();
+        const cPan = cCtx.createStereoPanner();
+        cOsc.type = "sine";
+        cOsc.frequency.value = 1400 + Math.random() * 1400;
+        cOsc.detune.value = detune;
+        cFilter.type = "bandpass";
+        cFilter.frequency.value = cOsc.frequency.value;
+        cFilter.Q.value = 18; // high Q = crystalline ring
+        cPan.pan.value = panVal;
+        const cVol = (0.008 + Math.random() * 0.006) * profile.masterMult;
+        cGain.gain.setValueAtTime(0.0001, now);
+        cGain.gain.linearRampToValueAtTime(cVol, now + 0.006);
+        cGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+        cOsc.connect(cFilter);
+        cFilter.connect(cGain);
+        cGain.connect(cPan);
+        cPan.connect(engine.reverb);
+        cOsc.start(now);
+        cOsc.stop(now + 0.7);
       }
     }
   }

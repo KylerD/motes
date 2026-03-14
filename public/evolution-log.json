@@ -351,5 +351,23 @@
       "src/render-motes.ts",
       "src/main.ts"
     ]
+  },
+  {
+    "date": "2026-03-14",
+    "title": "social proximity arcs",
+    "reflection": "Approaching motes now show faint animated dotted arcs — social gravity made visible before bonds form. Old bonds breathe slowly; new bonds pulse fast. Lush gets firefly chirps, tundra gets crystal pings.",
+    "looking_ahead": [
+      "Cluster merge cascade at 8+ members",
+      "Mote curiosity — orient toward nearest unbonded neighbor",
+      "Constellation density for mass-death graves",
+      "Bond age pulse further differentiation — ancient bonds almost still"
+    ],
+    "visual_verification": "Organization/complexity screenshots show faint dotted gray wisps between nearby motes that haven't bonded yet. No regressions on brightness or clumping. Bond lines visibly animate at different rates by age.",
+    "quality_delta": "No regressions. Avg visible motes 8.6→16.6 (different seed/timing). Clumping 0.00 (worst 0.17 in silence, benign).",
+    "files_changed": [
+      "src/render-bonds.ts",
+      "src/main.ts",
+      "src/sound.ts"
+    ]
   }
 ]
