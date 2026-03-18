@@ -462,5 +462,23 @@
       "src/weather.ts",
       "src/render-motes.ts"
     ]
+  },
+  {
+    "date": "2026-03-18",
+    "title": "bird flocks in sky",
+    "reflection": "Added pixel bird flocks that cross the sky during exploration through dissolution. Phase-reactive: absent at genesis/silence, peak at complexity. Biome silhouette colors differ per world.",
+    "looking_ahead": [
+      "Birds react to storms — scatter or shelter when weather turns",
+      "Seasonal migration: flocks grow larger at complexity, dwindle at dissolution",
+      "Birds perch briefly on high terrain features before departing",
+      "Sound: faint wingbeat or distant call during active flock phases"
+    ],
+    "visual_verification": "Frame 04 (complexity) shows many dark V-shaped specks scattered across sky. Frame 11 (organization) has a distinct flock cluster visible upper-right. Genesis frame correctly empty of birds.",
+    "quality_delta": "No metric regressions. avgMoteBrightness 0.54 stable. Birds are additive pixels only.",
+    "files_changed": [
+      "src/weather-render.ts",
+      "src/weather.ts",
+      "src/main.ts"
+    ]
   }
 ]

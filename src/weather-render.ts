@@ -611,6 +611,91 @@ export function renderFog(buf: ImageData, weather: Weather, time: number, biome:
   }
 }
 
+/**
+ * Render bird flocks — small pixel creatures flying across the sky.
+ * Phase-reactive: absent at genesis and silence, peaks at complexity.
+ * Biome-aware: no birds in volcanic (too hostile), silhouette color per biome.
+ * Position deterministic from cycleNumber + cycleProgress; wing flap from real time.
+ * Call after renderClouds so birds appear in front of cloud layer.
+ */
+export function renderBirds(
+  buf: ImageData,
+  cycleNumber: number,
+  cycleProgress: number,
+  phaseIndex: number,
+  weatherType: string,
+  biome: Biome,
+  time: number,
+): void {
+  // No birds in volcanic biome or during thunderstorms
+  if (biome === "volcanic") return;
+  if (weatherType === "storm") return;
+
+  // Phase intensity — absent at genesis/silence, peaks at complexity
+  const PHASE_STR = [0.0, 0.35, 0.75, 1.0, 0.55, 0.0];
+  const phaseStr = PHASE_STR[Math.min(5, Math.max(0, phaseIndex))];
+  if (phaseStr < 0.01) return;
+
+  // Weather reduces bird activity
+  const wMod =
+    weatherType === "overcast" ? 0.30 :
+    weatherType === "rain"     ? 0.18 :
+    weatherType === "fog"      ? 0.35 :
+    weatherType === "snow"     ? 0.45 : 1.0;
+  const finalStr = phaseStr * wMod;
+  if (finalStr < 0.01) return;
+
+  // Silhouette color by biome
+  const [cr, cg, cb]: [number, number, number] =
+    biome === "tundra"  ? [215, 228, 248] :  // pale blue-white (snowy birds)
+    biome === "desert"  ? [145, 120, 72]  :  // sandy brown hawks
+    biome === "lush"    ? [28, 42, 28]    :  // very dark (tropical silhouette)
+                          [34, 32, 42];       // dark blue-grey (temperate)
+
+  const elapsed   = cycleProgress * 300;  // seconds into cycle
+  const PADDED_W  = W + 60;               // includes off-screen buffer each side
+
+  for (let fi = 0; fi < 5; fi++) {
+    const h1 = seedHash(cycleNumber * 5003 + fi * 619 + 1);
+    const h2 = seedHash(cycleNumber * 5003 + fi * 619 + 2);
+    const h3 = seedHash(cycleNumber * 5003 + fi * 619 + 3);
+    const h4 = seedHash(cycleNumber * 5003 + fi * 619 + 4);
+    const h5 = seedHash(cycleNumber * 5003 + fi * 619 + 5);
+    const h6 = seedHash(cycleNumber * 5003 + fi * 619 + 6);
+
+    const birdCount = 3 + Math.floor(h1 * 5);   // 3–7 birds per flock
+    const speed     = 20 + h2 * 34;             // 20–54 px/s
+    const dir       = h3 > 0.5 ? 1 : -1;        // left→right or right→left
+    const startX    = h4 * W;                    // x position at cycle start
+    const baseY     = Math.round(H * (0.04 + h5 * 0.36)); // upper 4–40% of sky
+    const phaseShift = h6 * 300;                 // time offset for natural spread across cycle
+
+    // Current X — wraps with padding so flocks enter/exit cleanly at screen edges
+    const rawX  = startX + dir * ((elapsed + phaseShift) * speed);
+    const currX = ((rawX % PADDED_W) + PADDED_W) % PADDED_W - 30;
+
+    const baseAlpha = Math.round(finalStr * 175);
+
+    for (let bi = 0; bi < birdCount; bi++) {
+      // V-formation: birds spread symmetrically from flock center
+      const formIdx = bi - Math.floor(birdCount / 2);
+      const bx = Math.round(currX + formIdx * (dir > 0 ? 7 : -7));
+      const by = Math.round(baseY + Math.abs(formIdx) * 2);
+
+      if (bx < -3 || bx > W + 2 || by < 0 || by >= H) continue;
+
+      // Wing flap — each bird slightly out of phase for organic flock motion
+      const wingDy = Math.sin(time * 3.6 + bi * 0.85 + fi * 1.5) > 0 ? -1 : 1;
+
+      // Body pixel
+      setPixel(buf, bx, by, cr, cg, cb, baseAlpha);
+      // Wing tip pixels
+      setPixel(buf, bx - 1, by + wingDy, cr, cg, cb, Math.round(baseAlpha * 0.80));
+      setPixel(buf, bx + 1, by + wingDy, cr, cg, cb, Math.round(baseAlpha * 0.80));
+    }
+  }
+}
+
 /** Apply ambient darkening for overcast/storm weather */
 export function applyWeatherDarkening(buf: ImageData, weather: Weather): void {
   if (weather.ambientDarkening <= 0) return;

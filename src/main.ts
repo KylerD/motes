@@ -12,6 +12,7 @@ import {
   renderCelestial, renderClouds, renderParticles,
   renderLightning, renderFog, applyWeatherDarkening,
   applyTundraAurora, applyGodRays, renderShootingStars,
+  renderBirds,
 } from "./weather";
 import { createNarrative, updateNarrative } from "./narrative";
 import { computeMoteColor, renderMoteTrails, renderMotes } from "./render-motes";
@@ -153,6 +154,7 @@ function init(): void {
     renderShootingStars(rc.buf, w.cycleProgress, w.cycleNumber, w.weather.type);
     applyTundraAurora(rc.buf, w.terrain.biome, w.time, w.cycleProgress, w.weather.type);
     renderClouds(rc.buf, w.weather, w.time, w.terrain.biome);
+    renderBirds(rc.buf, w.cycleNumber, w.cycleProgress, w.phaseIndex, w.weather.type, w.terrain.biome, w.time);
     applyWeatherDarkening(rc.buf, w.weather);
     applyTundraIce(rc.buf, w.terrain, w.cycleProgress);
     renderRainPuddles(rc.buf, w.terrain, w.weather, w.time);
