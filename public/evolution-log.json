@@ -498,5 +498,22 @@
       "src/weather.ts",
       "src/main.ts"
     ]
+  },
+  {
+    "date": "2026-03-19",
+    "title": "sunset sky and milky way",
+    "reflection": "Dissolution now paints the sky blazing orange at the horizon transitioning to deep purple at zenith. Water reflections warm to amber. Night phases get a faint Milky Way band.",
+    "looking_ahead": [
+      "Birds scatter/shelter during storms",
+      "Drought visual — bleached sky, heat shimmer amplified",
+      "Soul wisps cluster near graveyard sites",
+      "Sunrise more dramatic — wider orange sweep at exploration start"
+    ],
+    "visual_verification": "Dissolution screenshots show deep burgundy-to-purple gradient sky above volcanic lava. Silence phase blazes orange-crimson near horizon. Before: flat teal/blue sky. After: unmistakable sunset arc.",
+    "quality_delta": "avgMoteBrightness 0.52 stable. No regressions. Clumping 0.00.",
+    "files_changed": [
+      "src/terrain-render.ts",
+      "src/weather-render.ts"
+    ]
   }
 ]

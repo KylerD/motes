@@ -48,7 +48,7 @@ const SKY_TINTS: RGB[] = [
   [  4,   2,  -6],  // exploration:  cool dawn light — clear day opening
   [  8,   5,  -5],  // organization: slight warmth — mid-day building
   [ 12,   6,  -8],  // complexity:   warm afternoon — peak light
-  [ 24,  10, -18],  // dissolution:  golden hour — amber light, things fading
+  [ 48,  16, -28],  // dissolution:  golden hour — amber light, things fading
   [-18, -22,  35],  // silence:      deep indigo return to night — the world going to sleep
 ];
 
@@ -157,11 +157,17 @@ export function renderTerrain(
     phaseIndex === 0 ? (cycleProgress < 0.06 ? 1.0 : Math.max(0, 1 - (cycleProgress - 0.06) / 0.12)) :
     phaseIndex === 5 ? Math.min(1, (cycleProgress - 0.92) / 0.06) : 0;
 
+  // Sunset gradient strength: blazing orange-to-purple sky during dissolution
+  const sunsetStr =
+    cycleProgress >= 0.72 && cycleProgress < 0.94
+      ? Math.sin((cycleProgress - 0.72) / 0.22 * Math.PI) * 1.15
+      : 0;
+
   // Sky at zenith (top of screen) — what still water mirrors looking straight up.
   // Full phase tint applied: night water goes indigo-dark, golden-hour water warms.
-  const skyReflR = Math.max(0, Math.min(255, skyTop[0] + tint[0]));
-  const skyReflG = Math.max(0, Math.min(255, skyTop[1] + tint[1]));
-  const skyReflB = Math.max(0, Math.min(255, skyTop[2] + tint[2]));
+  const skyReflR = Math.max(0, Math.min(255, skyTop[0] + tint[0] + Math.round(70 * sunsetStr)));
+  const skyReflG = Math.max(0, Math.min(255, skyTop[1] + tint[1] + Math.round(22 * sunsetStr)));
+  const skyReflB = Math.max(0, Math.min(255, skyTop[2] + tint[2] + Math.round(-48 * sunsetStr)));
 
   // Phase reflection multiplier — dawn/dusk and night produce the strongest mirror surface.
   // Golden hour (dissolution) is peak: the world's most beautiful moment reflected in water.
@@ -256,6 +262,23 @@ export function renderTerrain(
             r = Math.min(255, r + 120 * sf);
             g = Math.min(255, g + 55 * sf);
             b = Math.min(255, b + 35 * sf);  // slight warmth, not pure orange
+          }
+        }
+
+        // Sunset gradient: blazing orange near horizon → deep purple at zenith
+        if (sunsetStr > 0) {
+          const skyFrac = y / H;  // 0 = zenith (top), 1 = horizon (bottom)
+          if (skyFrac < 0.92) {
+            // Orange/amber tide rising from horizon
+            const horizonT = Math.max(0, (skyFrac - 0.08) / 0.68);
+            const orangeStr = horizonT * horizonT * horizonT * sunsetStr;
+            // Purple/violet crown at zenith
+            const zenithT = Math.max(0, 1 - skyFrac / 0.32);
+            const purpleStr = zenithT * zenithT * sunsetStr * 0.70;
+
+            r = Math.min(255, r + Math.round(145 * orangeStr + 22 * purpleStr));
+            g = Math.min(255, g + Math.round(48 * orangeStr));
+            b = Math.max(0, Math.min(255, b + Math.round(-72 * orangeStr + 108 * purpleStr)));
           }
         }
 

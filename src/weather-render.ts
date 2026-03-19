@@ -84,6 +84,28 @@ function renderStarField(buf: ImageData, time: number, cycleProgress: number, we
       setPixel(buf, sx, sy, 215, 220, 238, sa);  // common white
     }
   }
+
+  // Milky Way: soft diagonal band of dense faint stars during clear nights
+  if (intensity > 0.35 && weatherFactor >= 1.0) {
+    for (let mx = 0; mx < W; mx++) {
+      // Band runs diagonally: upper-left to lower-right across the night sky
+      const bandCY = H * (0.13 + (mx / W) * 0.14);
+      const bandwidth = 5;
+
+      for (let dy = -bandwidth; dy <= bandwidth; dy++) {
+        const my = Math.round(bandCY + dy);
+        if (my < 0 || my >= Math.floor(H * 0.56)) continue;
+
+        const bandFrac = 1 - Math.abs(dy) / (bandwidth + 1);
+        const bandNoise = noise2(mx * 0.09 + 41.3, my * 0.14 + 88.7) * 0.5 + 0.5;
+        const density = bandFrac * bandFrac * bandNoise * intensity;
+        const sa = Math.round(density * 42);
+        if (sa < 4) continue;
+
+        setPixel(buf, mx, my, 178, 188, 218, sa);
+      }
+    }
+  }
 }
 
 /** Render celestial body (sun or moon) — call before terrain for background effect */
