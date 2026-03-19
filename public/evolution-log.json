@@ -515,5 +515,23 @@
       "src/terrain-render.ts",
       "src/weather-render.ts"
     ]
+  },
+  {
+    "date": "2026-03-19",
+    "title": "dissolution wind storm",
+    "reflection": "Dissolution now brings 55 horizontal wind streaks blowing across the sky plus progressive sky darkening from above. The phase arc is unmistakable: calm golden complexity → turbulent stormy dissolution.",
+    "looking_ahead": [
+      "Birds scatter during dissolution storm — flock turbulence visually",
+      "Drought visual — bleached sky, heat shimmer amplified, cracked ground",
+      "Soul wisps cluster near graveyard sites",
+      "Sunrise more dramatic — wider orange sweep at exploration start"
+    ],
+    "visual_verification": "Dissolution-phase screenshot shows horizontal pale wind streaks in the purple-orange sky, sky darkening at zenith. Before: flat warm golden sky. After: dark stormy atmosphere with visible directional wind motion.",
+    "quality_delta": "avgMoteBrightness stable 0.51→0.50. No regressions. Clumping 0.02 worst 0.11 dissolution (benign).",
+    "files_changed": [
+      "src/weather-render.ts",
+      "src/weather.ts",
+      "src/main.ts"
+    ]
   }
 ]

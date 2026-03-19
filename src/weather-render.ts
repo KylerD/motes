@@ -726,6 +726,102 @@ export function renderBirds(
   }
 }
 
+/**
+ * Dissolution wind — horizontal streaks sweep the sky and terrain as the cycle ends.
+ * Builds during the dissolution phase (0.80–0.92), making it unmistakably different
+ * from the calm golden complexity phase that precedes it.
+ * Biome-tinted: volcanic=glowing embers, tundra=icy crystals, desert=sand gusts, others=grey mist.
+ * Sky also progressively darkens from above — storm pressure closing in.
+ */
+export function renderDissolutionWind(
+  buf: ImageData,
+  cycleProgress: number,
+  time: number,
+  biome: Biome,
+  cycleNumber: number,
+): void {
+  if (cycleProgress < 0.80 || cycleProgress >= 0.93) return;
+
+  const localP = (cycleProgress - 0.80) / 0.13; // 0→1 across dissolution
+  const fadeIn  = Math.min(1.0, localP * 5.5);   // full strength by ~18% in (~5s)
+  const fadeOut = localP > 0.80 ? (1.0 - (localP - 0.80) / 0.20) : 1.0;
+  const str = fadeIn * fadeOut;
+  if (str < 0.02) return;
+
+  // Wind direction: consistent for entire cycle (all viewers agree)
+  const windDir: 1 | -1 = ((cycleNumber * 2731 + 3413) & 1) ? 1 : -1;
+  const windSpeed = 58 + (((cycleNumber * 5381) >>> 0) % 42); // 58–100 px/s
+
+  // Biome-appropriate wind particle color
+  let wr: number, wg: number, wb: number;
+  switch (biome) {
+    case "volcanic": wr = 188; wg = 72; wb = 16; break;   // glowing ash embers
+    case "tundra":   wr = 152; wg = 180; wb = 222; break; // icy drift crystals
+    case "desert":   wr = 208; wg = 160; wb = 75; break;  // sand gusts
+    case "lush":     wr = 120; wg = 138; wb = 98; break;  // dark humid mist
+    default:         wr = 165; wg = 170; wb = 188; break; // grey-white mist
+  }
+
+  const d = buf.data;
+
+  // Sky darkening — upper sky gets a pressure from above as the storm gathers
+  // Deepens the dissolution mood without killing the sunset gradient at the horizon
+  const skyDarkStr = str * 0.40;
+  const darkH = Math.floor(H * 0.58);
+  for (let y = 0; y < darkH; y++) {
+    const yf = 1.0 - y / darkH;   // 1 at zenith, 0 near horizon
+    const dk = skyDarkStr * yf * yf;
+    if (dk < 0.008) continue;
+    const dR = Math.round(dk * 52);
+    const dG = Math.round(dk * 44);
+    const dB = Math.round(dk * 18);
+    for (let x = 0; x < W; x++) {
+      const pi = (y * W + x) << 2;
+      d[pi]     = Math.max(0, d[pi]     - dR);
+      d[pi + 1] = Math.max(0, d[pi + 1] - dG);
+      d[pi + 2] = Math.max(0, d[pi + 2] - dB);
+    }
+  }
+
+  // Horizontal wind streaks — 55 deterministic streaks blowing across the full frame
+  const STREAK_N = 55;
+  for (let i = 0; i < STREAK_N; i++) {
+    const h1 = seedHash(cycleNumber * 7013 + i * 211 + 97);  // Y position
+    const h2 = seedHash(cycleNumber * 7013 + i * 211 + 53);  // streak length
+    const h3 = seedHash(cycleNumber * 7013 + i * 211 + 29);  // alpha + speed var
+    const h4 = seedHash(cycleNumber * 7013 + i * 211 + 7);   // X start offset
+
+    // Y distribution: denser in upper 2/3 (sky + upper terrain)
+    const sy = Math.round(H * (h1 < 0.68 ? h1 * 0.64 : 0.64 + (h1 - 0.68) / 0.32 * 0.36));
+
+    const len       = 10 + Math.round(h2 * 32);  // 10–42 px streak length
+    const baseAlpha = 20 + Math.round(h3 * 34);   // 20–54 alpha
+    const speedVar  = 0.60 + h3 * 0.80;           // 0.60→1.40x speed multiplier
+
+    // Animate horizontally — each streak wraps continuously
+    const scrollDist = time * windSpeed * speedVar;
+    const startX = windDir > 0
+      ? (Math.round(h4 * (W + len)) + Math.round(scrollDist)) % (W + len) - len
+      : W - (Math.round(h4 * (W + len)) + Math.round(scrollDist)) % (W + len);
+
+    const alpha = Math.round(str * baseAlpha);
+    if (alpha < 2) continue;
+
+    // Draw the streak — very slight downward angle (3°) for realism
+    const angleY = windDir > 0 ? 0.055 : -0.055;
+    for (let t = 0; t < len; t++) {
+      const px = Math.round(startX + t * windDir);
+      const py = sy + Math.round(t * angleY);
+      if (px < 0 || px >= W || py < 0 || py >= H) continue;
+      // Fade at streak ends for soft appearance
+      const endFade = t < 4 ? t / 4 : t > len - 5 ? (len - t) / 5 : 1.0;
+      const a = Math.round(alpha * endFade);
+      if (a < 2) continue;
+      setPixel(buf, px, py, wr, wg, wb, a);
+    }
+  }
+}
+
 /** Apply ambient darkening for overcast/storm weather */
 export function applyWeatherDarkening(buf: ImageData, weather: Weather): void {
   if (weather.ambientDarkening <= 0) return;
