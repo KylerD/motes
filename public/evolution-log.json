@@ -553,5 +553,21 @@
       "src/sound.ts",
       "src/main.ts"
     ]
+  },
+  {
+    "date": "2026-03-20",
+    "title": "flock scatter, lone bird",
+    "reflection": "Dissolution flocks panic and scatter as wind tears through — formations break, birds flee in seeded random directions. Silence gets one lone survivor gliding slowly across the empty sky.",
+    "looking_ahead": [
+      "Drought visual — bleached sky, heat shimmer amplified, cracked ground",
+      "Soul wisps cluster near graveyard sites",
+      "Rain intensifies near flood events — layered storm",
+      "Scatter audio — brief panicked calls as dissolution flock breaks"
+    ],
+    "visual_verification": "Silence-mid shows a distinct 7-pixel-wide bird shape drifting alone in mid-sky above the empty landscape. Dissolution frames show birds mid-scatter with faster panic flap speed. No regressions.",
+    "quality_delta": "avgMoteBrightness 0.52→0.53. Clumping 0.00. No regressions.",
+    "files_changed": [
+      "src/weather-render.ts"
+    ]
   }
 ]

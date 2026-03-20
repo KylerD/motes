@@ -643,7 +643,7 @@ export function renderFog(buf: ImageData, weather: Weather, time: number, biome:
 
 /**
  * Render bird flocks — small pixel creatures flying across the sky.
- * Phase-reactive: absent at genesis and silence, peaks at complexity.
+ * Phase-reactive: absent at genesis, peaks at complexity, scatters in dissolution, lone survivor in silence.
  * Biome-aware: no birds in volcanic (too hostile), silhouette color per biome.
  * Position deterministic from cycleNumber + cycleProgress; wing flap from real time.
  * Call after renderClouds so birds appear in front of cloud layer.
@@ -657,23 +657,37 @@ export function renderBirds(
   biome: Biome,
   time: number,
 ): void {
-  // No birds in volcanic biome or during thunderstorms
-  if (biome === "volcanic") return;
-  if (weatherType === "storm") return;
+  // Silence: one lone survivor bird glides across the empty sky
+  if (cycleProgress >= 0.93) {
+    renderSilenceBird(buf, cycleNumber, cycleProgress, biome, time);
+    return;
+  }
 
-  // Phase intensity — absent at genesis/silence, peaks at complexity
+  // Dissolution scatter: birds panic as the wind tears through (overrides storm restriction)
+  const isDissolving = cycleProgress >= 0.80 && cycleProgress < 0.93;
+  const scatterT = isDissolving ? Math.min(1, (cycleProgress - 0.80) / 0.10) : 0;
+
+  // No birds in volcanic biome — too hostile (except the silence survivor above)
+  if (biome === "volcanic") return;
+  // Storms prevent birds during normal phases; dissolution panic overrides this
+  if (weatherType === "storm" && !isDissolving) return;
+
+  // Phase intensity — absent at genesis, peaks at complexity
   const PHASE_STR = [0.0, 0.35, 0.75, 1.0, 0.55, 0.0];
-  const phaseStr = PHASE_STR[Math.min(5, Math.max(0, phaseIndex))];
+  const phaseStr = isDissolving ? 0.72 : PHASE_STR[Math.min(5, Math.max(0, phaseIndex))];
   if (phaseStr < 0.01) return;
 
-  // Weather reduces bird activity
-  const wMod =
+  // Weather reduces bird activity — but dissolution panic ignores rain (they fly regardless)
+  const wMod = isDissolving ? 1.0 :
     weatherType === "overcast" ? 0.30 :
     weatherType === "rain"     ? 0.18 :
     weatherType === "fog"      ? 0.35 :
     weatherType === "snow"     ? 0.45 : 1.0;
   const finalStr = phaseStr * wMod;
   if (finalStr < 0.01) return;
+
+  // Wind direction (same seed as renderDissolutionWind for coherence)
+  const windDir: 1 | -1 = ((cycleNumber * 2731 + 3413) & 1) ? 1 : -1;
 
   // Silhouette color by biome
   const [cr, cg, cb]: [number, number, number] =
@@ -682,8 +696,8 @@ export function renderBirds(
     biome === "lush"    ? [28, 42, 28]    :  // very dark (tropical silhouette)
                           [34, 32, 42];       // dark blue-grey (temperate)
 
-  const elapsed   = cycleProgress * 300;  // seconds into cycle
-  const PADDED_W  = W + 60;               // includes off-screen buffer each side
+  const elapsed  = cycleProgress * 300;  // seconds into cycle
+  const PADDED_W = W + 60;               // includes off-screen buffer each side
 
   for (let fi = 0; fi < 5; fi++) {
     const h1 = seedHash(cycleNumber * 5003 + fi * 619 + 1);
@@ -700,30 +714,110 @@ export function renderBirds(
     const baseY     = Math.round(H * (0.04 + h5 * 0.36)); // upper 4–40% of sky
     const phaseShift = h6 * 300;                 // time offset for natural spread across cycle
 
-    // Current X — wraps with padding so flocks enter/exit cleanly at screen edges
+    // Current flock-center X — wraps with padding so flocks enter/exit cleanly
     const rawX  = startX + dir * ((elapsed + phaseShift) * speed);
     const currX = ((rawX % PADDED_W) + PADDED_W) % PADDED_W - 30;
 
-    const baseAlpha = Math.round(finalStr * 175);
+    const baseAlpha = Math.round(finalStr * (isDissolving ? 185 : 175));
 
     for (let bi = 0; bi < birdCount; bi++) {
-      // V-formation: birds spread symmetrically from flock center
       const formIdx = bi - Math.floor(birdCount / 2);
-      const bx = Math.round(currX + formIdx * (dir > 0 ? 7 : -7));
-      const by = Math.round(baseY + Math.abs(formIdx) * 2);
+
+      let bx: number, by: number;
+
+      if (isDissolving && scatterT > 0) {
+        // Panic scatter: each bird gets a unique divergent offset seeded by its identity
+        const sRad = seedHash(cycleNumber * 3997 + fi * 431 + bi * 71) * Math.PI * 2;
+        const sAmt = scatterT * scatterT * (16 + seedHash(cycleNumber * 3997 + fi * 431 + bi * 71 + 3) * 26);
+
+        // Formation gradually dissolves — birds spread then break apart
+        const formFrac = Math.max(0, 1 - scatterT * 1.15);
+        const formSpacing = dir > 0 ? 7 : -7;
+
+        // Scatter offset: random angle + strong wind push
+        const scatterDx = Math.cos(sRad) * sAmt + windDir * scatterT * scatterT * 48;
+        const scatterDy = Math.sin(sRad) * sAmt * 0.65;
+
+        bx = Math.round(currX + formIdx * formSpacing * formFrac + scatterDx);
+        by = Math.round(baseY + Math.abs(formIdx) * 2 * formFrac + scatterDy);
+      } else {
+        // V-formation: birds spread symmetrically from flock center
+        bx = Math.round(currX + formIdx * (dir > 0 ? 7 : -7));
+        by = Math.round(baseY + Math.abs(formIdx) * 2);
+      }
 
       if (bx < -3 || bx > W + 2 || by < 0 || by >= H) continue;
 
-      // Wing flap — each bird slightly out of phase for organic flock motion
-      const wingDy = Math.sin(time * 3.6 + bi * 0.85 + fi * 1.5) > 0 ? -1 : 1;
+      // Panic flap during dissolution — faster, more erratic
+      const flapSpeed = isDissolving ? 5.5 + scatterT * 3.5 : 3.6;
+      const wingDy = Math.sin(time * flapSpeed + bi * 0.85 + fi * 1.5) > 0 ? -1 : 1;
+
+      // Birds fade slightly as they scatter off into chaos
+      const bAlpha = isDissolving ? Math.round(baseAlpha * (1 - scatterT * 0.25)) : baseAlpha;
 
       // Body pixel
-      setPixel(buf, bx, by, cr, cg, cb, baseAlpha);
+      setPixel(buf, bx, by, cr, cg, cb, bAlpha);
       // Wing tip pixels
-      setPixel(buf, bx - 1, by + wingDy, cr, cg, cb, Math.round(baseAlpha * 0.80));
-      setPixel(buf, bx + 1, by + wingDy, cr, cg, cb, Math.round(baseAlpha * 0.80));
+      setPixel(buf, bx - 1, by + wingDy, cr, cg, cb, Math.round(bAlpha * 0.80));
+      setPixel(buf, bx + 1, by + wingDy, cr, cg, cb, Math.round(bAlpha * 0.80));
     }
   }
+}
+
+/**
+ * The silence survivor — one lone bird glides slowly across an empty sky.
+ * After the storm and the scatter, this single creature drifts through the quiet.
+ * Larger than flock birds, slow-gliding wings (not panicked flapping), warm amber tone.
+ * All viewers see the same bird at the same position (deterministic from cycleNumber).
+ */
+function renderSilenceBird(
+  buf: ImageData,
+  cycleNumber: number,
+  cycleProgress: number,
+  biome: Biome,
+  time: number,
+): void {
+  const h1 = seedHash(cycleNumber * 6173 + 8831);
+  const h2 = seedHash(cycleNumber * 6173 + 4421);
+  const h3 = seedHash(cycleNumber * 6173 + 2237);
+
+  const dir: 1 | -1 = h3 > 0.5 ? 1 : -1;
+  const speed = 8 + h2 * 11;  // 8–19 px/s — slow, contemplative
+
+  const elapsed       = cycleProgress * 300;
+  const silenceElapsed = elapsed - 0.93 * 300;  // seconds since silence began
+
+  const startX = h1 * W;
+  const PADDED = W + 24;
+  const rawX   = startX + dir * silenceElapsed * speed;
+  const bx     = Math.round(((rawX % PADDED) + PADDED) % PADDED - 12);
+  if (bx < -8 || bx > W + 8) return;
+
+  // Position low in the sky — below the stars, above the motes
+  const by = Math.round(H * (0.30 + h2 * 0.26));
+
+  // Biome-colored silhouette: each world's last bird has its own character
+  const [cr, cg, cb]: [number, number, number] =
+    biome === "tundra"   ? [208, 224, 250] : // pale crane
+    biome === "desert"   ? [158, 118, 60]  : // amber hawk
+    biome === "lush"     ? [52, 76, 48]    : // dark tropical silhouette
+    biome === "volcanic" ? [175, 88, 32]   : // ember-lit shape against the dying sky
+                           [88, 72, 58];      // warm dark silhouette
+
+  const alpha = 198;
+
+  // Slow gliding wings — a gentle dip, not a frantic flap
+  const glide = Math.sin(time * 0.55);
+  const wingDy = glide > 0.25 ? -1 : glide < -0.25 ? 1 : 0;
+
+  // 7-pixel wingspan — clearly larger and more legible than flock birds
+  setPixel(buf, bx,     by,           cr, cg, cb, alpha);
+  setPixel(buf, bx - 1, by + wingDy,  cr, cg, cb, Math.round(alpha * 0.95));
+  setPixel(buf, bx + 1, by + wingDy,  cr, cg, cb, Math.round(alpha * 0.95));
+  setPixel(buf, bx - 2, by + wingDy,  cr, cg, cb, Math.round(alpha * 0.82));
+  setPixel(buf, bx + 2, by + wingDy,  cr, cg, cb, Math.round(alpha * 0.82));
+  setPixel(buf, bx - 3, by + wingDy + 1, cr, cg, cb, Math.round(alpha * 0.52));
+  setPixel(buf, bx + 3, by + wingDy + 1, cr, cg, cb, Math.round(alpha * 0.52));
 }
 
 /**
