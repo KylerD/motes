@@ -5,14 +5,14 @@ import { H } from "./config";
 import { renderTerrain, applyHeatHaze, applyVolcanicAsh, renderRainPuddles, renderWaterMist, renderVolcanicEmbers, applyTundraIce } from "./terrain";
 import { createWorld, updateWorld } from "./world";
 import { cycleName } from "./names";
-import { createSoundEngine, initAudio, updateSound, updateWeatherSound, playDeath, playEventSound, playPhaseTransition, playCascadeArrival, playBirdChirp } from "./sound";
+import { createSoundEngine, initAudio, updateSound, updateWeatherSound, updateDissolutionSound, playDeath, playEventSound, playPhaseTransition, playCascadeArrival, playBirdChirp } from "./sound";
 import { createInteraction, applyInteraction } from "./interaction";
 import { isEventActive, isEclipseActive } from "./events";
 import {
   renderCelestial, renderClouds, renderParticles,
   renderLightning, renderFog, applyWeatherDarkening,
   applyTundraAurora, applyGodRays, renderShootingStars,
-  renderBirds, renderDissolutionWind,
+  renderBirds, renderDissolutionWind, renderDissolutionRain,
 } from "./weather";
 import { createNarrative, updateNarrative } from "./narrative";
 import { computeMoteColor, renderMoteTrails, renderMotes } from "./render-motes";
@@ -115,6 +115,7 @@ function init(): void {
     }
     updateSound(sound, world.ref.motes, curPhase, world.ref.phaseProgress, world.ref.terrain.biome);
     updateWeatherSound(sound, world.ref.weather);
+    updateDissolutionSound(sound, world.ref.cycleProgress, world.ref.terrain.biome, world.ref.weather.type);
   }, 67);
 
   // Idle cursor hide
@@ -171,6 +172,7 @@ function init(): void {
     renderClouds(rc.buf, w.weather, w.time, w.terrain.biome);
     renderBirds(rc.buf, w.cycleNumber, w.cycleProgress, w.phaseIndex, w.weather.type, w.terrain.biome, w.time);
     renderDissolutionWind(rc.buf, w.cycleProgress, w.time, w.terrain.biome, w.cycleNumber);
+    renderDissolutionRain(rc.buf, w.cycleProgress, w.time, w.terrain.biome, w.cycleNumber);
     applyWeatherDarkening(rc.buf, w.weather);
     applyTundraIce(rc.buf, w.terrain, w.cycleProgress);
     renderRainPuddles(rc.buf, w.terrain, w.weather, w.time);

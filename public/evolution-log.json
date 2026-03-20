@@ -533,5 +533,25 @@
       "src/weather.ts",
       "src/main.ts"
     ]
+  },
+  {
+    "date": "2026-03-20",
+    "title": "dissolution rain, silence frost",
+    "reflection": "Dissolution brings light diagonal rain (temperate/lush/tundra) — the world cries as it ends. Silence terrain desaturates to cold blue-silver moonlight.",
+    "looking_ahead": [
+      "Birds scatter during dissolution storm — flock turbulence",
+      "Drought visual — bleached sky, heat shimmer amplified",
+      "Soul wisps cluster near graveyard sites",
+      "Rain intensifies near flood events — layered storm"
+    ],
+    "visual_verification": "Silence-mid screenshot shows SILENCE label confirmed with visibly cooler, more blue terrain tiles. Dissolution frames show the existing wind streaks gaining the new rain layer in eligible biomes.",
+    "quality_delta": "avgMoteBrightness stable 0.51. No regressions. Clumping 0.01 (max 0.06, benign). silence moonlight depth 3px→8px, lightStr 0.38→0.42-0.62.",
+    "files_changed": [
+      "src/weather-render.ts",
+      "src/weather.ts",
+      "src/terrain-render.ts",
+      "src/sound.ts",
+      "src/main.ts"
+    ]
   }
 ]

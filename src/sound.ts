@@ -2246,3 +2246,75 @@ function playThunder(engine: SoundEngine, intensity: number): void {
   src.start(now);
   src.stop(now + 1.5);
 }
+
+// ---- Dissolution rain ambient ------------------------------------------------
+// Module-level state — dissolution rain runs independently of weather.type
+let _drSource: AudioBufferSourceNode | null = null;
+let _drGain: GainNode | null = null;
+let _drActive = false;
+
+/**
+ * Phase-driven rain patter during dissolution.
+ * The world mourns its own ending in soft rain sounds that build and fade.
+ * Only activates in non-desert/volcanic biomes and when weather isn't already rain/storm.
+ * Call once per frame from the main loop.
+ */
+export function updateDissolutionSound(
+  engine: SoundEngine,
+  cycleProgress: number,
+  biome: Biome,
+  weatherType: string,
+): void {
+  if (!engine.initialized) return;
+
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+
+  // Desert and volcanic skip — they already have appropriate atmosphere
+  const rainBiome = biome !== "desert" && biome !== "volcanic";
+  // Don't double-stack with existing rain/storm weather sound
+  const weatherHasRain = weatherType === "rain" || weatherType === "storm";
+  const shouldRain = cycleProgress >= 0.83 && cycleProgress < 0.93 && rainBiome && !weatherHasRain;
+
+  const localP = Math.max(0, Math.min(1, (cycleProgress - 0.83) / 0.10));
+  const fadeIn  = Math.min(1.0, localP * 5.0);
+  const fadeOut = localP > 0.78 ? (1.0 - (localP - 0.78) / 0.22) : 1.0;
+  const str = shouldRain ? fadeIn * fadeOut : 0;
+
+  // Spin up the rain source when dissolution rain begins
+  if (str > 0.01 && !_drActive) {
+    const src = createNoiseSource(ctx, 3);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    // Tundra: higher freq icy sleet; lush: mid-freq; temperate: soft patter
+    filter.frequency.value = biome === "tundra" ? 4800 : biome === "lush" ? 2400 : 3000;
+    filter.Q.value = 0.65;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(engine.masterGain);
+    src.start(now);
+    _drSource = src;
+    _drGain = gain;
+    _drActive = true;
+  }
+
+  // Track volume with phase envelope
+  if (_drGain && _drActive) {
+    const maxVol = biome === "lush" ? 0.055 : 0.038;
+    const targetVol = Math.max(0.001, str * maxVol);
+    _drGain.gain.linearRampToValueAtTime(targetVol, now + 0.25);
+  }
+
+  // Fade out and stop when dissolution ends or weather changes
+  if (!shouldRain && _drActive) {
+    if (_drGain) _drGain.gain.linearRampToValueAtTime(0.001, now + 1.5);
+    if (_drSource) {
+      try { _drSource.stop(now + 1.6); } catch (_) { /* already stopped */ }
+      _drSource = null;
+    }
+    _drGain = null;
+    _drActive = false;
+  }
+}

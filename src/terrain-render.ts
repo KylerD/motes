@@ -190,10 +190,17 @@ export function renderTerrain(
     lightStr = (1 - dp) * 0.35;
     lightR = -8; lightG = -5; lightB = 22;
   } else if (inDusk) {
-    // Deep indigo moonlight
-    lightStr = 0.38;
-    lightR = -12; lightG = -8; lightB = 24;
+    // Deep indigo moonlight — stronger than dawn, the world is cold and still
+    const silenceDepth = Math.min(1, (cycleProgress - 0.92) / 0.05); // builds quickly
+    lightStr = 0.42 + silenceDepth * 0.20; // 0.42 → 0.62 through silence
+    lightR = -16; lightG = -10; lightB = 32;
   }
+
+  // Silence: cold moonlit terrain wash — the entire world gets a blue-silver tint
+  // as the last motes die and the moon rises over the empty land.
+  const silenceColdStr = cycleProgress >= 0.92
+    ? Math.min(1, (cycleProgress - 0.92) / 0.06) * 0.55
+    : 0;
 
   // Sunrise band: warm pink-orange wash across the lower sky during dawn (exploration start)
   // Creates a visible transition from "dark night" to "open day"
@@ -349,12 +356,23 @@ export function renderTerrain(
           // Phase lighting on surface tiles: warm at golden hour, cool at dawn/dusk
           if (lightStr > 0) {
             const distSurf = y - surfaceYCache[x];
-            if (distSurf >= 0 && distSurf < 3) {
-              const fade = (1 - distSurf * 0.4) * lightStr;
+            // Silence gets deeper moonlight penetration (8px vs 3px for golden hour)
+            const lightDepth = inDusk ? 8 : 3;
+            if (distSurf >= 0 && distSurf < lightDepth) {
+              const fade = (1 - distSurf / lightDepth) * lightStr;
               d[pi]     = Math.min(255, Math.max(0, d[pi]     + Math.round(lightR * fade)));
               d[pi + 1] = Math.min(255, Math.max(0, d[pi + 1] + Math.round(lightG * fade)));
               d[pi + 2] = Math.min(255, Math.max(0, d[pi + 2] + Math.round(lightB * fade)));
             }
+          }
+          // Silence cold wash: blue-silver moonlight tints all terrain, not just surface
+          if (silenceColdStr > 0) {
+            // Partial desaturation toward cool grey-blue — the world empties of warmth
+            const avg = (d[pi] + d[pi + 1] + d[pi + 2]) / 3;
+            const cs = silenceColdStr;
+            d[pi]     = Math.min(255, Math.max(0, Math.round(d[pi]     * (1 - cs * 0.28) + avg * cs * 0.14)));
+            d[pi + 1] = Math.min(255, Math.max(0, Math.round(d[pi + 1] * (1 - cs * 0.20) + avg * cs * 0.10)));
+            d[pi + 2] = Math.min(255, Math.round(d[pi + 2] + cs * 28));
           }
         }
       }

@@ -822,6 +822,80 @@ export function renderDissolutionWind(
   }
 }
 
+/**
+ * Dissolution rain — light diagonal drizzle that falls during the dissolution phase.
+ * The world mourns its own ending: gentle streaks fill the sky as motes die and bonds break.
+ * Distinct from flood rain (that is heavy, event-driven); this is quiet, inevitable, mournful.
+ * Matches the wind direction already established by renderDissolutionWind.
+ * Not rendered in desert or volcanic — those biomes have their own dissolution particles.
+ * Call after renderDissolutionWind so rain layers over wind streaks.
+ */
+export function renderDissolutionRain(
+  buf: ImageData,
+  cycleProgress: number,
+  time: number,
+  biome: Biome,
+  cycleNumber: number,
+): void {
+  // Desert and volcanic have ash gusts / sand — no rain
+  if (biome === "volcanic" || biome === "desert") return;
+  // Active from 0.83 to 0.93
+  if (cycleProgress < 0.83 || cycleProgress >= 0.93) return;
+
+  const localP = (cycleProgress - 0.83) / 0.10;
+  const fadeIn  = Math.min(1.0, localP * 5.0);   // full by ~20%
+  const fadeOut = localP > 0.78 ? (1.0 - (localP - 0.78) / 0.22) : 1.0;
+  const str = fadeIn * fadeOut;
+  if (str < 0.02) return;
+
+  // Rain leans with the dissolution wind direction (same seed formula)
+  const windDir: 1 | -1 = ((cycleNumber * 2731 + 3413) & 1) ? 1 : -1;
+  const fallSpeed = 42 + (((cycleNumber * 4127) >>> 0) % 28); // 42–70 px/s fall
+
+  // Biome rain color — each world's rain has a different character
+  let rr: number, rg: number, rb: number;
+  switch (biome) {
+    case "tundra":   rr = 188; rg = 208; rb = 238; break;  // icy sleet, pale blue-white
+    case "lush":     rr = 105; rg = 148; rb = 185; break;  // heavy tropical, deep blue-green
+    default:         rr = 138; rg = 162; rb = 202; break;  // temperate blue-grey
+  }
+
+  const RAIN_N = 45;
+  for (let i = 0; i < RAIN_N; i++) {
+    const h1 = seedHash(cycleNumber * 9311 + i * 293 + 173);  // base Y
+    const h2 = seedHash(cycleNumber * 9311 + i * 293 + 89);   // streak length
+    const h3 = seedHash(cycleNumber * 9311 + i * 293 + 41);   // alpha + speed
+    const h4 = seedHash(cycleNumber * 9311 + i * 293 + 17);   // base X
+
+    const len       = 3 + Math.round(h2 * 5);           // 3–8 px streak
+    const speedVar  = 0.55 + h3 * 0.90;                 // individual fall speed variation
+    const baseAlpha = 22 + Math.round(h3 * 32);         // 22–54 per-streak alpha
+
+    // Scroll vertically (fall) and slightly horizontally (lean with wind)
+    const scrollY = Math.round(time * fallSpeed * speedVar);
+    const scrollX = Math.round(time * 22 * windDir);    // gentle lean, not as fast as wind
+
+    const PADDED_H = H + len + 4;
+    const startY = ((Math.round(h1 * PADDED_H) + scrollY) % PADDED_H + PADDED_H) % PADDED_H - len - 2;
+    const startX = ((Math.round(h4 * W) + scrollX) % W + W) % W;
+
+    const alpha = Math.round(str * baseAlpha);
+    if (alpha < 3) continue;
+
+    // Draw diagonal rain streak — mostly vertical, leans slightly with wind
+    for (let t = 0; t < len; t++) {
+      const px = Math.round(startX + t * windDir * 0.38); // ~21° lean
+      const py = startY + t;
+      if (px < 0 || px >= W || py < 0 || py >= H) continue;
+      // Fade at head and tail
+      const fade = t === 0 ? 0.45 : t === len - 1 ? 0.55 : 1.0;
+      const a = Math.round(alpha * fade);
+      if (a < 2) continue;
+      setPixel(buf, px, py, rr, rg, rb, a);
+    }
+  }
+}
+
 /** Apply ambient darkening for overcast/storm weather */
 export function applyWeatherDarkening(buf: ImageData, weather: Weather): void {
   if (weather.ambientDarkening <= 0) return;
