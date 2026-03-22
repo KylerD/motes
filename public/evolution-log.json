@@ -194,15 +194,15 @@
   {
     "date": "2026-03-09",
     "title": "Dying makes a story",
-    "reflection": "Dying wanderers leave red-hot trails — their final run blazes. Social motes with bonds walk toward partners before dying. Stressed bonds glow urgent orange-white.",
+    "reflection": "Dying wanderers leave red-hot trails \u2014 their final run blazes. Social motes with bonds walk toward partners before dying. Stressed bonds glow urgent orange-white.",
     "looking_ahead": [
       "Cluster merge cascade at 8+ cluster members",
-      "Bond age visualization — old bonds glow warmer",
+      "Bond age visualization \u2014 old bonds glow warmer",
       "Audio for social death walk and wanderer frenzy",
       "Constellation density for mass-death graves"
     ],
     "visual_verification": "dissolution-start shows warm bond lines glowing between final survivors; silence-start has 3-4 motes with visible bond connections. Red trails visible on fast-moving wanderers.",
-    "quality_delta": "mote brightness 0.51 → 0.50 (seed variation only, not from changes)",
+    "quality_delta": "mote brightness 0.51 \u2192 0.50 (seed variation only, not from changes)",
     "files_changed": [
       "src/render-motes.ts",
       "src/mote.ts",
@@ -220,7 +220,7 @@
       "Bond age pulse rate slows as bond ages (old bonds breathe slowly)"
     ],
     "visual_verification": "Dissolution phase shows warm amber bond lines between long-bonded motes. Newly formed bonds appear as cool blue-white lines that fade to mote colors. Motes visibly brighter against terrain.",
-    "quality_delta": "mote brightness floor 80 → 90, base lightness 0.45 → 0.50",
+    "quality_delta": "mote brightness floor 80 \u2192 90, base lightness 0.45 \u2192 0.50",
     "files_changed": [
       "src/types.ts",
       "src/mote.ts",
@@ -235,7 +235,7 @@
     "looking_ahead": [
       "Star field visible in genesis/silence for night atmosphere",
       "Stronger phase sky contrast between genesis night and complexity day",
-      "Mote curiosity — facing toward nearest unbonded neighbor",
+      "Mote curiosity \u2014 facing toward nearest unbonded neighbor",
       "Water reflection intensity tracking sky brightness by phase"
     ],
     "visual_verification": "After screenshot shows warm amber-orange elliptical glow on terrain beneath active clusters. 2-member cluster ring appears in exploration phase. Phase-scaling visible: strong glow in dissolution/complexity, reduced in silence.",
@@ -257,7 +257,7 @@
       "Constellation density for mass-death graves"
     ],
     "visual_verification": "Silence phase shows scattered bright constellation dots across sky. Motes along dark terrain have visible soft colored halos. Pre-dawn genesis stars confirmed deterministic per cycle.",
-    "quality_delta": "Genesis visible motes 5→17 (glow halos detected as brightness by analyzer). No regressions. Constellation alpha 5-17 → 12-38.",
+    "quality_delta": "Genesis visible motes 5\u219217 (glow halos detected as brightness by analyzer). No regressions. Constellation alpha 5-17 \u2192 12-38.",
     "files_changed": [
       "src/render-motes.ts",
       "src/weather-render.ts",
@@ -307,9 +307,9 @@
       "Cluster merge cascade at 8+ members",
       "Constellation density for mass-death graves",
       "Bond age pulse rate slows as bond ages",
-      "Mote curiosity — facing toward nearest unbonded neighbor"
+      "Mote curiosity \u2014 facing toward nearest unbonded neighbor"
     ],
-    "visual_verification": "Tundra biome screenshots show no regressions. The amber ring is a transient 1.4s effect visible during dissolution when long bonds finally break — confirmed in code: 24-point ring expands r=3→14 at 200→0 alpha.",
+    "visual_verification": "Tundra biome screenshots show no regressions. The amber ring is a transient 1.4s effect visible during dissolution when long bonds finally break \u2014 confirmed in code: 24-point ring expands r=3\u219214 at 200\u21920 alpha.",
     "quality_delta": "No regressions. Avg brightness 0.55 before, 0.53 after (different biome/seed). No clumping. No quality issues.",
     "files_changed": [
       "src/types.ts",
@@ -321,15 +321,15 @@
   {
     "date": "2026-03-13",
     "title": "biome ambient life",
-    "reflection": "Each biome gets organic atmosphere during organization/complexity: lush=fireflies, volcanic=embers, tundra=ice sparkles, temperate=pollen, desert=heat dust. Absent outside phases 1–3.",
+    "reflection": "Each biome gets organic atmosphere during organization/complexity: lush=fireflies, volcanic=embers, tundra=ice sparkles, temperate=pollen, desert=heat dust. Absent outside phases 1\u20133.",
     "looking_ahead": [
-      "Synchronized cluster heartbeat — bonded motes pulse in unison",
-      "Firefly audio — soft clicking chirps in lush biome",
+      "Synchronized cluster heartbeat \u2014 bonded motes pulse in unison",
+      "Firefly audio \u2014 soft clicking chirps in lush biome",
       "Cluster merge cascade at 8+ members",
       "Bond age pulse slows as bond ages"
     ],
     "visual_verification": "Tundra biome complexity screenshot shows scattered ice-blue glints in the air above terrain. Organization phase shows fewer, exploration even fewer. Dissolution and silence have no ambient particles as designed.",
-    "quality_delta": "Avg visible count 7.4→18.7 (analyzer detects particles as motes). Clumping 0.80→0.00. Brightness 0.51→0.50 (particles dilute mote avg, benign).",
+    "quality_delta": "Avg visible count 7.4\u219218.7 (analyzer detects particles as motes). Clumping 0.80\u21920.00. Brightness 0.51\u21920.50 (particles dilute mote avg, benign).",
     "files_changed": [
       "src/render-effects.ts",
       "src/main.ts"
@@ -338,15 +338,15 @@
   {
     "date": "2026-03-14",
     "title": "cluster heartbeat",
-    "reflection": "Bonded motes now pulse in unison — larger clusters beat slower. At each peak, a brief corona crowns every cluster member. Brightness floor raised to fix dim-mote quality warning.",
+    "reflection": "Bonded motes now pulse in unison \u2014 larger clusters beat slower. At each peak, a brief corona crowns every cluster member. Brightness floor raised to fix dim-mote quality warning.",
     "looking_ahead": [
-      "Firefly audio — soft clicking chirps in lush biome",
+      "Firefly audio \u2014 soft clicking chirps in lush biome",
       "Cluster merge cascade audio at 8+ members",
       "Bond age pulse rate slows as bond ages",
-      "Mote curiosity — facing toward nearest unbonded neighbor"
+      "Mote curiosity \u2014 facing toward nearest unbonded neighbor"
     ],
-    "visual_verification": "Dissolution-mid shows motes clearly lit along terrain with good contrast against dark sky. Organization-mid shows the cluster identity ring active. Brightness 0.49→0.51 avg, silence phase 0.60. No quality warnings.",
-    "quality_delta": "avgMoteBrightness 0.49→0.51. Brightness floor 115→125. MOTE_TOO_DIM warning resolved.",
+    "visual_verification": "Dissolution-mid shows motes clearly lit along terrain with good contrast against dark sky. Organization-mid shows the cluster identity ring active. Brightness 0.49\u21920.51 avg, silence phase 0.60. No quality warnings.",
+    "quality_delta": "avgMoteBrightness 0.49\u21920.51. Brightness floor 115\u2192125. MOTE_TOO_DIM warning resolved.",
     "files_changed": [
       "src/render-motes.ts",
       "src/main.ts"
@@ -355,15 +355,15 @@
   {
     "date": "2026-03-14",
     "title": "social proximity arcs",
-    "reflection": "Approaching motes now show faint animated dotted arcs — social gravity made visible before bonds form. Old bonds breathe slowly; new bonds pulse fast. Lush gets firefly chirps, tundra gets crystal pings.",
+    "reflection": "Approaching motes now show faint animated dotted arcs \u2014 social gravity made visible before bonds form. Old bonds breathe slowly; new bonds pulse fast. Lush gets firefly chirps, tundra gets crystal pings.",
     "looking_ahead": [
       "Cluster merge cascade at 8+ members",
-      "Mote curiosity — orient toward nearest unbonded neighbor",
+      "Mote curiosity \u2014 orient toward nearest unbonded neighbor",
       "Constellation density for mass-death graves",
-      "Bond age pulse further differentiation — ancient bonds almost still"
+      "Bond age pulse further differentiation \u2014 ancient bonds almost still"
     ],
     "visual_verification": "Organization/complexity screenshots show faint dotted gray wisps between nearby motes that haven't bonded yet. No regressions on brightness or clumping. Bond lines visibly animate at different rates by age.",
-    "quality_delta": "No regressions. Avg visible motes 8.6→16.6 (different seed/timing). Clumping 0.00 (worst 0.17 in silence, benign).",
+    "quality_delta": "No regressions. Avg visible motes 8.6\u219216.6 (different seed/timing). Clumping 0.00 (worst 0.17 in silence, benign).",
     "files_changed": [
       "src/render-bonds.ts",
       "src/main.ts",
@@ -375,13 +375,13 @@
     "title": "curiosity, birth, cascade",
     "reflection": "Motes now face their bond targets. Birth fires a 22px light lance from terrain. Clusters of 8+ trigger a triple expanding ring burst.",
     "looking_ahead": [
-      "Bond age pulse further differentiation — ancient bonds almost still",
+      "Bond age pulse further differentiation \u2014 ancient bonds almost still",
       "Constellation density for mass-death graves",
-      "Cascade audio — rising arpeggio reaching full chord at 8+",
-      "Mote jump/hop when blocked by cliff — traversal feels intentional"
+      "Cascade audio \u2014 rising arpeggio reaching full chord at 8+",
+      "Mote jump/hop when blocked by cliff \u2014 traversal feels intentional"
     ],
     "visual_verification": "Organization-mid and complexity screenshots show dramatic multicolored expanding rings from large cluster centroids. Volcanic biome motes clearly visible as bright colored sparks.",
-    "quality_delta": "avgMoteBrightness 0.56→0.52 (different biome seed, not a regression). Clumping 0.04→0.00. No quality warnings.",
+    "quality_delta": "avgMoteBrightness 0.56\u21920.52 (different biome seed, not a regression). Clumping 0.04\u21920.00. No quality warnings.",
     "files_changed": [
       "src/mote.ts",
       "src/render-motes.ts",
@@ -394,13 +394,13 @@
     "title": "cluster beacons, graveyard rings",
     "reflection": "Large clusters (6+) now emit soft colored light pillars rising into the sky. Silence phase shows memorial rings at sites where communities died together.",
     "looking_ahead": [
-      "Mote curiosity — orient toward nearest unbonded neighbor",
+      "Mote curiosity \u2014 orient toward nearest unbonded neighbor",
       "Cluster merge cascade at 8+ members",
-      "Bond age pulse further differentiation — ancient bonds almost still",
-      "Beacon color shifts with cluster energy — dying clusters flicker red"
+      "Bond age pulse further differentiation \u2014 ancient bonds almost still",
+      "Beacon color shifts with cluster energy \u2014 dying clusters flicker red"
     ],
-    "visual_verification": "Organization/complexity screenshots show soft jellyfish-like glow columns rising from mote clusters. Beacon visible above terrain in phases 2-4. Silence graveyard rings appear for death clusters of 4+. Avg brightness 0.50→0.56.",
-    "quality_delta": "avgMoteBrightness 0.50→0.56. Clumping 0.04→0.00. No regressions.",
+    "visual_verification": "Organization/complexity screenshots show soft jellyfish-like glow columns rising from mote clusters. Beacon visible above terrain in phases 2-4. Silence graveyard rings appear for death clusters of 4+. Avg brightness 0.50\u21920.56.",
+    "quality_delta": "avgMoteBrightness 0.50\u21920.56. Clumping 0.04\u21920.00. No regressions.",
     "files_changed": [
       "src/render-bonds.ts",
       "src/main.ts"
@@ -411,10 +411,10 @@
     "title": "soul wisps",
     "reflection": "Each death now leaves a soft glowing spirit that drifts 22px above the terrain and persists for 50 seconds. By dissolution the sky fills with the souls of everyone who walked this world.",
     "looking_ahead": [
-      "Cascade audio — rising arpeggio reaching full chord at 8+",
+      "Cascade audio \u2014 rising arpeggio reaching full chord at 8+",
       "Mote jump/hop when blocked by cliff",
       "Soul wisps cluster together near graveyard sites",
-      "Wisp color deepens with time — freshest souls brightest"
+      "Wisp color deepens with time \u2014 freshest souls brightest"
     ],
     "visual_verification": "10x-speed complexity/dissolution screenshots show soft colored orbs floating above the mote terrain line. Sky visibly populated with lingering spirits. Empty sky in before comparison confirms the change.",
     "quality_delta": "Avg brightness 0.55 (no regression). No clumping. New system adds sky depth during complexity and dissolution phases.",
@@ -428,15 +428,15 @@
   {
     "date": "2026-03-17",
     "title": "flood storm, brighter wisps",
-    "reflection": "Flood events now bring dark storm clouds, heavy diagonal rain, and a thunder flash. Soul wisp max-alpha doubled (28→60) so the dead are unmistakably present.",
+    "reflection": "Flood events now bring dark storm clouds, heavy diagonal rain, and a thunder flash. Soul wisp max-alpha doubled (28\u219260) so the dead are unmistakably present.",
     "looking_ahead": [
-      "Cascade audio — rising arpeggio reaching full chord at 8+",
-      "Drought visual — bleached sky, heat shimmer amplified, cracked earth",
+      "Cascade audio \u2014 rising arpeggio reaching full chord at 8+",
+      "Drought visual \u2014 bleached sky, heat shimmer amplified, cracked earth",
       "Soul wisps cluster near graveyard sites",
       "Mote hop/jump when blocked by cliff face"
     ],
     "visual_verification": "After screenshots show dissolution sky populated with visible glowing soul orbs above terrain. Flood storm confirmed in code: sky darkening gradient, 70 diagonal rain streaks, thunder flash at event start. No regressions in quality analysis.",
-    "quality_delta": "avgMoteBrightness 0.50→0.52. Clumping 0.00. Water coverage 10.8%→20.8% (different biome, not from changes).",
+    "quality_delta": "avgMoteBrightness 0.50\u21920.52. Clumping 0.00. Water coverage 10.8%\u219220.8% (different biome, not from changes).",
     "files_changed": [
       "src/render-effects.ts",
       "src/main.ts",
@@ -447,15 +447,15 @@
   {
     "date": "2026-03-17",
     "title": "cascade arpeggio, visible clouds",
-    "reflection": "Cluster cascade now triggers a rising 6-note arpeggio that resolves to a sustained chord. Cloud density tripled — skies have visible drifting puffs in all weather.",
+    "reflection": "Cluster cascade now triggers a rising 6-note arpeggio that resolves to a sustained chord. Cloud density tripled \u2014 skies have visible drifting puffs in all weather.",
     "looking_ahead": [
-      "Drought visual — bleached sky, heat shimmer amplified",
+      "Drought visual \u2014 bleached sky, heat shimmer amplified",
       "Soul wisps cluster near graveyard sites",
-      "God rays strengthened — currently too faint to see",
-      "Phase-reactive clouds — build through complexity, clear in silence"
+      "God rays strengthened \u2014 currently too faint to see",
+      "Phase-reactive clouds \u2014 build through complexity, clear in silence"
     ],
-    "visual_verification": "After screenshots show visible grey cloud shapes in the daytime sky above terrain — sky is no longer a flat empty gradient. Organization/complexity phases have clear cloud texture.",
-    "quality_delta": "avgMoteBrightness 0.52→0.52. Brightness floor 125→138. Cloud density 0.10-0.30→0.28-0.52. Cloud count (clear) 0-2→3-6. No regressions.",
+    "visual_verification": "After screenshots show visible grey cloud shapes in the daytime sky above terrain \u2014 sky is no longer a flat empty gradient. Organization/complexity phases have clear cloud texture.",
+    "quality_delta": "avgMoteBrightness 0.52\u21920.52. Brightness floor 125\u2192138. Cloud density 0.10-0.30\u21920.28-0.52. Cloud count (clear) 0-2\u21923-6. No regressions.",
     "files_changed": [
       "src/sound.ts",
       "src/main.ts",
@@ -466,14 +466,14 @@
   {
     "date": "2026-03-18",
     "title": "god rays and bird calls",
-    "reflection": "God rays boosted 4x (alpha 26→110, length 42→68, 8→12 shafts). Birds now chirp every 8-20s with biome-specific calls — songbird, tropical trill, tundra whistle, hawk cry.",
+    "reflection": "God rays boosted 4x (alpha 26\u2192110, length 42\u219268, 8\u219212 shafts). Birds now chirp every 8-20s with biome-specific calls \u2014 songbird, tropical trill, tundra whistle, hawk cry.",
     "looking_ahead": [
-      "God rays fade through cloud density — shaft gaps when overcast",
-      "Birds react to storms — scatter visually when weather turns",
-      "Drought visual — bleached sky, heat shimmer amplified",
+      "God rays fade through cloud density \u2014 shaft gaps when overcast",
+      "Birds react to storms \u2014 scatter visually when weather turns",
+      "Drought visual \u2014 bleached sky, heat shimmer amplified",
       "Sunrise/sunset rays warm from white to gold as sun nears horizon"
     ],
-    "visual_verification": "Volcanic biome in captures absorbs amber rays (intentional — ash filters). In temperate/desert biomes the shafts are clearly visible streaks spanning ~68px from sun. Before max alpha 26, after max alpha ~110.",
+    "visual_verification": "Volcanic biome in captures absorbs amber rays (intentional \u2014 ash filters). In temperate/desert biomes the shafts are clearly visible streaks spanning ~68px from sun. Before max alpha 26, after max alpha ~110.",
     "quality_delta": "No regressions. avgMoteBrightness 0.53 stable. God ray strength 4x. Bird chirps audible every 8-20s.",
     "files_changed": [
       "src/weather-render.ts",
@@ -486,7 +486,7 @@
     "title": "bird flocks in sky",
     "reflection": "Added pixel bird flocks that cross the sky during exploration through dissolution. Phase-reactive: absent at genesis/silence, peak at complexity. Biome silhouette colors differ per world.",
     "looking_ahead": [
-      "Birds react to storms — scatter or shelter when weather turns",
+      "Birds react to storms \u2014 scatter or shelter when weather turns",
       "Seasonal migration: flocks grow larger at complexity, dwindle at dissolution",
       "Birds perch briefly on high terrain features before departing",
       "Sound: faint wingbeat or distant call during active flock phases"
@@ -505,9 +505,9 @@
     "reflection": "Dissolution now paints the sky blazing orange at the horizon transitioning to deep purple at zenith. Water reflections warm to amber. Night phases get a faint Milky Way band.",
     "looking_ahead": [
       "Birds scatter/shelter during storms",
-      "Drought visual — bleached sky, heat shimmer amplified",
+      "Drought visual \u2014 bleached sky, heat shimmer amplified",
       "Soul wisps cluster near graveyard sites",
-      "Sunrise more dramatic — wider orange sweep at exploration start"
+      "Sunrise more dramatic \u2014 wider orange sweep at exploration start"
     ],
     "visual_verification": "Dissolution screenshots show deep burgundy-to-purple gradient sky above volcanic lava. Silence phase blazes orange-crimson near horizon. Before: flat teal/blue sky. After: unmistakable sunset arc.",
     "quality_delta": "avgMoteBrightness 0.52 stable. No regressions. Clumping 0.00.",
@@ -519,15 +519,15 @@
   {
     "date": "2026-03-19",
     "title": "dissolution wind storm",
-    "reflection": "Dissolution now brings 55 horizontal wind streaks blowing across the sky plus progressive sky darkening from above. The phase arc is unmistakable: calm golden complexity → turbulent stormy dissolution.",
+    "reflection": "Dissolution now brings 55 horizontal wind streaks blowing across the sky plus progressive sky darkening from above. The phase arc is unmistakable: calm golden complexity \u2192 turbulent stormy dissolution.",
     "looking_ahead": [
-      "Birds scatter during dissolution storm — flock turbulence visually",
-      "Drought visual — bleached sky, heat shimmer amplified, cracked ground",
+      "Birds scatter during dissolution storm \u2014 flock turbulence visually",
+      "Drought visual \u2014 bleached sky, heat shimmer amplified, cracked ground",
       "Soul wisps cluster near graveyard sites",
-      "Sunrise more dramatic — wider orange sweep at exploration start"
+      "Sunrise more dramatic \u2014 wider orange sweep at exploration start"
     ],
     "visual_verification": "Dissolution-phase screenshot shows horizontal pale wind streaks in the purple-orange sky, sky darkening at zenith. Before: flat warm golden sky. After: dark stormy atmosphere with visible directional wind motion.",
-    "quality_delta": "avgMoteBrightness stable 0.51→0.50. No regressions. Clumping 0.02 worst 0.11 dissolution (benign).",
+    "quality_delta": "avgMoteBrightness stable 0.51\u21920.50. No regressions. Clumping 0.02 worst 0.11 dissolution (benign).",
     "files_changed": [
       "src/weather-render.ts",
       "src/weather.ts",
@@ -537,15 +537,15 @@
   {
     "date": "2026-03-20",
     "title": "dissolution rain, silence frost",
-    "reflection": "Dissolution brings light diagonal rain (temperate/lush/tundra) — the world cries as it ends. Silence terrain desaturates to cold blue-silver moonlight.",
+    "reflection": "Dissolution brings light diagonal rain (temperate/lush/tundra) \u2014 the world cries as it ends. Silence terrain desaturates to cold blue-silver moonlight.",
     "looking_ahead": [
-      "Birds scatter during dissolution storm — flock turbulence",
-      "Drought visual — bleached sky, heat shimmer amplified",
+      "Birds scatter during dissolution storm \u2014 flock turbulence",
+      "Drought visual \u2014 bleached sky, heat shimmer amplified",
       "Soul wisps cluster near graveyard sites",
-      "Rain intensifies near flood events — layered storm"
+      "Rain intensifies near flood events \u2014 layered storm"
     ],
     "visual_verification": "Silence-mid screenshot shows SILENCE label confirmed with visibly cooler, more blue terrain tiles. Dissolution frames show the existing wind streaks gaining the new rain layer in eligible biomes.",
-    "quality_delta": "avgMoteBrightness stable 0.51. No regressions. Clumping 0.01 (max 0.06, benign). silence moonlight depth 3px→8px, lightStr 0.38→0.42-0.62.",
+    "quality_delta": "avgMoteBrightness stable 0.51. No regressions. Clumping 0.01 (max 0.06, benign). silence moonlight depth 3px\u21928px, lightStr 0.38\u21920.42-0.62.",
     "files_changed": [
       "src/weather-render.ts",
       "src/weather.ts",
@@ -557,15 +557,15 @@
   {
     "date": "2026-03-20",
     "title": "flock scatter, lone bird",
-    "reflection": "Dissolution flocks panic and scatter as wind tears through — formations break, birds flee in seeded random directions. Silence gets one lone survivor gliding slowly across the empty sky.",
+    "reflection": "Dissolution flocks panic and scatter as wind tears through \u2014 formations break, birds flee in seeded random directions. Silence gets one lone survivor gliding slowly across the empty sky.",
     "looking_ahead": [
-      "Drought visual — bleached sky, heat shimmer amplified, cracked ground",
+      "Drought visual \u2014 bleached sky, heat shimmer amplified, cracked ground",
       "Soul wisps cluster near graveyard sites",
-      "Rain intensifies near flood events — layered storm",
-      "Scatter audio — brief panicked calls as dissolution flock breaks"
+      "Rain intensifies near flood events \u2014 layered storm",
+      "Scatter audio \u2014 brief panicked calls as dissolution flock breaks"
     ],
     "visual_verification": "Silence-mid shows a distinct 7-pixel-wide bird shape drifting alone in mid-sky above the empty landscape. Dissolution frames show birds mid-scatter with faster panic flap speed. No regressions.",
-    "quality_delta": "avgMoteBrightness 0.52→0.53. Clumping 0.00. No regressions.",
+    "quality_delta": "avgMoteBrightness 0.52\u21920.53. Clumping 0.00. No regressions.",
     "files_changed": [
       "src/weather-render.ts"
     ]
@@ -576,12 +576,12 @@
     "reflection": "Drought now bleaches the sky to harsh pale straw, distorts terrain with heat shimmer, bleaches ground to sandy ochre, and fills the air with drifting dust particles.",
     "looking_ahead": [
       "Soul wisps cluster near graveyard sites",
-      "Rain intensifies near flood events — layered storm",
-      "Scatter audio — brief panicked calls as dissolution flock breaks",
-      "Drought audio — dry crackling, sparse high tones, parched silence"
+      "Rain intensifies near flood events \u2014 layered storm",
+      "Scatter audio \u2014 brief panicked calls as dissolution flock breaks",
+      "Drought audio \u2014 dry crackling, sparse high tones, parched silence"
     ],
     "visual_verification": "Drought cycle 164 complexity-phase screenshot shows entire world bathed in warm amber-ochre: bleached pale straw sky, sandy terrain tint, heat shimmer distortion visible in terrain rows. Clearly distinct from normal blue-sky organization phase.",
-    "quality_delta": "avgMoteBrightness 0.51→0.50. Avg visible motes 14.4→18.3. No regressions. No quality issues detected.",
+    "quality_delta": "avgMoteBrightness 0.51\u21920.50. Avg visible motes 14.4\u219218.3. No regressions. No quality issues detected.",
     "files_changed": [
       "src/render-effects.ts",
       "src/main.ts",
@@ -592,15 +592,15 @@
   {
     "date": "2026-03-21",
     "title": "brighter motes, wisp graveyards",
-    "reflection": "Raised mote brightness floor 138→162 and base light 0.50→0.55, clearing MOTE_TOO_DIM. Soul wisps now drift toward community graveyard sites and blend hues, forming ghost-clusters above where kin fell.",
+    "reflection": "Raised mote brightness floor 138\u2192162 and base light 0.50\u21920.55, clearing MOTE_TOO_DIM. Soul wisps now drift toward community graveyard sites and blend hues, forming ghost-clusters above where kin fell.",
     "looking_ahead": [
-      "Drought audio — dry crackling, sparse high tones, parched silence",
-      "Rain intensifies near flood events — layered storm",
-      "Scatter audio — panicked calls as dissolution flock breaks",
-      "Bond formation visual — starburst flash when two motes first connect"
+      "Drought audio \u2014 dry crackling, sparse high tones, parched silence",
+      "Rain intensifies near flood events \u2014 layered storm",
+      "Scatter audio \u2014 panicked calls as dissolution flock breaks",
+      "Bond formation visual \u2014 starburst flash when two motes first connect"
     ],
     "visual_verification": "AFTER complexity screenshot shows motes as vivid bright green dots, clearly readable against warm orange volcanic terrain. Dissolution screenshot shows two bright colored wisps drifting upward above terrain with graveyard pull applied.",
-    "quality_delta": "avgMoteBrightness 0.49→0.50. MOTE_TOO_DIM issue cleared. Clumping 0.00. No regressions.",
+    "quality_delta": "avgMoteBrightness 0.49\u21920.50. MOTE_TOO_DIM issue cleared. Clumping 0.00. No regressions.",
     "files_changed": [
       "src/render-motes.ts",
       "src/render-bonds.ts"
@@ -609,17 +609,33 @@
   {
     "date": "2026-03-22",
     "title": "bond formation burst",
-    "reflection": "Bond starburst replaced: 12 expanding spokes grow from 0→12px over 0.33s. Echo ring persists 2s, expanding 2→14px. Motes brighter: body alpha raised, base light 0.55→0.60.",
+    "reflection": "Bond starburst replaced: 12 expanding spokes grow from 0\u219212px over 0.33s. Echo ring persists 2s, expanding 2\u219214px. Motes brighter: body alpha raised, base light 0.55\u21920.60.",
     "looking_ahead": [
-      "Drought audio — dry crackling, sparse high tones, parched silence",
-      "Scatter audio — panicked calls as dissolution flock breaks",
-      "Bond break visual — shards or sparks when an old bond snaps",
-      "Genesis quiet — fewer motes at cycle start, bigger arrival moment"
+      "Drought audio \u2014 dry crackling, sparse high tones, parched silence",
+      "Scatter audio \u2014 panicked calls as dissolution flock breaks",
+      "Bond break visual \u2014 shards or sparks when an old bond snaps",
+      "Genesis quiet \u2014 fewer motes at cycle start, bigger arrival moment"
     ],
-    "visual_verification": "Organization-phase screenshots show vivid individual colored mote sprites clearly readable against terrain. Quality: avgMoteBrightness 0.49→0.53, no issues detected.",
-    "quality_delta": "avgMoteBrightness 0.49→0.53. Clumping 0.00→0.03 (benign). No quality issues detected.",
+    "visual_verification": "Organization-phase screenshots show vivid individual colored mote sprites clearly readable against terrain. Quality: avgMoteBrightness 0.49\u21920.53, no issues detected.",
+    "quality_delta": "avgMoteBrightness 0.49\u21920.53. Clumping 0.00\u21920.03 (benign). No quality issues detected.",
     "files_changed": [
       "src/render-bonds.ts",
+      "src/render-motes.ts"
+    ]
+  },
+  {
+    "date": "2026-03-22",
+    "title": "mote vitality glow",
+    "reflection": "Motes now emit phase-scaled halos: complexity glows warmest (r=5, max 14), organization softly (max 8), night as before (max 28). Newborns glow gold-white for 6s before their identity solidifies.",
+    "looking_ahead": [
+      "Elder glow arc: motes brighten just before death",
+      "Sound phase arc: sparse genesis, lush complexity, near-silent dissolution",
+      "Biome-reactive mote behavior: drought clustering near water, cold biome huddling",
+      "Mote size differentiation: juvenile (small) vs elder (mass)"
+    ],
+    "visual_verification": "Complexity screenshots show distinct halos around each mote. Organization phase went from 0 detected motes to 20. Phase arc legible through glow intensity.",
+    "quality_delta": "avgVisibleMotes 13.7 -> 20.3, avgMoteBrightness 0.47 -> 0.51, MOTE_TOO_DIM resolved, organization 0 motes -> 20 motes",
+    "files_changed": [
       "src/render-motes.ts"
     ]
   }

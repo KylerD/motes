@@ -93,10 +93,15 @@ export function renderMotes(
   phaseIndex = 3,
   clusterHeartbeat: Map<Mote, number> = new Map(),
 ): void {
-  // Night phases: 0=genesis (pre-dawn), 5=silence (post-dusk).
-  // In darkness, motes emit a soft ambient halo — they look like tiny lanterns.
-  // The glow feeds into the bloom pass, creating a warm colored aureole.
-  const nightGlowMax = (phaseIndex === 0 || phaseIndex === 5) ? 28 : 0;
+  // Phase glow: night phases = full lantern (28px), complexity = vitality halo (14px),
+  // organization = community warmth (8px), genesis/silence brighter to keep motes readable.
+  // The phase arc reads through mote luminosity: birth/death = lantern glow,
+  // peak life = warm vitality aura, mid-cycle = quieter but still present.
+  const glowMax =
+    phaseIndex === 0 || phaseIndex === 5 ? 28   // genesis/silence: lantern in dark
+    : phaseIndex === 3 ? 14                      // complexity: peak life vitality
+    : phaseIndex === 2 ? 8                       // organization: community warmth
+    : 0;
 
   for (const m of motes) {
     let [cr, cg, cb] = moteColors.get(m)!;
@@ -117,18 +122,21 @@ export function renderMotes(
     const oy = Math.round(m.y);
     const dir = m.direction;
 
-    // NIGHT LANTERN GLOW — in dark phases, each mote emits a soft colored halo.
-    // Drawn before the body so the sprite renders on top, leaving a warm outer ring.
-    // Scales with energy: dying motes flicker dimmer, full-energy motes burn brightest.
-    if (nightGlowMax > 0) {
+    // AMBIENT GLOW — phase-scaled halo drawn before the body.
+    // Night phases: lantern warmth. Day phases: vitality aura (smaller, energy-scaled).
+    // Scales with energy so dying motes flicker dimmer. Feeds into bloom pass.
+    if (glowMax > 0) {
       const gPulse = Math.sin(m.age * 1.6 + m.x * 0.14) * 0.22 + 0.78;
-      const gA = Math.round(nightGlowMax * gPulse * Math.max(0.45, m.energy));
+      const gA = Math.round(glowMax * gPulse * Math.max(0.45, m.energy));
       if (gA > 3) {
-        for (let dgy = -7; dgy <= 7; dgy++) {
-          for (let dgx = -7; dgx <= 7; dgx++) {
+        // Night lanterns use radius 7; day vitality uses radius 5 (subtler)
+        const glowR = (phaseIndex === 0 || phaseIndex === 5) ? 7 : 5;
+        const glowR2 = glowR * glowR;
+        for (let dgy = -glowR; dgy <= glowR; dgy++) {
+          for (let dgx = -glowR; dgx <= glowR; dgx++) {
             const d2 = dgx * dgx + dgy * dgy;
-            if (d2 > 49) continue; // radius 7
-            const fall = 1 - Math.sqrt(d2) / 7;
+            if (d2 > glowR2) continue;
+            const fall = 1 - Math.sqrt(d2) / glowR;
             const ga = Math.round(gA * fall * fall);
             if (ga > 1) setPixel(buf, ox + dgx, oy - 1 + dgy, cr, cg, cb, ga);
           }
@@ -146,6 +154,25 @@ export function renderMotes(
     const lr = Math.min(255, Math.round(cr * 1.60));
     const lg = Math.min(255, Math.round(cg * 1.60));
     const lb = Math.min(255, Math.round(cb * 1.60));
+
+    // BIRTH GLOW — first 6 seconds of life, a warm gold-white haze envelops the mote.
+    // As they mature, the haze fades and their true identity color emerges.
+    // This makes newborns visibly fragile and distinct; genesis feels like seedlings sprouting.
+    const juvT = Math.max(0, 1 - m.age / 6.0);
+    if (juvT > 0.005) {
+      const juvA = Math.round(juvT * juvT * 55); // quadratic fade: bright at birth
+      if (juvA > 3) {
+        for (let dgy = -5; dgy <= 2; dgy++) {
+          for (let dgx = -5; dgx <= 5; dgx++) {
+            const d2 = dgx * dgx + dgy * dgy;
+            if (d2 > 25) continue; // radius 5
+            const fall = 1 - Math.sqrt(d2) / 5;
+            const ga = Math.round(juvA * fall);
+            if (ga > 2) setPixel(buf, ox + dgx, oy - 1 + dgy, 255, 240, 200, ga);
+          }
+        }
+      }
+    }
 
     // DARK OUTLINE — head area shifts with lean; body/feet anchored
     setPixel(buf, ox - 1 + lean, oy - 3, 4, 4, 8, 245);
