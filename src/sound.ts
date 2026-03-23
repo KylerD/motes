@@ -267,6 +267,7 @@ const engineAncientBondBreakTime = new WeakMap<SoundEngine, number>();
 const engineLushFireflyTime = new WeakMap<SoundEngine, number>();
 const engineTundraCrystalTime = new WeakMap<SoundEngine, number>();
 const engineCascadeArrivalTime = new WeakMap<SoundEngine, number>();
+const engineElderDeathTime = new WeakMap<SoundEngine, number>();
 
 // Phase multipliers for ambient bed gain — drives the sonic arc
 const PHASE_AMBIENT_MULT = [0.30, 0.60, 0.85, 1.00, 0.65, 0.10];
@@ -1457,6 +1458,70 @@ export function playDeath(engine: SoundEngine, yNorm: number): void {
       osc2.stop(now + 0.80);
       break;
     }
+  }
+}
+
+/**
+ * Elder death knell — played when an ancient mote (age > 25) dies.
+ * A three-note resonant chord descending slowly into silence. More mournful and
+ * spacious than the regular death sound: this was a life that mattered.
+ * Biome-voiced timbre. Always routed through reverb for ghostly distance.
+ */
+export function playElderDeath(engine: SoundEngine, yNorm: number): void {
+  if (!engine.initialized) return;
+  const biome = engineCurrentBiome.get(engine) ?? "temperate";
+  const p = BIOME_SOUND[biome];
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+
+  // Cooldown: at most one elder knell every 4 seconds (avoids saturation in dissolution)
+  const lastKnell = engineElderDeathTime.get(engine) ?? -999;
+  if (now - lastKnell < 4.0) return;
+  engineElderDeathTime.set(engine, now);
+
+  // Root from biome profile shifted by Y position — high deaths ring higher
+  const rootFreq = p.rootFreq * (1.0 + yNorm * 0.35);
+
+  // Three descending tones: root, minor 3rd down, octave down
+  // They trigger in sequence, each with a longer decay than the last.
+  const tones: [number, number, number, number][] = [
+    // [semitones_from_root, delay_s, peak_gain, decay_s]
+    [0,  0.00, 0.030, 4.0],
+    [-3, 0.35, 0.022, 3.2],
+    [-12,0.75, 0.028, 5.5],
+  ];
+
+  const wave: OscillatorType = (biome === "volcanic") ? "triangle"
+    : (biome === "tundra") ? "sine"
+    : "sine";
+
+  for (const [semi, delay, vol, decay] of tones) {
+    const freq = rootFreq * Math.pow(2, semi / 12);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = wave;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.001, now + delay);
+    gain.gain.linearRampToValueAtTime(vol * p.masterMult, now + delay + 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + delay + decay);
+    osc.connect(gain);
+    gain.connect(engine.reverb);
+    osc.start(now + delay);
+    osc.stop(now + delay + decay + 0.1);
+
+    // Faint upper harmonic — adds warmth, slightly detuned per tone for richness
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.value = freq * 2.0;
+    osc2.detune.value = 8;
+    gain2.gain.setValueAtTime(0.001, now + delay);
+    gain2.gain.linearRampToValueAtTime(vol * 0.28 * p.masterMult, now + delay + 0.04);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + delay + decay * 0.55);
+    osc2.connect(gain2);
+    gain2.connect(engine.reverb);
+    osc2.start(now + delay);
+    osc2.stop(now + delay + decay * 0.6);
   }
 }
 

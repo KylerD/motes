@@ -655,5 +655,25 @@
       "src/render-motes.ts",
       "src/mote.ts"
     ]
+  },
+  {
+    "date": "2026-03-23",
+    "title": "elder life arc",
+    "reflection": "Elders near death glow amber-gold, pulse faster as energy drains. Juveniles skip outer outline — tiny at birth, growing to full size. Elder deaths play a 3-note descending knell.",
+    "looking_ahead": [
+      "Sound phase arc: genesis sparser, silence emptier",
+      "Trail persistence heatmap: frequently-visited terrain shows lingering warmth",
+      "Mote size by age: juveniles truly smaller, elders slightly wider body",
+      "Elder grief inheritance: nearby motes gain a brief mourning flicker on elder death"
+    ],
+    "visual_verification": "Dissolution/silence detected motes jumped 9->16 and 6->39 — elder glow adding detectable bright pixels around dying motes. Volcanic biome dissolution screenshots show warm halos around terrain-level motes.",
+    "quality_delta": "avgVisibleMotes 10.0 -> 16.7 (peak 26->39). avgMoteBrightness stable 0.57->0.50. No quality issues.",
+    "files_changed": [
+      "src/render-motes.ts",
+      "src/types.ts",
+      "src/world.ts",
+      "src/sound.ts",
+      "src/main.ts"
+    ]
   }
 ]

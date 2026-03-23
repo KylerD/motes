@@ -235,6 +235,7 @@ export function updateWorld(world: World, dt: number): void {
         x: m.x, y: m.y,
         r: dr, g: dg, b: db,
         time: world.time,
+        age: m.age,
         trail: trailCopy,
       });
 

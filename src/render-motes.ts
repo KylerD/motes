@@ -191,21 +191,56 @@ export function renderMotes(
       }
     }
 
-    // DARK OUTLINE — head area shifts with lean; body/feet anchored
-    setPixel(buf, ox - 1 + lean, oy - 3, 4, 4, 8, 245);
-    setPixel(buf, ox + lean,     oy - 3, 4, 4, 8, 245);
-    setPixel(buf, ox + 1 + lean, oy - 3, 4, 4, 8, 245);
-    setPixel(buf, ox - 2 + lean, oy - 2, 4, 4, 8, 245);
-    setPixel(buf, ox + 2 + lean, oy - 2, 4, 4, 8, 245);
-    setPixel(buf, ox - 3, oy - 1, 4, 4, 8, 230);
-    setPixel(buf, ox + 3, oy - 1, 4, 4, 8, 230);
-    setPixel(buf, ox - 3, oy, 4, 4, 8, 230);
-    setPixel(buf, ox + 3, oy, 4, 4, 8, 230);
-    setPixel(buf, ox - 2, oy + 1, 4, 4, 8, 220);
-    setPixel(buf, ox, oy + 1, 4, 4, 8, 220);
-    setPixel(buf, ox + 2, oy + 1, 4, 4, 8, 220);
-    setPixel(buf, ox - 1, oy + 2, 4, 4, 8, 200);
-    setPixel(buf, ox + 1, oy + 2, 4, 4, 8, 200);
+    // ELDER FINALE GLOW — elders burn brightest before they go out.
+    // When age > 20 and energy < 0.40, a warm radiance grows as death nears.
+    // Pulse rate accelerates: slow heartbeat early, frantic shimmer at the end.
+    // Color shifts from amber-gold toward incandescent white as energy → 0.
+    if (isElder && m.energy < 0.40 && m.energy > 0) {
+      const deathT = 1 - m.energy / 0.40;        // 0→1 as elder approaches death
+      const pulseHz = 1.5 + deathT * 8.5;        // 1.5→10 Hz — faster as time runs out
+      const pulse = Math.sin(m.age * pulseHz) * 0.30 + 0.70;
+      const baseA = Math.round(deathT * deathT * 100 * pulse);
+      if (baseA > 3) {
+        const glowRad = Math.round(5 + deathT * 6); // 5→11 px — grows with urgency
+        const glowR2 = glowRad * glowRad;
+        // Gold at first fade, warm white at the very end
+        const gwr = 255;
+        const gwg = Math.round(215 + deathT * 40);          // 215→255
+        const gwb = Math.round(140 - deathT * 80);          // 140→60
+        for (let dgy = -glowRad; dgy <= glowRad; dgy++) {
+          for (let dgx = -glowRad; dgx <= glowRad; dgx++) {
+            const d2 = dgx * dgx + dgy * dgy;
+            if (d2 > glowR2) continue;
+            const fall = 1 - Math.sqrt(d2) / glowRad;
+            const pixA = Math.round(baseA * fall * fall);
+            if (pixA > 1) setPixel(buf, ox + dgx, oy - 1 + dgy, gwr, gwg, gwb, pixA);
+          }
+        }
+      }
+    }
+
+    // JUVENILE FRAGILITY — very young motes (age < 2.5) skip the outer outline,
+    // making them appear smaller and more delicate. Newborns are tiny; they grow.
+    const drawOutline = m.age >= 2.5;
+
+    // DARK OUTLINE — head area shifts with lean; body/feet anchored.
+    // Juveniles (age < 2.5) skip the outer silhouette — they appear smaller and more fragile.
+    if (drawOutline) {
+      setPixel(buf, ox - 1 + lean, oy - 3, 4, 4, 8, 245);
+      setPixel(buf, ox + lean,     oy - 3, 4, 4, 8, 245);
+      setPixel(buf, ox + 1 + lean, oy - 3, 4, 4, 8, 245);
+      setPixel(buf, ox - 2 + lean, oy - 2, 4, 4, 8, 245);
+      setPixel(buf, ox + 2 + lean, oy - 2, 4, 4, 8, 245);
+      setPixel(buf, ox - 3, oy - 1, 4, 4, 8, 230);
+      setPixel(buf, ox + 3, oy - 1, 4, 4, 8, 230);
+      setPixel(buf, ox - 3, oy, 4, 4, 8, 230);
+      setPixel(buf, ox + 3, oy, 4, 4, 8, 230);
+      setPixel(buf, ox - 2, oy + 1, 4, 4, 8, 220);
+      setPixel(buf, ox, oy + 1, 4, 4, 8, 220);
+      setPixel(buf, ox + 2, oy + 1, 4, 4, 8, 220);
+      setPixel(buf, ox - 1, oy + 2, 4, 4, 8, 200);
+      setPixel(buf, ox + 1, oy + 2, 4, 4, 8, 200);
+    }
 
     // HEAD — shifts with lean
     setPixel(buf, ox - 1 + lean, oy - 2, cr, cg, cb, 210);

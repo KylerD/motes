@@ -5,7 +5,7 @@ import { H } from "./config";
 import { renderTerrain, applyHeatHaze, applyVolcanicAsh, renderRainPuddles, renderWaterMist, renderVolcanicEmbers, applyTundraIce } from "./terrain";
 import { createWorld, updateWorld } from "./world";
 import { cycleName } from "./names";
-import { createSoundEngine, initAudio, updateSound, updateWeatherSound, updateDissolutionSound, playDeath, playEventSound, playPhaseTransition, playCascadeArrival, playBirdChirp } from "./sound";
+import { createSoundEngine, initAudio, updateSound, updateWeatherSound, updateDissolutionSound, playDeath, playElderDeath, playEventSound, playPhaseTransition, playCascadeArrival, playBirdChirp } from "./sound";
 import { createInteraction, applyInteraction } from "./interaction";
 import { isEventActive, isEclipseActive } from "./events";
 import {
@@ -148,10 +148,16 @@ function init(): void {
       w.pendingEventSound = null;
     }
 
-    // Death sounds
+    // Death sounds — elders (age > 25) get a distinct resonant knell
     for (const d of w.deaths) {
       if (w.time - d.time < 0.02) {
-        if (sound.initialized) playDeath(sound, 1 - d.y / H);
+        if (sound.initialized) {
+          if (d.age !== undefined && d.age > 25) {
+            playElderDeath(sound, 1 - d.y / H);
+          } else {
+            playDeath(sound, 1 - d.y / H);
+          }
+        }
         break;
       }
     }

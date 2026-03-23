@@ -231,7 +231,8 @@ export interface DeathRecord {
   y: number;
   r: number; g: number; b: number;
   time: number;
-  trail?: TrailPoint[];   // wanderer ghost trail — path outlives the walker
+  age?: number;          // mote's age at death — elders get a distinct death knell
+  trail?: TrailPoint[];  // wanderer ghost trail — path outlives the walker
 }
 
 export interface World {
