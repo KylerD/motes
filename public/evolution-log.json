@@ -692,5 +692,22 @@
       "src/sound.ts",
       "src/render-motes.ts"
     ]
+  },
+  {
+    "date": "2026-03-24",
+    "title": "terrain life heatmap",
+    "reflection": "Mote activity warms the ground beneath them. Paths glow amber-gold at complexity, ember-red at dissolution, faint blue memory in silence.",
+    "looking_ahead": [
+      "Mote size by age: juveniles smaller, elders wider",
+      "Elder grief inheritance: nearby motes flicker on elder death",
+      "Genesis first-mote crystalline chime",
+      "Heatmap color responds to biome: tundra=blue-ice, volcanic=deep red, lush=green"
+    ],
+    "visual_verification": "Complexity screenshots show warm amber band blazing along terrain ridgeline. Dissolution shows deep ember-red terrain glow. Silence retains residual warmth, slowly cooling. Before: static terrain. After: terrain holds memory of where life has been.",
+    "quality_delta": "avgMoteBrightness 0.49→0.54, MOTE_TOO_DIM cleared. No clumping. No regressions.",
+    "files_changed": [
+      "src/render-effects.ts",
+      "src/main.ts"
+    ]
   }
 ]

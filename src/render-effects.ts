@@ -1322,3 +1322,38 @@ export function renderDroughtHeat(
     if (px + 1 < W) setPixel(buf, px + 1, py, 200, 174, 136, Math.round(alpha * 0.45));
   }
 }
+
+// ─── Terrain life heatmap ─────────────────────────────────────────────────
+/**
+ * Render accumulated life warmth — a glow that builds up where motes have
+ * been active and fades slowly, leaving warm amber paths through the terrain.
+ * Phase-tinted: genesis=cool dawn, complexity=amber vitality, dissolution=dying ember.
+ */
+export function renderHeatmap(
+  buf: ImageData,
+  heatBuffer: Float32Array,
+  phaseIndex: number,
+): void {
+  // Phase-tinted heat color and max alpha
+  let hr: number, hg: number, hb: number, maxAlpha: number;
+  switch (phaseIndex) {
+    case 0:  hr = 160; hg = 200; hb = 255; maxAlpha = 22; break; // genesis: cool blue dawn
+    case 1:  hr = 230; hg = 220; hb = 100; maxAlpha = 35; break; // exploration: warm yellow
+    case 2:  hr = 255; hg = 195; hb = 70;  maxAlpha = 44; break; // organization: amber
+    case 3:  hr = 255; hg = 175; hb = 45;  maxAlpha = 52; break; // complexity: bright amber-gold
+    case 4:  hr = 255; hg = 120; hb = 30;  maxAlpha = 38; break; // dissolution: dying ember
+    default: hr = 100; hg = 120; hb = 210; maxAlpha = 18; break; // silence: cold memory
+  }
+
+  const len = heatBuffer.length;
+  for (let i = 0; i < len; i++) {
+    const heat = heatBuffer[i];
+    if (heat < 0.03) continue;
+    const x = i % W;
+    const y = (i / W) | 0;
+    // sqrt curve: gives visible glow even at low heat, caps smoothly at max
+    const a = Math.round(Math.sqrt(heat) * maxAlpha);
+    if (a < 2) continue;
+    setPixel(buf, x, y, hr, hg, hb, a);
+  }
+}

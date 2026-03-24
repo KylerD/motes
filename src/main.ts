@@ -1,7 +1,7 @@
 // main.ts — Entry point. Thin orchestrator: init + frame loop.
 
 import { createRenderContext, present } from "./render";
-import { H } from "./config";
+import { W, H } from "./config";
 import { renderTerrain, applyHeatHaze, applyVolcanicAsh, renderRainPuddles, renderWaterMist, renderVolcanicEmbers, applyTundraIce } from "./terrain";
 import { createWorld, updateWorld } from "./world";
 import { cycleName } from "./names";
@@ -22,6 +22,7 @@ import {
   applyVignette, applyPhaseColorGrade, createMeteorState,
   applyBloom, renderAtmosphericParticles, renderBiomeAmbientLife, renderClusterRadiance,
   applyChromaticAberration, applyLastLight, renderFloodStorm, renderDroughtHeat,
+  renderHeatmap,
 } from "./render-effects";
 import { renderClusterGroundGlow, renderClusterGlow, renderClusterBeacons, renderBondLines, renderProtoAttractions, renderDeathParticles, renderSilenceConstellation, renderSilenceGraveyards, renderCascadeBursts, renderSoulWisps } from "./render-bonds";
 import { renderRipples, renderCursor, renderEventMessage, renderDebugOverlay } from "./render-ui";
@@ -41,6 +42,11 @@ function init(): void {
 
   const narrative = createNarrative();
   const meteor = createMeteorState();
+
+  // TERRAIN LIFE HEATMAP — accumulated warmth from mote presence.
+  // Builds up where motes walk, decays slowly, leaves glowing amber paths.
+  const heatBuffer = new Float32Array(W * H);
+  let heatCycleNumber = -1; // initialized to sentinel; synced to cycle on first frame
 
   // CLUSTER CASCADE — tracks 8+ member milestone bursts.
   // When a cluster first reaches 8 members, a triple expanding ring fires from the centroid.
@@ -142,6 +148,32 @@ function init(): void {
     updateWorld(w, dt);
     applyInteraction(input, w.motes);
 
+    // Terrain life heatmap: clear on new cycle, deposit at mote positions, decay
+    if (w.cycleNumber !== heatCycleNumber) {
+      heatBuffer.fill(0);
+      heatCycleNumber = w.cycleNumber;
+    }
+    const heatDeposit = dt * 1.6;
+    const heatDecay = 1 - dt * 0.026; // half-life ~27s
+    for (const m of w.motes) {
+      const mx = Math.round(m.x);
+      const my = Math.round(m.y);
+      if (mx >= 1 && mx < W - 1 && my >= 1 && my < H - 1) {
+        const idx = my * W + mx;
+        heatBuffer[idx] = Math.min(1, heatBuffer[idx] + heatDeposit);
+        // Spread warmth to adjacent pixels for a softer glow
+        heatBuffer[idx - 1]     = Math.min(1, heatBuffer[idx - 1]     + heatDeposit * 0.40);
+        heatBuffer[idx + 1]     = Math.min(1, heatBuffer[idx + 1]     + heatDeposit * 0.40);
+        heatBuffer[idx - W]     = Math.min(1, heatBuffer[idx - W]     + heatDeposit * 0.25);
+        heatBuffer[idx + W]     = Math.min(1, heatBuffer[idx + W]     + heatDeposit * 0.25);
+        heatBuffer[idx - W - 1] = Math.min(1, heatBuffer[idx - W - 1] + heatDeposit * 0.12);
+        heatBuffer[idx - W + 1] = Math.min(1, heatBuffer[idx - W + 1] + heatDeposit * 0.12);
+        heatBuffer[idx + W - 1] = Math.min(1, heatBuffer[idx + W - 1] + heatDeposit * 0.12);
+        heatBuffer[idx + W + 1] = Math.min(1, heatBuffer[idx + W + 1] + heatDeposit * 0.12);
+      }
+    }
+    for (let i = 0; i < heatBuffer.length; i++) heatBuffer[i] *= heatDecay;
+
     // Event sound
     if (w.pendingEventSound && sound.initialized) {
       playEventSound(sound, w.pendingEventSound);
@@ -186,6 +218,9 @@ function init(): void {
     applyHeatHaze(rc.buf, w.terrain, w.time, w.cycleProgress);
     applyVolcanicAsh(rc.buf, w.terrain, w.cycleProgress);
     renderVolcanicEmbers(rc.buf, w.terrain, w.time, w.cycleProgress);
+
+    // Terrain life heatmap — warm glowing paths where motes have been
+    renderHeatmap(rc.buf, heatBuffer, w.phaseIndex);
 
     // Pre-compute mote colors
     const moteColors = new Map<Mote, [number, number, number]>();
