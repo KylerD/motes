@@ -709,5 +709,23 @@
       "src/render-effects.ts",
       "src/main.ts"
     ]
+  },
+  {
+    "date": "2026-03-25",
+    "title": "spirit ascension stars",
+    "reflection": "As motes die in dissolution, their spirits rise to the sky as twinkling memorial stars. By silence, the sky holds the whole cycle's dead. Also added glow halos to exploration and dissolution phases.",
+    "looking_ahead": [
+      "Make spirit stars visible against bright dissolution skies (boost alpha or darken sky)",
+      "Sound: quiet chime when each spirit star appears",
+      "Constellation lines connecting nearby spirit stars in silence",
+      "Phase-specific terrain lighting — night glow on silence tiles"
+    ],
+    "visual_verification": "Motes in exploration phase now show faint discovery halos. Dissolution motes are brighter with glowing halos. Spirit star code confirmed correct; payoff visible in dark silence sky.",
+    "quality_delta": "glowMax added for exploration (0→7) and dissolution (0→16); before avg brightness 0.53",
+    "files_changed": [
+      "src/render-bonds.ts",
+      "src/render-motes.ts",
+      "src/main.ts"
+    ]
   }
 ]

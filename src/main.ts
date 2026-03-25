@@ -24,7 +24,7 @@ import {
   applyChromaticAberration, applyLastLight, renderFloodStorm, renderDroughtHeat,
   renderHeatmap,
 } from "./render-effects";
-import { renderClusterGroundGlow, renderClusterGlow, renderClusterBeacons, renderBondLines, renderProtoAttractions, renderDeathParticles, renderSilenceConstellation, renderSilenceGraveyards, renderCascadeBursts, renderSoulWisps } from "./render-bonds";
+import { renderClusterGroundGlow, renderClusterGlow, renderClusterBeacons, renderBondLines, renderProtoAttractions, renderDeathParticles, renderSilenceConstellation, renderSilenceGraveyards, renderCascadeBursts, renderSoulWisps, renderSpiritAscension } from "./render-bonds";
 import { renderRipples, renderCursor, renderEventMessage, renderDebugOverlay } from "./render-ui";
 import type { Mote, RenderContext, SoundEngine, Interaction } from "./types";
 
@@ -305,6 +305,8 @@ function init(): void {
     renderDeathParticles(rc.buf, w.deaths, w.time);
     renderSilenceConstellation(rc.buf, w.allDeaths, w.phaseName, w.motes.length, w.time, w.phaseProgress);
     renderSilenceGraveyards(rc.buf, w.allDeaths, w.phaseName, w.motes.length, w.time, w.phaseProgress);
+    // Spirit ascension: memorial stars in the sky during dissolution and silence
+    renderSpiritAscension(rc.buf, w.allDeaths, w.phaseIndex, w.phaseProgress, w.time);
 
     // Meteor
     renderMeteorVisual(rc.buf, meteor, w.event, w.time, w.cycleNumber, dt);

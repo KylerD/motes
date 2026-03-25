@@ -960,3 +960,79 @@ export function renderSilenceGraveyards(
     }
   }
 }
+
+/** Spirit ascension stars — each mote death sends a star rising to the sky.
+ *  Visible from dissolution onward. The sky gradually fills with memorial lights
+ *  as the world's population dies, then gently fades as silence deepens.
+ *  Stars are positioned deterministically above their death site. */
+export function renderSpiritAscension(
+  buf: ImageData,
+  allDeaths: Array<{ x: number; y: number; r: number; g: number; b: number; time: number }>,
+  phaseIndex: number,
+  phaseProgress: number,
+  time: number,
+): void {
+  if (phaseIndex < 4 || allDeaths.length === 0) return;
+
+  // Dissolution: stars fade in as phaseProgress grows.
+  // Silence: fully visible, then fade out at the very end.
+  let globalAlpha: number;
+  if (phaseIndex === 4) {
+    // Dissolution: reveal over the whole phase
+    globalAlpha = phaseProgress * phaseProgress; // ease in
+  } else {
+    // Silence: stay visible, fade out in last 20%
+    const fadeOut = phaseProgress > 0.80 ? Math.max(0, 1 - (phaseProgress - 0.80) / 0.20) : 1.0;
+    globalAlpha = fadeOut;
+  }
+  if (globalAlpha < 0.02) return;
+
+  for (let i = 0; i < allDeaths.length; i++) {
+    const d = allDeaths[i];
+
+    // Deterministic sky position from death location (no rng — must be stable frame-to-frame)
+    // Hash X and Y to get a consistent sky Y position in range [4, 36]
+    const hashVal = (((Math.round(d.x) * 2654435761) ^ (Math.round(d.y) * 1234567891)) >>> 0) & 255;
+    const starY = 4 + (hashVal % 32);
+    const starX = Math.round(d.x);
+
+    // Stars stagger in: each death appears after a brief delay in dissolution
+    // In silence, all stars are present from start
+    let starVisibility = globalAlpha;
+    if (phaseIndex === 4) {
+      // Each star fades in individually: earlier deaths appear sooner
+      const deathFrac = i / Math.max(1, allDeaths.length - 1);
+      starVisibility = Math.max(0, globalAlpha - deathFrac * 0.3);
+    }
+    if (starVisibility < 0.02) continue;
+
+    // Twinkle: unique rate per star
+    const twinkleRate = 1.5 + (hashVal % 17) * 0.18;
+    const twinkle = Math.sin(time * twinkleRate + i * 2.37 + d.x * 0.11) * 0.28 + 0.72;
+
+    // Recent deaths shine brighter, older deaths dim to anonymous white
+    const recency = i / Math.max(1, allDeaths.length - 1);
+    const baseA = Math.round((18 + recency * 38) * starVisibility * twinkle);
+    if (baseA < 3) continue;
+
+    // Color: retain mote's identity color, fading toward pale silver for older deaths
+    const colorHold = 0.20 + recency * 0.55;
+    const silverR = 190, silverG = 188, silverB = 210;
+    const sr = Math.round(d.r * colorHold + silverR * (1 - colorHold));
+    const sg = Math.round(d.g * colorHold + silverG * (1 - colorHold));
+    const sb = Math.round(d.b * colorHold + silverB * (1 - colorHold));
+
+    // Star shape: bright center pixel, dim cross arms
+    setPixel(buf, starX,     starY,     sr, sg, sb, baseA);
+    setPixel(buf, starX - 1, starY,     sr, sg, sb, Math.round(baseA * 0.40));
+    setPixel(buf, starX + 1, starY,     sr, sg, sb, Math.round(baseA * 0.40));
+    setPixel(buf, starX,     starY - 1, sr, sg, sb, Math.round(baseA * 0.45));
+    setPixel(buf, starX,     starY + 1, sr, sg, sb, Math.round(baseA * 0.30));
+
+    // Elder deaths (recency top 30%) get a tiny warm sparkle at peak twinkle
+    if (recency > 0.70 && twinkle > 0.88) {
+      const sparkA = Math.round(baseA * 1.5);
+      if (sparkA > 8) setPixel(buf, starX, starY, 245, 240, 255, Math.min(200, sparkA));
+    }
+  }
+}

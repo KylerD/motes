@@ -116,8 +116,10 @@ export function renderMotes(
   // peak life = warm vitality aura, mid-cycle = quieter but still present.
   const glowMax =
     phaseIndex === 0 || phaseIndex === 5 ? 28   // genesis/silence: lantern in dark
+    : phaseIndex === 4 ? 16                      // dissolution: dimming lanterns, death glow
     : phaseIndex === 3 ? 14                      // complexity: peak life vitality
     : phaseIndex === 2 ? 8                       // organization: community warmth
+    : phaseIndex === 1 ? 7                       // exploration: faint discovery halo
     : 0;
 
   for (const m of motes) {
