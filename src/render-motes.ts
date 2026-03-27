@@ -30,15 +30,15 @@ export function computeMoteColor(m: Mote, _bp: BiomePalette): [number, number, n
   // This replaces a flat 205+ floor that washed all colors to near-white and killed saturation,
   // making motes undetectable to quality analysis tools that require saturation > 0.25.
   const maxC = Math.max(r, g, b);
-  if (maxC > 0 && maxC < 222) {
-    const scale = 222 / maxC;
+  if (maxC > 0 && maxC < 238) {
+    const scale = 238 / maxC;
     r = Math.min(255, r * scale);
     g = Math.min(255, g * scale);
     b = Math.min(255, b * scale);
   }
-  r = Math.max(160, r);
-  g = Math.max(160, g);
-  b = Math.max(160, b);
+  r = Math.max(128, r);
+  g = Math.max(128, g);
+  b = Math.max(128, b);
 
   return [Math.round(r), Math.round(g), Math.round(b)];
 }

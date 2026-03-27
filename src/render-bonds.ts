@@ -318,7 +318,11 @@ export function renderBondLines(
   motes: Mote[],
   moteColors: Map<Mote, [number, number, number]>,
   time: number,
+  phaseIndex = 3,
 ): void {
+  // Phase multiplier: bonds peak at complexity so the social web is unmissable at the right moment
+  const PHASE_BOND_SCALE = [0.45, 0.65, 0.88, 1.40, 0.80, 0.22];
+  const phaseScale = PHASE_BOND_SCALE[Math.min(5, Math.max(0, phaseIndex))];
   const drawn = new Set<string>();
   for (const m of motes) {
     for (const bonded of m.bonds) {
@@ -377,9 +381,27 @@ export function renderBondLines(
         finalAlpha = Math.min(255, Math.round(bondAlpha * (1 + stressLevel * 0.65) * stressPulse));
       }
 
+      // Apply phase scale — bonds are most legible at complexity
+      finalAlpha = Math.min(255, Math.round(finalAlpha * phaseScale));
+      if (finalAlpha < 4) continue;
+
       drawLine(buf, m.x, m.y, bonded.x, bonded.y, br, bg, bb, finalAlpha);
-      const glowAlpha = Math.round(finalAlpha * 0.35);
+      const glowAlpha = Math.round(finalAlpha * 0.40);
       drawLine(buf, m.x, m.y - 1, bonded.x, bonded.y - 1, br, bg, bb, glowAlpha);
+      // Bottom glow line — makes bond 3px tall for readability at viewing distance
+      drawLine(buf, m.x, m.y + 1, bonded.x, bonded.y + 1, br, bg, bb, Math.round(glowAlpha * 0.65));
+
+      // LUMINOUS HALO — a cool-bright outer fringe that contrasts with warm terrain.
+      // Bonds embedded in warm amber terrain become invisible; this halo ensures they read
+      // as luminous threads of connection regardless of terrain color.
+      const haloR = Math.min(255, Math.round(br * 0.38 + 210));
+      const haloG = Math.min(255, Math.round(bg * 0.42 + 205));
+      const haloB = Math.min(255, Math.round(bb * 0.55 + 230));
+      const haloAlpha = Math.round(finalAlpha * 0.22);
+      if (haloAlpha > 3) {
+        drawLine(buf, m.x, m.y - 2, bonded.x, bonded.y - 2, haloR, haloG, haloB, haloAlpha);
+        drawLine(buf, m.x, m.y + 2, bonded.x, bonded.y + 2, haloR, haloG, haloB, Math.round(haloAlpha * 0.55));
+      }
 
       // ANCIENT BOND GLOW — bonds past 70s earn a faint warm outer halo.
       // These are the oldest relationships in the world; they deserve to be seen.

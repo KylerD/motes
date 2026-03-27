@@ -314,7 +314,7 @@ function init(): void {
     // Proto-attraction arcs: faint animated dotted lines between approaching motes
     renderProtoAttractions(rc.buf, w.motes, moteColors, w.time, w.phaseIndex);
     renderMotes(rc.buf, w.motes, moteColors, plagueActive, plaguePulse, w.time, w.phaseIndex, clusterHeartbeat);
-    renderBondLines(rc.buf, w.motes, moteColors, w.time);
+    renderBondLines(rc.buf, w.motes, moteColors, w.time, w.phaseIndex);
     renderCascadeBursts(rc.buf, cascadeBursts);
     renderDeathParticles(rc.buf, w.deaths, w.time);
     renderSilenceConstellation(rc.buf, w.allDeaths, w.phaseName, w.motes.length, w.time, w.phaseProgress);

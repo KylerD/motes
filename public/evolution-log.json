@@ -780,5 +780,23 @@
       "src/render-effects.ts",
       "src/render-motes.ts"
     ]
+  },
+  {
+    "date": "2026-03-27",
+    "title": "vivid bonds and motes",
+    "reflection": "Bonds now scale 1.4x alpha at complexity and gain a cool-bright outer halo, visible against warm terrain. Mote saturation raised (floor 160→128, scale 222→238). MOTE_TOO_DIM cleared.",
+    "looking_ahead": [
+      "Phase transition shockwave — visual sweep at each cycle boundary",
+      "Water reflections showing phase sky color in pools",
+      "Rare event sound signatures — eclipse drone, meteor impact, bloom burst",
+      "Ancient bond thickness — bonds widen with age"
+    ],
+    "visual_verification": "AFTER screenshots show vivid colored motes (cyan, green, pink, orange) vs before's all-amber palette. Bonds visible as glowing threads between cluster members. Cascade rings dramatic against both cool and warm skies.",
+    "quality_delta": "MOTE_TOO_DIM cleared. avg brightness 0.49→0.52. avg visible motes 12.9→13.3. clumping 0.00.",
+    "files_changed": [
+      "src/render-motes.ts",
+      "src/render-bonds.ts",
+      "src/main.ts"
+    ]
   }
 ]
