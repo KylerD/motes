@@ -800,6 +800,24 @@
     ]
   },
   {
+    "date": "2026-03-28",
+    "title": "biome horizon identity",
+    "reflection": "Each biome now tints its horizon with its own atmospheric light: volcanic red-orange, tundra ice-blue, desert amber haze, lush green-gold. Fog weather density tripled so it looks like actual fog. Ancient bonds (70s+) widen to thick golden cords.",
+    "looking_ahead": [
+      "Sound arc to match visual arc — exploration should feel as sonically rich as it now looks",
+      "Night/silence more haunted — brighter stars, emptier ambient, sparser motes",
+      "Biome mist color variation — fog in each biome exhales a different character",
+      "Bond energy pulses — animated bright dot traveling along bond lines to show live connection"
+    ],
+    "visual_verification": "AFTER desert captures: blazing amber-orange sky permeating every phase — unmistakably a hot world. BEFORE: generic mountain scenes with blue sky. Biome identity now readable at a glance from sky color alone.",
+    "quality_delta": "avg brightness 0.55 stable. No regressions. Desert biome horizon tint ~+40R -28B gives unmistakably warm world.",
+    "files_changed": [
+      "src/terrain-render.ts",
+      "src/render-bonds.ts",
+      "src/weather-render.ts"
+    ]
+  },
+  {
     "date": "2026-03-27",
     "title": "phase horizon atmosphere",
     "reflection": "Terrain horizon glow now spans all 6 phases with distinct colors. Cold pre-dawn violet at genesis, warm sunrise at exploration, golden noon at organization, blazing amber at dissolution, moonlit blue at silence. Mote max-channel raised 238->245.",

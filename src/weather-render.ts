@@ -625,15 +625,28 @@ export function renderFog(buf: ImageData, weather: Weather, time: number, biome:
     biome === "lush"     ? [160, 185, 170] :  // green-tinted canopy mist
                            [175, 180, 192];   // temperate grey-white
 
+  // Fog type gets 3× density boost so it actually feels like fog.
+  // Other weather types that have incidental fogDensity stay subtle.
+  const densityBoost = weather.type === "fog" ? 3.2 : 1.0;
+  const effectiveDensity = weather.fogDensity * densityBoost;
+
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       // Fog thicker at bottom, thinner at top — two overlapping noise layers for volume
       const yFactor = y / H;
       const n1 = noise2(x * 0.04 + time * 0.18, y * 0.05 + time * 0.04) * 0.5 + 0.5;
       const n2 = noise2(x * 0.09 - time * 0.07, y * 0.10 + time * 0.06) * 0.5 + 0.5;
-      const noiseVal = n1 * 0.65 + n2 * 0.35;
-      const fogHere = weather.fogDensity * yFactor * noiseVal;
-      const a = Math.round(fogHere * 130);
+      // Third noise layer for fog type — adds wispy tendrils and depth
+      const n3 = weather.type === "fog"
+        ? noise2(x * 0.025 + time * 0.06, y * 0.035 - time * 0.03) * 0.5 + 0.5
+        : 0.5;
+      const noiseVal = weather.type === "fog"
+        ? n1 * 0.45 + n2 * 0.30 + n3 * 0.25
+        : n1 * 0.65 + n2 * 0.35;
+      const fogHere = effectiveDensity * yFactor * noiseVal;
+      // Fog type: alpha 0-210 (genuinely foggy). Others: 0-130 (subtle atmospheric haze).
+      const maxAlpha = weather.type === "fog" ? 210 : 130;
+      const a = Math.round(Math.min(fogHere, 1.0) * maxAlpha);
       if (a > 2) {
         setPixel(buf, x, y, fr, fg, fb, a);
       }

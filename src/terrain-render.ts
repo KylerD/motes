@@ -75,24 +75,66 @@ const HORIZON_GLOW: [number, number, number, number][] = [
   [0.45,  12, -18,  58],  // silence:      ice-blue moonlight
 ];
 
-/** Smooth interpolated horizon glow for a given cycle position (0-1) */
-function horizonGlowAt(cycleProgress: number): [number, number, number, number] {
+/**
+ * Smooth interpolated horizon glow for a given cycle position (0-1).
+ * Biome corrections stack on top of the phase-reactive base:
+ *   volcanic  — lava heat bakes the horizon red-orange at all phases
+ *   tundra    — permafrost cold pushes everything toward ice-blue
+ *   desert    — dry amber haze bakes in even at night
+ *   lush      — canopy-filtered green-gold warmth, humid air
+ *   temperate — no correction (pure phase arc)
+ */
+function horizonGlowAt(cycleProgress: number, biome = ""): [number, number, number, number] {
   let prev = 0;
+  let result: [number, number, number, number] = [...HORIZON_GLOW[5]] as [number, number, number, number];
   for (let i = 0; i < TINT_BOUNDARIES.length; i++) {
     if (cycleProgress <= TINT_BOUNDARIES[i]) {
       const t = (cycleProgress - prev) / (TINT_BOUNDARIES[i] - prev);
       const a = HORIZON_GLOW[i];
       const b = HORIZON_GLOW[(i + 1) % HORIZON_GLOW.length];
-      return [
+      result = [
         a[0] + (b[0] - a[0]) * t,
         a[1] + (b[1] - a[1]) * t,
         a[2] + (b[2] - a[2]) * t,
         a[3] + (b[3] - a[3]) * t,
       ];
+      break;
     }
     prev = TINT_BOUNDARIES[i];
   }
-  return HORIZON_GLOW[5];
+
+  // Biome atmospheric correction — each world has a characteristic light signature
+  // that persists through all phases, layered on top of the phase arc.
+  switch (biome) {
+    case "volcanic":
+      // Lava glow: always red-orange. Even at genesis the volcano smolders.
+      result[1] = result[1] + 40;   // push red
+      result[2] = result[2] + 6;    // slight green (amber, not pure red)
+      result[3] = result[3] - 28;   // drain blue — heat kills the cool
+      result[0] = result[0] * 1.28; // stronger glow — lava radiates constantly
+      break;
+    case "tundra":
+      // Permafrost cold: always blue-violet. The land remembers ice.
+      result[1] = result[1] - 22;   // drain red warmth
+      result[3] = result[3] + 32;   // push blue
+      result[0] = result[0] * 1.12; // slightly stronger (ice scatters light)
+      break;
+    case "desert":
+      // Dry heat haze: amber warmth bakes in even at night.
+      result[1] = result[1] + 26;   // push red
+      result[2] = result[2] + 10;   // push green (amber = warm red+green)
+      result[3] = result[3] - 18;   // drain blue — desert nights are warm
+      result[0] = result[0] * 1.20; // strong glow — heat shimmer is always there
+      break;
+    case "lush":
+      // Canopy atmosphere: green-gold filter, humid verdant air.
+      result[1] = result[1] - 6;    // cool reds slightly
+      result[2] = result[2] + 22;   // push green — canopy color
+      result[3] = result[3] + 8;    // hint of humid blue
+      result[0] = result[0] * 1.06; // slightly stronger (rich atmosphere)
+      break;
+  }
+  return result;
 }
 
 /** Smooth interpolated sky tint for a given cycle position (0-1) */
@@ -157,7 +199,7 @@ export function renderTerrain(
   // Horizon glow: phase-specific atmospheric band at the terrain/sky seam.
   // Present in ALL phases — each has its own color and strength.
   // Interpolated smoothly across phase boundaries for fluid transitions.
-  const [hgBaseStr, hgR, hgG, hgB] = horizonGlowAt(cycleProgress);
+  const [hgBaseStr, hgR, hgG, hgB] = horizonGlowAt(cycleProgress, biome);
   // Modulate strength within key phases for dramatic arcs:
   // Genesis fades in slowly; dissolution pulses through its arc; silence fades to cold quiet.
   const inGenesis     = cycleProgress < 0.16;

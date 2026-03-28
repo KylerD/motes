@@ -403,13 +403,38 @@ export function renderBondLines(
         drawLine(buf, m.x, m.y + 2, bonded.x, bonded.y + 2, haloR, haloG, haloB, Math.round(haloAlpha * 0.55));
       }
 
-      // ANCIENT BOND GLOW — bonds past 70s earn a faint warm outer halo.
-      // These are the oldest relationships in the world; they deserve to be seen.
+      // ANCIENT BOND — bonds past 70s become thick golden cords, visibly different from young bonds.
+      // The oldest relationships in the world earn physical width: they are unmissable at a glance.
+      // Width progression: 70s→ first extra row; 85s→ second extra row; 100s→ third (full cord).
       if (ancientT > 0.05) {
-        const ancientGlow = Math.round(ancientT * 28 * bondPulse);
-        if (ancientGlow > 3) {
-          drawLine(buf, m.x, m.y + 1, bonded.x, bonded.y + 1, br, bg, bb, ancientGlow);
-          drawLine(buf, m.x - 1, m.y, bonded.x - 1, bonded.y, br, bg, bb, Math.round(ancientGlow * 0.55));
+        // Deep gold color: warm amber core + bright gold highlight
+        const goldR = Math.min(255, Math.round(br * 0.55 + 255 * 0.45));
+        const goldG = Math.min(255, Math.round(bg * 0.55 + 185 * 0.45));
+        const goldB = Math.max(0, Math.round(bb * 0.40 + 28 * 0.60));
+
+        // First extra width band (starts at 70s, full at 85s)
+        const t1 = Math.min(1, ancientT / 0.5);
+        const row1Alpha = Math.round(t1 * 95 * bondPulse);
+        if (row1Alpha > 3) {
+          drawLine(buf, m.x, m.y - 3, bonded.x, bonded.y - 3, goldR, goldG, goldB, row1Alpha);
+          drawLine(buf, m.x, m.y + 3, bonded.x, bonded.y + 3, goldR, goldG, goldB, Math.round(row1Alpha * 0.75));
+        }
+
+        // Second extra width band (starts at 85s, full at 100s)
+        const t2 = Math.max(0, Math.min(1, (ancientT - 0.5) / 0.5));
+        if (t2 > 0.05) {
+          const row2Alpha = Math.round(t2 * 62 * bondPulse);
+          if (row2Alpha > 3) {
+            drawLine(buf, m.x, m.y - 4, bonded.x, bonded.y - 4, goldR, goldG, goldB, row2Alpha);
+            drawLine(buf, m.x, m.y + 4, bonded.x, bonded.y + 4, goldR, goldG, goldB, Math.round(row2Alpha * 0.60));
+          }
+        }
+
+        // Faint gold outer fringe — soft halo that makes the cord glow
+        const fringe = Math.round(ancientT * 38 * bondPulse);
+        if (fringe > 3) {
+          drawLine(buf, m.x, m.y - 5, bonded.x, bonded.y - 5, goldR, goldG, goldB, fringe);
+          drawLine(buf, m.x, m.y + 5, bonded.x, bonded.y + 5, goldR, goldG, goldB, Math.round(fringe * 0.45));
         }
       }
       // Extra thickness pixel for stressed bonds — makes them physically wider, unmissable
