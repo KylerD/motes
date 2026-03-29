@@ -177,6 +177,18 @@ function getBgMountains(seed: number): Float32Array {
   return heights;
 }
 
+/** Sky brightness through the 5-minute cycle — 0.28 at night, 1.0 at full day.
+ *  Drives a visible day/night arc: genesis is dark pre-dawn, complexity is blazing noon,
+ *  dissolution dims toward sunset, silence is cool moonlit night.
+ *  Applied to all sky pixels so the cycle is unmistakable regardless of biome. */
+function skyBrightnessAt(cp: number): number {
+  if (cp < 0.06) return 0.28;                                           // deep pre-dawn
+  if (cp < 0.20) return 0.28 + (cp - 0.06) / 0.14 * 0.72;             // dawn: 0.28 → 1.00
+  if (cp < 0.78) return 1.00;                                           // full day arc
+  if (cp < 0.88) return 1.00 - (cp - 0.78) / 0.10 * 0.52;             // dusk: 1.00 → 0.48
+  return Math.max(0.28, 0.48 - (cp - 0.88) / 0.12 * 0.20);            // night: 0.48 → 0.28
+}
+
 /** Render terrain + sky into the buffer */
 export function renderTerrain(
   buf: ImageData,
@@ -294,6 +306,12 @@ export function renderTerrain(
       ? Math.sin((cycleProgress - 0.06) / 0.16 * Math.PI) * 0.78
       : 0;
 
+  // Night-arc blend factor — 0 at full day, approaches 1 at deep night.
+  // Sky pixels are mixed toward cool dark blue [8,12,30] as night deepens,
+  // stripping biome warmth and revealing a moonlit starfield sky.
+  const _skyBr = skyBrightnessAt(cycleProgress);
+  const _skyNight = Math.min(1.0, (1.0 - _skyBr) * 1.15); // 0=day, ~0.83=deep night
+
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const idx = y * W + x;
@@ -380,6 +398,16 @@ export function renderTerrain(
             g = g + (50 - g) * blend;
             b = b + (38 - b) * blend;
           }
+        }
+
+        // Day/night arc: darken sky and blend toward cool dark blue at genesis/silence.
+        // Makes the cycle unmistakable: desert gold becomes deep amber-night; all biomes
+        // converge on a cool dark starfield sky as darkness falls.
+        if (_skyNight > 0.003) {
+          const nB = _skyNight;
+          r = r * (1 - nB) + 8  * nB;
+          g = g * (1 - nB) + 12 * nB;
+          b = b * (1 - nB) + 30 * nB;
         }
 
         d[pi]     = Math.round(r);

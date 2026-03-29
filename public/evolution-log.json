@@ -849,5 +849,21 @@
     "files_changed": [
       "src/render-bonds.ts"
     ]
+  },
+  {
+    "date": "2026-03-29",
+    "title": "sky day-night arc",
+    "reflection": "Sky brightness now arcs from dark pre-dawn at genesis through full noon at complexity to moonlit night at silence. Phase cycle unmistakable: desert gold becomes deep amber-night, lush becomes cool blue-black.",
+    "looking_ahead": [
+      "Terrain also darkens at night — motes glow even more against dark ground",
+      "Dawn transition: pink-gold sunrise bloom across the horizon",
+      "Phase transition shockwave — radial ring expanding at each cycle boundary",
+      "Sound arc: silent genesis should feel as aurally dark as it now looks"
+    ],
+    "visual_verification": "Genesis/silence screenshots show dark blue-purple sky with visible stars; mote glows stand out as warm points of light. Complexity remains fully bright. Night sky at 0.28x brightness vs 1.0x at noon.",
+    "quality_delta": "avgVisibleMotes 20.6->23.1. avgMoteBrightness 0.50 unchanged. No regressions.",
+    "files_changed": [
+      "src/terrain-render.ts"
+    ]
   }
 ]
