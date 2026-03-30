@@ -260,11 +260,18 @@ export function renderTerrain(
       ? Math.sin((cycleProgress - 0.72) / 0.22 * Math.PI) * 1.15
       : 0;
 
+  // Sunrise bloom: peaks at the genesis→exploration boundary (~14% into cycle).
+  // Full 1.0 peak — the dawn deserves the same drama as the sunset.
+  const sunriseStr =
+    cycleProgress >= 0.06 && cycleProgress < 0.22
+      ? Math.sin((cycleProgress - 0.06) / 0.16 * Math.PI)
+      : 0;
+
   // Sky at zenith (top of screen) — what still water mirrors looking straight up.
-  // Full phase tint applied: night water goes indigo-dark, golden-hour water warms.
-  const skyReflR = Math.max(0, Math.min(255, skyTop[0] + tint[0] + Math.round(70 * sunsetStr)));
-  const skyReflG = Math.max(0, Math.min(255, skyTop[1] + tint[1] + Math.round(22 * sunsetStr)));
-  const skyReflB = Math.max(0, Math.min(255, skyTop[2] + tint[2] + Math.round(-48 * sunsetStr)));
+  // Both sunrise (rose-pink) and sunset (amber-orange) warm the water's mirror surface.
+  const skyReflR = Math.max(0, Math.min(255, skyTop[0] + tint[0] + Math.round(70 * sunsetStr) + Math.round(52 * sunriseStr)));
+  const skyReflG = Math.max(0, Math.min(255, skyTop[1] + tint[1] + Math.round(22 * sunsetStr) + Math.round(16 * sunriseStr)));
+  const skyReflB = Math.max(0, Math.min(255, skyTop[2] + tint[2] + Math.round(-48 * sunsetStr) + Math.round(22 * sunriseStr)));
 
   // Phase reflection multiplier — dawn/dusk and night produce the strongest mirror surface.
   // Golden hour (dissolution) is peak: the world's most beautiful moment reflected in water.
@@ -273,7 +280,8 @@ export function renderTerrain(
 
   // Phase-driven terrain lighting: sunlight angle/color shifts through the cycle
   const inGoldenHour = cycleProgress >= 0.68 && cycleProgress < 0.92;
-  const inDawn       = cycleProgress < 0.12;
+  const inSunrise    = cycleProgress >= 0.08 && cycleProgress < 0.22;
+  const inPreDawn    = cycleProgress < 0.08;
   const inDusk       = cycleProgress >= 0.92;
   let lightR = 0, lightG = 0, lightB = 0, lightStr = 0;
   if (inGoldenHour) {
@@ -281,10 +289,15 @@ export function renderTerrain(
     const gp = (cycleProgress - 0.68) / 0.24;
     lightStr = Math.sin(gp * Math.PI) * 0.55;
     lightR = 38; lightG = 14; lightB = -22;
-  } else if (inDawn) {
-    // Cool blue-violet pre-dawn — fades as sun rises
-    const dp = cycleProgress / 0.12;
-    lightStr = (1 - dp) * 0.35;
+  } else if (inSunrise) {
+    // Warm rose-pink morning light — the sun crests the horizon, painting the surface
+    const sp = (cycleProgress - 0.08) / 0.14;
+    lightStr = Math.sin(sp * Math.PI) * 0.34;
+    lightR = 22; lightG = 8; lightB = 5;
+  } else if (inPreDawn) {
+    // Cool blue-violet: pre-dawn, stars still fading
+    const dp = cycleProgress / 0.08;
+    lightStr = (1 - dp) * 0.32;
     lightR = -8; lightG = -5; lightB = 22;
   } else if (inDusk) {
     // Deep indigo moonlight — stronger than dawn, the world is cold and still
@@ -298,13 +311,6 @@ export function renderTerrain(
   const silenceColdStr = cycleProgress >= 0.92
     ? Math.min(1, (cycleProgress - 0.92) / 0.06) * 0.55
     : 0;
-
-  // Sunrise band: warm pink-orange wash across the lower sky during dawn (exploration start)
-  // Creates a visible transition from "dark night" to "open day"
-  const sunriseStr =
-    cycleProgress >= 0.06 && cycleProgress < 0.22
-      ? Math.sin((cycleProgress - 0.06) / 0.16 * Math.PI) * 0.78
-      : 0;
 
   // Night-arc blend factor — 0 at full day, approaches 1 at deep night.
   // Sky pixels are mixed toward cool dark blue [8,12,30] as night deepens,
@@ -359,19 +365,25 @@ export function renderTerrain(
           }
         }
 
-        // Sunrise band: warm pink-orange wash across the lower sky at dawn
+        // Dawn sky bloom: rose-pink horizon, soft lavender at zenith — mirrors the sunset's drama.
+        // At genesis the world is dark night; at exploration a warm glow floods the sky.
         if (sunriseStr > 0) {
-          // Concentrate in the lower half of sky (y from H*0.1 to H*0.7)
-          const skyFrac = y / H;
-          if (skyFrac > 0.08 && skyFrac < 0.75) {
-            // Bell-shaped, peaks near skyFrac=0.55 (just above horizon)
-            const bandPeak = 0.55;
-            const bandWidth = 0.35;
-            const band = Math.max(0, 1 - Math.abs(skyFrac - bandPeak) / bandWidth);
-            const sf = band * band * sunriseStr;
-            r = Math.min(255, r + 120 * sf);
-            g = Math.min(255, g + 55 * sf);
-            b = Math.min(255, b + 35 * sf);  // slight warmth, not pure orange
+          const skyFrac = y / H;  // 0 = zenith (top), increases toward horizon (bottom)
+          if (skyFrac < 0.88) {
+            // Horizon rose: concentrated near the terrain/sky edge, fades toward zenith.
+            // Mirrors the sunset orange band but in rose-pink tones.
+            const horizonT = Math.max(0, (skyFrac - 0.04) / 0.64);
+            const roseStr = horizonT * horizonT * horizonT * sunriseStr;
+            r = Math.min(255, r + Math.round(155 * roseStr));
+            g = Math.min(255, g + Math.round(48 * roseStr));
+            b = Math.min(255, b + Math.round(82 * roseStr));
+
+            // Zenith lavender: soft violet-pink crown at top of sky — matches real pre-dawn color.
+            const zenithT = Math.max(0, 1 - skyFrac / 0.40);
+            const lavStr = zenithT * zenithT * sunriseStr * 0.55;
+            r = Math.min(255, r + Math.round(52 * lavStr));
+            g = Math.min(255, g + Math.round(14 * lavStr));
+            b = Math.min(255, b + Math.round(72 * lavStr));
           }
         }
 
