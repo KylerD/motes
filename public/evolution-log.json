@@ -804,12 +804,12 @@
     "title": "biome horizon identity",
     "reflection": "Each biome now tints its horizon with its own atmospheric light: volcanic red-orange, tundra ice-blue, desert amber haze, lush green-gold. Fog weather density tripled so it looks like actual fog. Ancient bonds (70s+) widen to thick golden cords.",
     "looking_ahead": [
-      "Sound arc to match visual arc — exploration should feel as sonically rich as it now looks",
-      "Night/silence more haunted — brighter stars, emptier ambient, sparser motes",
-      "Biome mist color variation — fog in each biome exhales a different character",
-      "Bond energy pulses — animated bright dot traveling along bond lines to show live connection"
+      "Sound arc to match visual arc \u2014 exploration should feel as sonically rich as it now looks",
+      "Night/silence more haunted \u2014 brighter stars, emptier ambient, sparser motes",
+      "Biome mist color variation \u2014 fog in each biome exhales a different character",
+      "Bond energy pulses \u2014 animated bright dot traveling along bond lines to show live connection"
     ],
-    "visual_verification": "AFTER desert captures: blazing amber-orange sky permeating every phase — unmistakably a hot world. BEFORE: generic mountain scenes with blue sky. Biome identity now readable at a glance from sky color alone.",
+    "visual_verification": "AFTER desert captures: blazing amber-orange sky permeating every phase \u2014 unmistakably a hot world. BEFORE: generic mountain scenes with blue sky. Biome identity now readable at a glance from sky color alone.",
     "quality_delta": "avg brightness 0.55 stable. No regressions. Desert biome horizon tint ~+40R -28B gives unmistakably warm world.",
     "files_changed": [
       "src/terrain-render.ts",
@@ -839,9 +839,9 @@
     "title": "bond energy pulses",
     "reflection": "Added animated dots traveling along bond lines. Young bonds pulse fast and blue-white; mature bonds warm amber; ancient bonds slow deep gold. Absent at genesis and silence.",
     "looking_ahead": [
-      "Phase transition shockwave — radial ring expanding across screen at each cycle boundary",
-      "Night/silence more haunted — brighter stars, sparser motes, emptier ambient",
-      "Biome mist color variation — fog exhales a different character per biome",
+      "Phase transition shockwave \u2014 radial ring expanding across screen at each cycle boundary",
+      "Night/silence more haunted \u2014 brighter stars, sparser motes, emptier ambient",
+      "Biome mist color variation \u2014 fog exhales a different character per biome",
       "Sound arc: exploration should feel as sonically alive as it now looks"
     ],
     "visual_verification": "AFTER complexity screenshot shows bright cyan/white/gold dots clearly traveling along bond threads between clustered motes on terrain ridge. Organization screenshot shows multiple vivid pulse dots on bonds. Bonds no longer look static.",
@@ -855,9 +855,9 @@
     "title": "sky day-night arc",
     "reflection": "Sky brightness now arcs from dark pre-dawn at genesis through full noon at complexity to moonlit night at silence. Phase cycle unmistakable: desert gold becomes deep amber-night, lush becomes cool blue-black.",
     "looking_ahead": [
-      "Terrain also darkens at night — motes glow even more against dark ground",
+      "Terrain also darkens at night \u2014 motes glow even more against dark ground",
       "Dawn transition: pink-gold sunrise bloom across the horizon",
-      "Phase transition shockwave — radial ring expanding at each cycle boundary",
+      "Phase transition shockwave \u2014 radial ring expanding at each cycle boundary",
       "Sound arc: silent genesis should feel as aurally dark as it now looks"
     ],
     "visual_verification": "Genesis/silence screenshots show dark blue-purple sky with visible stars; mote glows stand out as warm points of light. Complexity remains fully bright. Night sky at 0.28x brightness vs 1.0x at noon.",
@@ -869,15 +869,15 @@
   {
     "date": "2026-03-29",
     "title": "terrain night darkening",
-    "reflection": "Terrain now dims with the sky at genesis and silence. Motes glow as lanterns against dark ground — the fireflies-in-the-dark effect the day-night arc was missing.",
+    "reflection": "Terrain now dims with the sky at genesis and silence. Motes glow as lanterns against dark ground \u2014 the fireflies-in-the-dark effect the day-night arc was missing.",
     "looking_ahead": [
       "Dawn transition: pink-gold sunrise bloom across the horizon",
-      "Phase transition shockwave — radial ring expanding at each cycle boundary",
+      "Phase transition shockwave \u2014 radial ring expanding at each cycle boundary",
       "Sound arc: sparse genesis should feel as aurally dark as it now looks",
       "Water shimmer and reflection intensity scale with night brightness"
     ],
     "visual_verification": "Volcanic dissolution shot: terrain clearly dark, motes glow blue and amber against black rock. AFTER temperate shot: mountains and terrain shadowed at night phases, motes pop as colored points.",
-    "quality_delta": "avgMoteBrightness 0.50 → 0.56 (mote floor raised 128→138). MOTE_TOO_DIM cleared. terrainNightFactor = 0.40+0.60*skyBr; ~52% at genesis/silence, 100% at complexity.",
+    "quality_delta": "avgMoteBrightness 0.50 \u2192 0.56 (mote floor raised 128\u2192138). MOTE_TOO_DIM cleared. terrainNightFactor = 0.40+0.60*skyBr; ~52% at genesis/silence, 100% at complexity.",
     "files_changed": [
       "src/terrain-render.ts",
       "src/render-motes.ts"
@@ -886,15 +886,15 @@
   {
     "date": "2026-03-30",
     "title": "dawn sky bloom",
-    "reflection": "Sky at genesis→exploration transition now glows rose-pink at the horizon and soft lavender at zenith. Water mirrors the sunrise colors. Terrain surface gets warm morning light.",
+    "reflection": "Sky at genesis\u2192exploration transition now glows rose-pink at the horizon and soft lavender at zenith. Water mirrors the sunrise colors. Terrain surface gets warm morning light.",
     "looking_ahead": [
       "Sound arc: genesis should be aurally sparse, silence empty",
-      "Phase transition shockwave — radial ring expanding at each cycle boundary",
+      "Phase transition shockwave \u2014 radial ring expanding at each cycle boundary",
       "Mote social signals: visible bond-seeking flicker before bonding",
       "Biome-specific mote tints at night: tundra ice-blue, volcanic amber"
     ],
-    "visual_verification": "After screenshots show rose-pink/lavender sky during exploration phase — visible in screenshot 01 where sky glows warm pink-purple instead of neutral gray. Water reflects the rose tones.",
-    "quality_delta": "avgMoteBrightness 0.51→0.53. visibleMoteCount avg 13.3→19.1. No quality regressions.",
+    "visual_verification": "After screenshots show rose-pink/lavender sky during exploration phase \u2014 visible in screenshot 01 where sky glows warm pink-purple instead of neutral gray. Water reflects the rose tones.",
+    "quality_delta": "avgMoteBrightness 0.51\u21920.53. visibleMoteCount avg 13.3\u219219.1. No quality regressions.",
     "files_changed": [
       "src/terrain-render.ts"
     ]
@@ -905,12 +905,12 @@
     "reflection": "Social motes now pulse expanding rings when seeking bonds. Biome-specific night glow: volcanic motes burn orange, tundra glow ice-blue, desert warm gold.",
     "looking_ahead": [
       "Sound arc: genesis should feel aurally sparse, silence empty",
-      "Phase transition shockwave sound — audible sweep to match the visual ring",
+      "Phase transition shockwave sound \u2014 audible sweep to match the visual ring",
       "Elder grief: nearby motes briefly flicker on elder death",
       "Water shimmer that reacts to nearby mote activity"
     ],
     "visual_verification": "Organization phase screenshots show soft halo rings around individual social motes. Rings expand outward and fade, distinct from the proto-attraction arcs between bonding pairs. Biome night glow added per-biome identity.",
-    "quality_delta": "avgMoteBrightness 0.50→0.54. No regressions. clumping 0.00.",
+    "quality_delta": "avgMoteBrightness 0.50\u21920.54. No regressions. clumping 0.00.",
     "files_changed": [
       "src/render-motes.ts",
       "src/main.ts"
@@ -919,18 +919,36 @@
   {
     "date": "2026-03-30",
     "title": "mote bioluminescence",
-    "reflection": "Motes now cast elliptical light pools on terrain beneath them and glow 3× brighter at night. Color floor lowered (138→80) for vivid saturated hues.",
+    "reflection": "Motes now cast elliptical light pools on terrain beneath them and glow 3\u00d7 brighter at night. Color floor lowered (138\u219280) for vivid saturated hues.",
     "looking_ahead": [
       "Dawn transition: pink-gold sunrise bloom",
       "Sound arc: genesis should be aurally sparse, silence empty",
       "Mote social signals: visible bond-seeking flicker before bonding",
       "Biome-specific mote tints at night: tundra motes glow ice-blue, volcanic amber"
     ],
-    "visual_verification": "AFTER screenshots show vivid magenta, teal, cyan, orange motes with visible elliptical ground pools. 3× more mote clusters detected (6.7→19.0 avg, 10→38 peak). Night glow radius 7→9 with softer falloff.",
-    "quality_delta": "visibleMoteCount 6.7→19.0 avg, peak 10→38. avgMoteBrightness 0.54→0.52 (more saturated colors dilute luma avg). God rays 0.95→0.42 strength.",
+    "visual_verification": "AFTER screenshots show vivid magenta, teal, cyan, orange motes with visible elliptical ground pools. 3\u00d7 more mote clusters detected (6.7\u219219.0 avg, 10\u219238 peak). Night glow radius 7\u21929 with softer falloff.",
+    "quality_delta": "visibleMoteCount 6.7\u219219.0 avg, peak 10\u219238. avgMoteBrightness 0.54\u21920.52 (more saturated colors dilute luma avg). God rays 0.95\u21920.42 strength.",
     "files_changed": [
       "src/render-motes.ts",
       "src/weather-render.ts"
+    ]
+  },
+  {
+    "date": "2026-03-31",
+    "title": "cluster embers and mote brightness",
+    "reflection": "Mote color floor raised (80\u2192115), fixing dim-mote quality issue. Clusters now emit rising ember sparks \u2014 warm particles drifting upward like campfire cinders.",
+    "looking_ahead": [
+      "Water shimmer that reflects ember glow from nearby clusters",
+      "Ember intensity scales with cluster size \u2014 big communities burn brightest",
+      "Phase-reactive terrain color shifts (frost at genesis, dried at dissolution)",
+      "Sound: crackling ember sounds tied to cluster size"
+    ],
+    "visual_verification": "After screenshots show vivid pink, cyan, and yellow motes clearly popping against terrain. Bright motes no longer blend into ground.",
+    "quality_delta": "avgMoteBrightness 0.49 \u2192 0.51; quality issue MOTE_TOO_DIM cleared",
+    "files_changed": [
+      "src/render-motes.ts",
+      "src/render-bonds.ts",
+      "src/main.ts"
     ]
   }
 ]

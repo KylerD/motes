@@ -35,9 +35,9 @@ export function computeMoteColor(m: Mote, _bp: BiomePalette): [number, number, n
     g = Math.min(255, g * scale);
     b = Math.min(255, b * scale);
   }
-  r = Math.max(80, r);
-  g = Math.max(80, g);
-  b = Math.max(80, b);
+  r = Math.max(115, r);
+  g = Math.max(115, g);
+  b = Math.max(115, b);
 
   return [Math.round(r), Math.round(g), Math.round(b)];
 }

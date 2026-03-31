@@ -24,7 +24,7 @@ import {
   applyChromaticAberration, applyLastLight, renderFloodStorm, renderDroughtHeat,
   renderHeatmap,
 } from "./render-effects";
-import { renderClusterGroundGlow, renderClusterGlow, renderClusterBeacons, renderBondLines, renderProtoAttractions, renderDeathParticles, renderSilenceConstellation, renderSilenceGraveyards, renderCascadeBursts, renderSoulWisps, renderSpiritAscension } from "./render-bonds";
+import { renderClusterGroundGlow, renderClusterGlow, renderClusterBeacons, renderBondLines, renderProtoAttractions, renderDeathParticles, renderSilenceConstellation, renderSilenceGraveyards, renderCascadeBursts, renderSoulWisps, renderSpiritAscension, renderClusterEmbers } from "./render-bonds";
 import { renderRipples, renderCursor, renderEventMessage, renderDebugOverlay } from "./render-ui";
 import type { Mote, RenderContext, SoundEngine, Interaction } from "./types";
 
@@ -305,6 +305,9 @@ function init(): void {
 
     // Cluster beacons — light pillars rising from large clusters into the sky
     renderClusterBeacons(rc.buf, w.clusters, moteColors, w.phaseIndex, w.time);
+
+    // Cluster embers — warm spark particles rising from community centers
+    renderClusterEmbers(rc.buf, w.clusters, moteColors, w.phaseIndex, w.time);
 
     // Soul wisps — lingering colored spirits of the dead, drifting above the terrain (3–55s)
     renderSoulWisps(rc.buf, w.allDeaths, w.phaseName, w.time);

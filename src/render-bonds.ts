@@ -1197,3 +1197,81 @@ export function renderSpiritAscension(
     }
   }
 }
+
+/** Rising ember sparks from cluster centers — warm particles drifting upward.
+ *  Makes bonded communities feel like campfires: alive, warm, breathing.
+ *  Fully deterministic from time + cluster position; no state required.
+ *  Active at organization → dissolution, peaking at complexity. */
+export function renderClusterEmbers(
+  buf: ImageData,
+  clusters: Mote[][],
+  colors: Map<Mote, [number, number, number]>,
+  phaseIndex: number,
+  time: number,
+): void {
+  const PHASE_STR = [0, 0, 0.30, 1.0, 0.55, 0.0];
+  const phaseStr = PHASE_STR[Math.min(5, Math.max(0, phaseIndex))];
+  if (phaseStr < 0.01) return;
+
+  for (const cluster of clusters) {
+    if (cluster.length < 2) continue;
+
+    // Cluster centroid + average color
+    let cx = 0, cy = 0, avgR = 0, avgG = 0, avgB = 0;
+    for (const m of cluster) {
+      cx += m.x; cy += m.y;
+      const [r, g, b] = colors.get(m)!;
+      avgR += r; avgG += g; avgB += b;
+    }
+    cx /= cluster.length; cy /= cluster.length;
+    avgR = Math.round(avgR / cluster.length);
+    avgG = Math.round(avgG / cluster.length);
+    avgB = Math.round(avgB / cluster.length);
+
+    // Number of ember slots scales with cluster size (1–5 slots)
+    const slotCount = Math.min(5, 1 + Math.floor(cluster.length * 0.6));
+    const emberLifetime = 1.3; // seconds each ember is visible
+    const period = 2.0;        // one ember per slot every ~2s
+
+    for (let ei = 0; ei < slotCount; ei++) {
+      // Stagger slot offsets so embers are spread in time
+      const slotOff = (ei / slotCount) * period;
+      const emberAge = ((time + slotOff) % period);
+      if (emberAge > emberLifetime) continue; // slot is in its "gap" phase
+
+      // Deterministic rise direction — narrow upward fan (±30° from straight up)
+      const seed = (Math.round(cx) * 47 + Math.round(cy) * 31 + ei * 127) & 0x3ff;
+      const spreadAngle = ((seed / 0x3ff) - 0.5) * (Math.PI / 3); // ±30°
+      const speed = 11 + (seed & 7); // 11–18 px/s
+
+      const vx = Math.sin(spreadAngle) * speed;
+      const vy = -Math.cos(spreadAngle) * speed; // upward
+      const gravity = 20; // px/s² pulling back down
+
+      const px = cx + vx * emberAge;
+      const py = cy + vy * emberAge + 0.5 * gravity * emberAge * emberAge;
+
+      // Alpha: fast ramp-up then fade
+      let alpha: number;
+      const rampEnd = 0.12;
+      if (emberAge < rampEnd) {
+        alpha = Math.round((emberAge / rampEnd) * 195 * phaseStr);
+      } else {
+        alpha = Math.round((1 - (emberAge - rampEnd) / (emberLifetime - rampEnd)) * 195 * phaseStr);
+      }
+      if (alpha < 4) continue;
+
+      // Warm ember color: blend mote hue toward hot orange-gold
+      const er = Math.min(255, Math.round(avgR * 0.55 + 255 * 0.45));
+      const eg = Math.min(255, Math.round(avgG * 0.45 + 148 * 0.55));
+      const eb = Math.max(0,   Math.round(avgB * 0.20));
+
+      setPixel(buf, px, py, er, eg, eb, alpha);
+      // Bright white-gold tip on fresh embers — the spark before it cools
+      if (emberAge < 0.35) {
+        const tipA = Math.round((1 - emberAge / 0.35) * alpha * 0.65);
+        if (tipA > 3) setPixel(buf, px, py - 1, 255, 228, 140, tipA);
+      }
+    }
+  }
+}
