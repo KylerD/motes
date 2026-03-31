@@ -900,6 +900,23 @@
     ]
   },
   {
+    "date": "2026-03-31",
+    "title": "mote social signals",
+    "reflection": "Social motes now pulse expanding rings when seeking bonds. Biome-specific night glow: volcanic motes burn orange, tundra glow ice-blue, desert warm gold.",
+    "looking_ahead": [
+      "Sound arc: genesis should feel aurally sparse, silence empty",
+      "Phase transition shockwave sound — audible sweep to match the visual ring",
+      "Elder grief: nearby motes briefly flicker on elder death",
+      "Water shimmer that reacts to nearby mote activity"
+    ],
+    "visual_verification": "Organization phase screenshots show soft halo rings around individual social motes. Rings expand outward and fade, distinct from the proto-attraction arcs between bonding pairs. Biome night glow added per-biome identity.",
+    "quality_delta": "avgMoteBrightness 0.50→0.54. No regressions. clumping 0.00.",
+    "files_changed": [
+      "src/render-motes.ts",
+      "src/main.ts"
+    ]
+  },
+  {
     "date": "2026-03-30",
     "title": "mote bioluminescence",
     "reflection": "Motes now cast elliptical light pools on terrain beneath them and glow 3× brighter at night. Color floor lowered (138→80) for vivid saturated hues.",

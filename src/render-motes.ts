@@ -108,6 +108,19 @@ export function renderMoteTrails(
   }
 }
 
+/**
+ * Biome-specific night glow override colors.
+ * [genesisR, genesisG, genesisB, silenceR, silenceG, silenceB]
+ * Genesis = pre-dawn; Silence = moonlit night. Each biome has its own nocturnal identity.
+ */
+const BIOME_NIGHT_GLOW: Record<string, [number, number, number, number, number, number]> = {
+  temperate: [170, 190, 255,  255, 180,  60],  // cool blue pre-dawn / warm amber ember
+  lush:      [158, 240, 195,  210, 255, 150],  // verdant green morning / bioluminescent night
+  volcanic:  [255, 155,  45,  255,  95,  18],  // lava-orange pre-dawn / deep ember silence
+  tundra:    [148, 188, 255,  185, 220, 255],  // ice-blue dawn / moonlit crystal silence
+  desert:    [255, 198,  72,  255, 168,  35],  // warm gold dawn / hot amber night
+};
+
 /** Render all mote sprites */
 export function renderMotes(
   buf: ImageData,
@@ -118,6 +131,7 @@ export function renderMotes(
   time: number,
   phaseIndex = 3,
   clusterHeartbeat: Map<Mote, number> = new Map(),
+  biome = "temperate",
 ): void {
   // Phase glow: night phases = dramatic bioluminescent lantern, day phases = softer vitality aura.
   // Night motes should glow like fireflies — unmissable against dark terrain.
@@ -174,13 +188,60 @@ export function renderMotes(
       }
     }
 
+    // SOCIAL SEEKING PULSE — social motes with unfilled bond slots emit periodic expanding rings.
+    // Active during exploration / organization / complexity. Makes the invisible bonding
+    // system tangible: you can see a creature reaching out before it bonds.
+    {
+      const seekStr =
+        phaseIndex === 1 ? 0.35 :  // exploration: occasional faint pulses
+        phaseIndex === 2 ? 0.75 :  // organization: active seeking
+        phaseIndex === 3 ? 1.00 :  // complexity: peak social activity
+        0;
+      if (seekStr > 0 && m.temperament.sociability > 0.45 && m.bonds.length < 3) {
+        const soc = m.temperament.sociability;
+        // Period: more social motes pulse more often (every 2.5–4.5s)
+        const period = 2.5 + (1 - soc) * 2.0;
+        // Unique phase offset per mote so pulses stagger naturally
+        const phaseOff = ((ox * 47 + oy * 31) & 0x3ff) / 1024 * period;
+        const seekPhase = (m.age + phaseOff) % period;
+
+        if (seekPhase < 0.65) {
+          const pT = seekPhase / 0.65;          // 0 = ring just fired, 1 = faded
+          const seekR = Math.round(4 + pT * 11); // 4 → 15px radius as ring expands
+          const seekA = Math.round((1 - pT) * (1 - pT) * 36 * soc * seekStr);
+
+          if (seekA > 2) {
+            // Shift ring color slightly toward white — open, receptive
+            const sr = Math.min(255, Math.round(cr * 0.55 + 210 * 0.45));
+            const sg = Math.min(255, Math.round(cg * 0.55 + 210 * 0.45));
+            const sb = Math.min(255, Math.round(cb * 0.55 + 210 * 0.45));
+
+            const rScan = seekR + 2;
+            const innerR2 = (seekR - 1.8) * (seekR - 1.8);
+            const outerR2 = (seekR + 1.8) * (seekR + 1.8);
+            for (let dsy = -rScan; dsy <= rScan; dsy++) {
+              for (let dsx = -rScan; dsx <= rScan; dsx++) {
+                const d2 = dsx * dsx + dsy * dsy;
+                if (d2 < innerR2 || d2 > outerR2) continue;
+                const dFromRing = Math.abs(Math.sqrt(d2) - seekR);
+                const ringFall = 1 - dFromRing / 2.2;
+                if (ringFall <= 0) continue;
+                const pa = Math.round(seekA * ringFall);
+                if (pa > 1) setPixel(buf, ox + dsx, oy - 1 + dsy, sr, sg, sb, pa);
+              }
+            }
+          }
+        }
+      }
+    }
+
     // AMBIENT GLOW — phase-scaled halo drawn before the body.
     // Night phases: bright firefly lantern. Day phases: warm vitality aura.
     // Energy-scaled so dying motes flicker dimmer. Feeds into bloom pass.
     //
-    // Phase-tinted halos:
-    //   Genesis   = cool blue-white dawn light — fragile, barely-formed
-    //   Silence   = warm amber ember light — last glow before dark
+    // Phase-tinted halos — biome-aware: each world's night has its own character.
+    //   Genesis   = biome pre-dawn light (volcanic=orange, tundra=ice-blue, temperate=soft blue)
+    //   Silence   = biome moonlight (volcanic=ember, tundra=crystal, temperate=amber)
     //   Other     = mote's own identity color
     if (glowMax > 0) {
       const gPulse = Math.sin(m.age * 1.6 + m.x * 0.14) * 0.22 + 0.78;
@@ -189,10 +250,11 @@ export function renderMotes(
         // Night lanterns wider (radius 9); day vitality subtler (radius 6)
         const glowR = isNight ? 9 : 6;
         const glowR2 = glowR * glowR;
-        // Genesis: cool blue-white (dawn); Silence: warm amber (ember); else: mote identity
-        const gr = phaseIndex === 0 ? 170 : phaseIndex === 5 ? 255 : cr;
-        const gg = phaseIndex === 0 ? 190 : phaseIndex === 5 ? 180 : cg;
-        const gb = phaseIndex === 0 ? 255 : phaseIndex === 5 ? 60  : cb;
+        // Biome-specific night glow — each world glows with its own nocturnal identity
+        const nightGlow = BIOME_NIGHT_GLOW[biome] ?? BIOME_NIGHT_GLOW.temperate;
+        const gr = phaseIndex === 0 ? nightGlow[0] : phaseIndex === 5 ? nightGlow[3] : cr;
+        const gg = phaseIndex === 0 ? nightGlow[1] : phaseIndex === 5 ? nightGlow[4] : cg;
+        const gb = phaseIndex === 0 ? nightGlow[2] : phaseIndex === 5 ? nightGlow[5] : cb;
         for (let dgy = -glowR; dgy <= glowR; dgy++) {
           for (let dgx = -glowR; dgx <= glowR; dgx++) {
             const d2 = dgx * dgx + dgy * dgy;

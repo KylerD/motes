@@ -313,7 +313,7 @@ function init(): void {
     renderMoteTrails(rc.buf, w.motes, moteColors);
     // Proto-attraction arcs: faint animated dotted lines between approaching motes
     renderProtoAttractions(rc.buf, w.motes, moteColors, w.time, w.phaseIndex);
-    renderMotes(rc.buf, w.motes, moteColors, plagueActive, plaguePulse, w.time, w.phaseIndex, clusterHeartbeat);
+    renderMotes(rc.buf, w.motes, moteColors, plagueActive, plaguePulse, w.time, w.phaseIndex, clusterHeartbeat, w.terrain.biome);
     renderBondLines(rc.buf, w.motes, moteColors, w.time, w.phaseIndex);
     renderCascadeBursts(rc.buf, cascadeBursts);
     renderDeathParticles(rc.buf, w.deaths, w.time);
