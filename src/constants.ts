@@ -1,0 +1,95 @@
+// constants.ts — Centralized tuning constants.
+// Organized by domain so behavioral parameters are discoverable and tweakable.
+
+// ---- Physics ----
+export const GRAVITY = 60;
+export const MAX_FALL = 60;
+export const WALK_SPEED = 14;
+export const JUMP_OVER = 4;
+
+// ---- Spatial ----
+export const CELL_SIZE = 20;
+export const NEIGHBOR_RADIUS = 28;
+export const LOOKAHEAD_DISTANCE = 3;
+
+// ---- Bonding ----
+export const BOND_DIST = 20;
+export const BOND_TIME = 1.2;
+export const MAX_BONDS = 3;
+export const BOND_COMFORTABLE_DISTANCE = 0.5;
+export const BOND_BREAK_DISTANCE_MULT = 6;
+export const BOND_FORMATION_ENERGY_GAIN = 0.03;
+export const BOND_TIMER_DECAY_RATE = 0.3;
+export const ANCIENT_BOND_AGE = 70;
+
+// ---- Lifecycle ----
+export const AGE_MATURE = 8;
+export const AGE_ELDER = 20;
+export const MATURE_SPEED_MOD = 0.92;
+export const ELDER_SPEED_MOD = 0.82;
+export const ELDER_BOND_BREAK_MULT = 1.4;
+
+// ---- Movement ----
+export const WALK_SPEED_BASE = 0.5;
+export const WALK_SPEED_WANDERLUST = 0.8;
+export const SAND_SPEED = 0.7;
+export const CANOPY_SPEED = 0.85;
+export const CAVE_SPEED = 0.6;
+export const SHALLOW_WATER_SPEED = 0.5;
+export const DIRECTION_CHANGE_RATE = 0.02;
+
+// ---- Social forces ----
+export const SOCIAL_ATTRACT_DIST = 12;
+export const SOCIAL_ATTRACT_STRENGTH = 4;
+export const REPULSION_DIST = 12;
+export const REPULSION_STRENGTH = 30;
+export const SOCIAL_FORCE_CLAMP = 10;
+export const ELDER_ATTRACT_STRENGTH = 2;
+export const BONDED_ATTRACT_STRENGTH = 4;
+
+// ---- Energy ----
+export const ENERGY_TRANSFER_BASE = 0.05;
+export const ENERGY_TRANSFER_SOCIAL = 0.04;
+export const NUTRIENT_GAIN_RATE = 0.02;
+export const HAZARD_DRAIN_RATE = 0.03;
+export const HARDINESS_RESIST = 0.4;
+export const ENERGY_DECAY_HARDINESS = 0.4;
+export const ENERGY_DECAY_WANDERLUST = 0.3;
+
+// ---- Wanderer frenzy ----
+export const FRENZY_ENERGY_THRESHOLD = 0.3;
+export const FRENZY_MAX_MULT = 4;
+
+// ---- Dying behavior ----
+export const DYING_ENERGY_THRESHOLD = 0.3;
+export const DYING_BOND_SEEK_DIST = 5;
+export const DYING_BOND_SEEK_FORCE = 20;
+export const DYING_SOCIAL_BOOST = 2;
+
+// ---- Flash decay rates ----
+export const SPAWN_FLASH_DECAY = 3;
+export const BOND_FLASH_DECAY = 3;
+export const BOND_BREAK_FLASH_DECAY = 2.5;
+export const INHERIT_FLASH_DECAY = 0.65;
+export const MOURNING_FLASH_DECAY = 0.5;
+export const CLUSTER_MERGE_FLASH_DECAY = 1.8;
+export const ANCIENT_BOND_FLASH_DECAY = 0.7;
+export const HARDINESS_FLASH_GAIN = 6;
+export const HARDINESS_FLASH_DECAY = 4;
+
+// ---- Trail ----
+export const TRAIL_AGE_WINDOW = 30;
+export const TRAIL_BASE_INTERVAL = 0.08;
+export const TRAIL_INTERVAL_RANGE = 0.07;
+export const TRAIL_MIN_LENGTH = 12;
+export const TRAIL_LENGTH_FACTOR = 33;
+export const TRAIL_MIN_LIFETIME = 1.5;
+export const TRAIL_LIFETIME_BASE = 1.5;
+export const TRAIL_LIFETIME_ELDER = 3.0;
+
+// ---- Hardy flash thresholds ----
+export const HARDY_FLASH_TILE_THRESHOLD = -0.1;
+export const HARDY_FLASH_MIN_HARDINESS = 0.45;
+
+// ---- Curiosity facing ----
+export const CURIOSITY_FACING_MIN_TIMER = 0.1;

@@ -6,19 +6,35 @@ import type { Terrain, Mote, SpatialGrid } from "./types";
 import { getSurfaceY, getTile, getTileEnergy } from "./terrain-query";
 import { W } from "./config";
 import { getNeighbors } from "./physics";
+import {
+  GRAVITY, WALK_SPEED, MAX_FALL, JUMP_OVER,
+  BOND_DIST, BOND_TIME, MAX_BONDS, NEIGHBOR_RADIUS,
+  AGE_MATURE, AGE_ELDER, MATURE_SPEED_MOD, ELDER_SPEED_MOD,
+  SPAWN_FLASH_DECAY, BOND_FLASH_DECAY, BOND_BREAK_FLASH_DECAY,
+  INHERIT_FLASH_DECAY, MOURNING_FLASH_DECAY, CLUSTER_MERGE_FLASH_DECAY,
+  ANCIENT_BOND_FLASH_DECAY, TRAIL_AGE_WINDOW, TRAIL_BASE_INTERVAL,
+  TRAIL_INTERVAL_RANGE, TRAIL_MIN_LENGTH, TRAIL_LENGTH_FACTOR,
+  TRAIL_MIN_LIFETIME, TRAIL_LIFETIME_BASE, TRAIL_LIFETIME_ELDER,
+  ENERGY_DECAY_HARDINESS, ENERGY_DECAY_WANDERLUST,
+  NUTRIENT_GAIN_RATE, HAZARD_DRAIN_RATE, HARDINESS_RESIST,
+  HARDY_FLASH_TILE_THRESHOLD, HARDY_FLASH_MIN_HARDINESS,
+  HARDINESS_FLASH_GAIN, HARDINESS_FLASH_DECAY,
+  WALK_SPEED_BASE, WALK_SPEED_WANDERLUST,
+  SAND_SPEED, CANOPY_SPEED, CAVE_SPEED, SHALLOW_WATER_SPEED,
+  FRENZY_ENERGY_THRESHOLD, FRENZY_MAX_MULT, DIRECTION_CHANGE_RATE,
+  SOCIAL_ATTRACT_DIST, SOCIAL_ATTRACT_STRENGTH,
+  REPULSION_DIST, REPULSION_STRENGTH, SOCIAL_FORCE_CLAMP,
+  ELDER_ATTRACT_STRENGTH, BONDED_ATTRACT_STRENGTH,
+  BOND_COMFORTABLE_DISTANCE, ENERGY_TRANSFER_BASE, ENERGY_TRANSFER_SOCIAL,
+  DYING_ENERGY_THRESHOLD, DYING_BOND_SEEK_DIST, DYING_BOND_SEEK_FORCE,
+  DYING_SOCIAL_BOOST, ELDER_BOND_BREAK_MULT, BOND_BREAK_DISTANCE_MULT,
+  ANCIENT_BOND_AGE, BOND_FORMATION_ENERGY_GAIN, BOND_TIMER_DECAY_RATE,
+  CURIOSITY_FACING_MIN_TIMER, LOOKAHEAD_DISTANCE,
+} from "./constants";
 
 // Re-export for backward compatibility
 export type { Mote };
 export { placeSettlement } from "./terrain-query";
-
-const GRAVITY = 60;
-const WALK_SPEED = 14;
-const MAX_FALL = 60;
-const JUMP_OVER = 4; // can step up 4px ledges at double res
-const BOND_DIST = 20;
-const BOND_TIME = 1.2;
-const MAX_BONDS = 3;
-const NEIGHBOR_RADIUS = 28;
 
 export function createMote(
   x: number,
@@ -74,35 +90,35 @@ export function updateMote(
   rng: () => number,
 ): void {
   m.age += dt;
-  m.spawnFlash = Math.max(0, m.spawnFlash - dt * 3);
+  m.spawnFlash = Math.max(0, m.spawnFlash - dt * SPAWN_FLASH_DECAY);
 
   // Age lifecycle modifiers
-  const ageMature = m.age > 8;   // ~8 seconds
-  const ageElder = m.age > 20;   // ~20 seconds
-  const ageMod = ageElder ? 0.82 : ageMature ? 0.92 : 1.0;
+  const ageMature = m.age > AGE_MATURE;   // ~8 seconds
+  const ageElder = m.age > AGE_ELDER;     // ~20 seconds
+  const ageMod = ageElder ? ELDER_SPEED_MOD : ageMature ? MATURE_SPEED_MOD : 1.0;
 
-  m.bondFlash = Math.max(0, m.bondFlash - dt * 3);
-  m.bondBreakFlash = Math.max(0, m.bondBreakFlash - dt * 2.5);
-  m.inheritFlash = Math.max(0, m.inheritFlash - dt * 0.65); // ~1.5s grief window
-  m.mourningFlash = Math.max(0, m.mourningFlash - dt * 0.5); // ~2s community mourning
-  m.clusterMergeFlash = Math.max(0, m.clusterMergeFlash - dt * 1.8); // ~0.55s merge bloom
-  m.ancientBondBreakFlash = Math.max(0, m.ancientBondBreakFlash - dt * 0.7); // ~1.4s mournful ring
+  m.bondFlash = Math.max(0, m.bondFlash - dt * BOND_FLASH_DECAY);
+  m.bondBreakFlash = Math.max(0, m.bondBreakFlash - dt * BOND_BREAK_FLASH_DECAY);
+  m.inheritFlash = Math.max(0, m.inheritFlash - dt * INHERIT_FLASH_DECAY); // ~1.5s grief window
+  m.mourningFlash = Math.max(0, m.mourningFlash - dt * MOURNING_FLASH_DECAY); // ~2s community mourning
+  m.clusterMergeFlash = Math.max(0, m.clusterMergeFlash - dt * CLUSTER_MERGE_FLASH_DECAY); // ~0.55s merge bloom
+  m.ancientBondBreakFlash = Math.max(0, m.ancientBondBreakFlash - dt * ANCIENT_BOND_FLASH_DECAY); // ~1.4s mournful ring
 
   // Record trail breadcrumbs
   // Elder wanderers accumulate longer histories: age 0→30s scales buffer 10→45 pts.
   // A mote that's walked this world for 30 seconds leaves more of a mark than one at 5.
-  const trailAgeFactor = Math.min(1, m.age / 30);
+  const trailAgeFactor = Math.min(1, m.age / TRAIL_AGE_WINDOW);
   m.trailTimer += dt;
   // High-wanderlust motes sample more frequently (0.08s) — their speed means wider gaps otherwise
-  const trailInterval = 0.08 + (1 - m.temperament.wanderlust) * 0.07;
+  const trailInterval = TRAIL_BASE_INTERVAL + (1 - m.temperament.wanderlust) * TRAIL_INTERVAL_RANGE;
   if (m.trailTimer >= trailInterval) {
     m.trailTimer = 0;
     m.trail.push({ x: Math.round(m.x), y: Math.round(m.y), age: 0 });
-    const maxTrail = Math.floor(12 + m.temperament.wanderlust * trailAgeFactor * 33);
+    const maxTrail = Math.floor(TRAIL_MIN_LENGTH + m.temperament.wanderlust * trailAgeFactor * TRAIL_LENGTH_FACTOR);
     if (m.trail.length > maxTrail) m.trail.shift();
   }
   // Elder wanderers remember longer: young=1.5-3.0s, elder=1.5-6.0s
-  const trailMaxAge = 1.5 + m.temperament.wanderlust * (1.5 + trailAgeFactor * 3.0);
+  const trailMaxAge = TRAIL_MIN_LIFETIME + m.temperament.wanderlust * (TRAIL_LIFETIME_BASE + trailAgeFactor * TRAIL_LIFETIME_ELDER);
   for (let i = m.trail.length - 1; i >= 0; i--) {
     m.trail[i].age += dt;
     if (m.trail[i].age > trailMaxAge) { m.trail.splice(i, 1); }
@@ -112,23 +128,23 @@ export function updateMote(
   const standingTile = getTile(terrain, m.x, m.y + 1);
 
   // Energy decay (modified by hardiness and wanderlust)
-  const decayRate = energyDecay * (1.2 - m.temperament.hardiness * 0.4) * (1 + m.temperament.wanderlust * 0.3);
+  const decayRate = energyDecay * (1.2 - m.temperament.hardiness * ENERGY_DECAY_HARDINESS) * (1 + m.temperament.wanderlust * ENERGY_DECAY_WANDERLUST);
   m.energy -= decayRate * dt;
 
   // Terrain energy: gain from nutrient tiles, drain from hazards
   const tileEnergy = getTileEnergy(standingTile);
   if (tileEnergy > 0) {
-    m.energy = Math.min(1, m.energy + tileEnergy * 0.02 * dt);
+    m.energy = Math.min(1, m.energy + tileEnergy * NUTRIENT_GAIN_RATE * dt);
   } else if (tileEnergy < 0) {
-    const hardResist = 1 - m.temperament.hardiness * 0.4;
-    m.energy += tileEnergy * 0.03 * dt * hardResist;
+    const hardResist = 1 - m.temperament.hardiness * HARDINESS_RESIST;
+    m.energy += tileEnergy * HAZARD_DRAIN_RATE * dt * hardResist;
   }
 
   // Hardy flash — lights up when a resistant mote weathers hostile terrain
-  if (tileEnergy < -0.1 && m.temperament.hardiness > 0.45) {
-    m.hardinessFlash = Math.min(1, m.hardinessFlash + dt * 6);
+  if (tileEnergy < HARDY_FLASH_TILE_THRESHOLD && m.temperament.hardiness > HARDY_FLASH_MIN_HARDINESS) {
+    m.hardinessFlash = Math.min(1, m.hardinessFlash + dt * HARDINESS_FLASH_GAIN);
   } else {
-    m.hardinessFlash = Math.max(0, m.hardinessFlash - dt * 4);
+    m.hardinessFlash = Math.max(0, m.hardinessFlash - dt * HARDINESS_FLASH_DECAY);
   }
 
   if (m.energy <= 0) {
@@ -144,14 +160,14 @@ export function updateMote(
   }
 
   // Walking behavior (age slows movement)
-  const walkSpeed = WALK_SPEED * (0.5 + m.temperament.wanderlust * 0.8) * ageMod;
+  const walkSpeed = WALK_SPEED * (WALK_SPEED_BASE + m.temperament.wanderlust * WALK_SPEED_WANDERLUST) * ageMod;
 
   // Terrain-dependent movement speed
   let speedMod = 1.0;
-  if (standingTile === Tile.Sand) speedMod = 0.7;
-  else if (standingTile === Tile.TreeCanopy) speedMod = 0.85;
-  else if (standingTile === Tile.Cave) speedMod = 0.6;
-  else if (standingTile === Tile.ShallowWater) speedMod = 0.5;
+  if (standingTile === Tile.Sand) speedMod = SAND_SPEED;
+  else if (standingTile === Tile.TreeCanopy) speedMod = CANOPY_SPEED;
+  else if (standingTile === Tile.Cave) speedMod = CAVE_SPEED;
+  else if (standingTile === Tile.ShallowWater) speedMod = SHALLOW_WATER_SPEED;
   const finalSpeed = walkSpeed * speedMod;
 
   // Decision making: change direction occasionally
@@ -159,9 +175,9 @@ export function updateMote(
   const wandererFrenzy = (
     m.temperament.wanderlust > m.temperament.sociability &&
     m.temperament.wanderlust > m.temperament.hardiness &&
-    m.energy < 0.3
-  ) ? 1 + (1 - m.energy / 0.3) * 3 : 1; // up to 4x more erratic
-  if (rng() < 0.02 * dt * 60 * wandererFrenzy) {
+    m.energy < FRENZY_ENERGY_THRESHOLD
+  ) ? 1 + (1 - m.energy / FRENZY_ENERGY_THRESHOLD) * (FRENZY_MAX_MULT - 1) : 1; // up to 4x more erratic
+  if (rng() < DIRECTION_CHANGE_RATE * dt * 60 * wandererFrenzy) {
     m.direction *= -1;
   }
 
@@ -176,33 +192,33 @@ export function updateMote(
     const dx = other.x - m.x;
     const dy = other.y - m.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 0.5) continue;
+    if (dist < BOND_COMFORTABLE_DISTANCE) continue;
 
     // Social attraction — only beyond comfortable distance
-    if (dist > 12) {
-      socialAttract += (dx / dist) * m.temperament.sociability * 4;
+    if (dist > SOCIAL_ATTRACT_DIST) {
+      socialAttract += (dx / dist) * m.temperament.sociability * SOCIAL_ATTRACT_STRENGTH;
     }
 
     // Strong inverse-square repulsion at close range — prevents clumping
-    if (dist < 12) {
-      const repelStrength = 30 * Math.pow(12 / Math.max(dist, 1), 2);
+    if (dist < REPULSION_DIST) {
+      const repelStrength = REPULSION_STRENGTH * Math.pow(REPULSION_DIST / Math.max(dist, 1), 2);
       socialFx -= (dx / dist) * repelStrength;
     }
 
     // Elder attraction: unbonded motes drift toward elders
-    if (other.age > 20 && m.bonds.length === 0 && dist > 12) {
-      socialAttract += (dx / dist) * 2;
+    if (other.age > AGE_ELDER && m.bonds.length === 0 && dist > SOCIAL_ATTRACT_DIST) {
+      socialAttract += (dx / dist) * ELDER_ATTRACT_STRENGTH;
     }
 
     // Bond tracking
     const isBonded = m.bonds.includes(other);
     if (isBonded) {
       // Stay close to bonded motes
-      if (dist > BOND_DIST * 0.5) {
-        socialFx += (dx / dist) * 4;
+      if (dist > BOND_DIST * BOND_COMFORTABLE_DISTANCE) {
+        socialFx += (dx / dist) * BONDED_ATTRACT_STRENGTH;
       }
       // Share energy (sociability boosts transfer)
-      const transfer = (other.energy - m.energy) * (0.05 + m.temperament.sociability * 0.04) * dt;
+      const transfer = (other.energy - m.energy) * (ENERGY_TRANSFER_BASE + m.temperament.sociability * ENERGY_TRANSFER_SOCIAL) * dt;
       m.energy += transfer;
       other.energy -= transfer;
     } else if (
@@ -221,9 +237,9 @@ export function updateMote(
   if (
     m.temperament.sociability > m.temperament.wanderlust &&
     m.temperament.sociability > m.temperament.hardiness &&
-    m.energy < 0.3
+    m.energy < DYING_ENERGY_THRESHOLD
   ) {
-    const dp = 1 - m.energy / 0.3;
+    const dp = 1 - m.energy / DYING_ENERGY_THRESHOLD;
     if (m.bonds.length > 0) {
       // Find the nearest bonded partner and pull strongly toward them — a last walk
       let nearestBond: Mote | null = null;
@@ -234,19 +250,19 @@ export function updateMote(
         const d = Math.sqrt(bdx * bdx + bdy * bdy);
         if (d < nearestBondDist) { nearestBondDist = d; nearestBond = b; }
       }
-      if (nearestBond && nearestBondDist > 5) {
+      if (nearestBond && nearestBondDist > DYING_BOND_SEEK_DIST) {
         const bdx = nearestBond.x - m.x;
         // Directed force overrides random walking — the dying mote walks toward its partner
-        socialFx += (bdx / nearestBondDist) * dp * m.temperament.sociability * 20;
+        socialFx += (bdx / nearestBondDist) * dp * m.temperament.sociability * DYING_BOND_SEEK_FORCE;
       }
     } else {
       // No bonds — desperately boost general social attraction
-      socialAttract *= 1 + dp * m.temperament.sociability * 2;
+      socialAttract *= 1 + dp * m.temperament.sociability * DYING_SOCIAL_BOOST;
     }
   }
 
   // Clamp accumulated attraction so groups don't death-ball
-  socialFx += Math.max(-10, Math.min(10, socialAttract));
+  socialFx += Math.max(-SOCIAL_FORCE_CLAMP, Math.min(SOCIAL_FORCE_CLAMP, socialAttract));
 
   // Age all existing bonds
   for (const b of m.bonds) {
@@ -254,12 +270,12 @@ export function updateMote(
   }
 
   // Break bonds with distant motes (elders hold bonds longer)
-  const breakMult = ageElder ? 1.4 : 1.0;
+  const breakMult = ageElder ? ELDER_BOND_BREAK_MULT : 1.0;
   for (let i = m.bonds.length - 1; i >= 0; i--) {
     const b = m.bonds[i];
     const bdx = b.x - m.x;
     const bdy = b.y - m.y;
-    if (bdx * bdx + bdy * bdy > BOND_DIST * BOND_DIST * 6 * breakMult) {
+    if (bdx * bdx + bdy * bdy > BOND_DIST * BOND_DIST * BOND_BREAK_DISTANCE_MULT * breakMult) {
       const brokenAge = m.bondAges.get(b) ?? 0;
       b.bonds = b.bonds.filter((o) => o !== m);
       b.bondAges.delete(m);
@@ -268,7 +284,7 @@ export function updateMote(
       m.bondBreakFlash = 1;
       b.bondBreakFlash = 1;
       // Ancient bonds (70s+) earn a mournful farewell ring
-      if (brokenAge >= 70) {
+      if (brokenAge >= ANCIENT_BOND_AGE) {
         m.ancientBondBreakFlash = 1.0;
         b.ancientBondBreakFlash = 1.0;
       }
@@ -288,21 +304,21 @@ export function updateMote(
       m.bondTimer = 0;
       m.bondFlash = 1;
       closestUnbonded.bondFlash = 1;
-      m.energy = Math.min(1, m.energy + 0.03);
-      closestUnbonded.energy = Math.min(1, closestUnbonded.energy + 0.03);
+      m.energy = Math.min(1, m.energy + BOND_FORMATION_ENERGY_GAIN);
+      closestUnbonded.energy = Math.min(1, closestUnbonded.energy + BOND_FORMATION_ENERGY_GAIN);
       if (isMerge) {
         m.clusterMergeFlash = 1.0;
         closestUnbonded.clusterMergeFlash = 1.0;
       }
     }
   } else {
-    m.bondTimer = Math.max(0, m.bondTimer - dt * 0.3);
+    m.bondTimer = Math.max(0, m.bondTimer - dt * BOND_TIMER_DECAY_RATE);
   }
 
   // CURIOSITY FACING — when a mote is actively pursuing a bond, it turns to face its target.
   // Makes social intent legible at a glance: viewers can see who each mote is interested in.
   // Only kicks in while bondTimer is building (mote has noticed and is approaching).
-  if (closestUnbonded && m.bondTimer > 0.1 && closestDist < BOND_DIST) {
+  if (closestUnbonded && m.bondTimer > CURIOSITY_FACING_MIN_TIMER && closestDist < BOND_DIST) {
     m.direction = closestUnbonded.x > m.x ? 1 : -1;
   }
 
@@ -324,7 +340,7 @@ export function updateMote(
   let blocked = false;
 
   // Check ahead for water
-  const aheadX = Math.round(m.x + m.direction * 3);
+  const aheadX = Math.round(m.x + m.direction * LOOKAHEAD_DISTANCE);
   if (aheadX >= 0 && aheadX < W) {
     const aheadSurface = getSurfaceY(terrain, aheadX);
     const aheadTile = getTile(terrain, aheadX, aheadSurface);
@@ -348,7 +364,7 @@ export function updateMote(
     const otherDir = -m.direction;
     let otherBlocked = false;
 
-    const behindX = Math.round(m.x + otherDir * 3);
+    const behindX = Math.round(m.x + otherDir * LOOKAHEAD_DISTANCE);
     if (behindX >= 0 && behindX < W) {
       const behindSurface = getSurfaceY(terrain, behindX);
       const behindTile = getTile(terrain, behindX, behindSurface);
@@ -402,9 +418,8 @@ function cleanupBonds(m: Mote): void {
     bonded.bonds = bonded.bonds.filter((b) => b !== m);
     bonded.bondAges.delete(m);
     // Ancient bonds severed by death earn their own farewell ring on the survivor
-    if (age >= 70) bonded.ancientBondBreakFlash = 1.0;
+    if (age >= ANCIENT_BOND_AGE) bonded.ancientBondBreakFlash = 1.0;
   }
   m.bonds = [];
   m.bondAges.clear();
 }
-
