@@ -23,6 +23,7 @@ src/
 ├── world.ts           # Cycle clock, phase management, mote spawning
 ├── narrative.ts       # Ambient story text system
 │
+├── constants.ts       # Centralized tuning constants
 ├── mote.ts            # Creature behavior, physics, bonding
 ├── physics.ts         # Spatial hash grid, cluster detection
 ├── events.ts          # Rare event triggering & effects
@@ -47,7 +48,12 @@ src/
 ├── rng.ts             # Mulberry32 PRNG
 ├── names.ts           # Procedural cycle naming
 ├── font.ts            # Bitmap font rendering
-├── sound.ts           # Web Audio synthesis, cluster-to-tone mapping
+├── sound.ts           # Core audio engine, init, main update loop, re-exports
+├── sound-config.ts    # Biome profiles, scales, phase audio parameters
+├── sound-state.ts     # Per-engine state management (typed SoundState)
+├── sound-events.ts    # Event sounds, phase transitions, cascade, birds
+├── sound-lifecycle.ts # Bond, death, mourning, cluster sounds
+├── sound-weather.ts   # Weather ambient, dissolution rain, thunder
 └── style.css          # Layout, glass frame, typography
 ```
 
