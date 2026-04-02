@@ -23,6 +23,8 @@ import {
   CLUSTER_MOURNING_PERIPHERAL,
   WANDERER_TRAIL_THRESHOLD, DEATH_COLOR_ENERGY,
   AGE_GOLD_START, AGE_GOLD_WINDOW, AGE_GOLD_STRENGTH,
+  GRIEF_DURATION,
+  BOLD_HARDINESS_THRESHOLD, EVENT_BOLD_CURIOSITY_SPIKE, EVENT_TIMID_COMFORT_SPIKE,
 } from "./constants";
 
 // Re-export for backward compatibility
@@ -155,6 +157,17 @@ export function updateWorld(world: World, dt: number): void {
     applyEvent(world.event, world, dt);
   }
 
+  // Event-driven drive spikes
+  if (world.event && world.eventTriggered && world.time - world.event.startTime < 1) {
+    for (const m of world.motes) {
+      if (m.temperament.hardiness > BOLD_HARDINESS_THRESHOLD) {
+        m.curiosity = Math.min(1, m.curiosity + EVENT_BOLD_CURIOSITY_SPIKE);
+      } else {
+        m.comfort = Math.min(1, m.comfort + EVENT_TIMID_COMFORT_SPIKE);
+      }
+    }
+  }
+
   // Spawn motes on walkable terrain
   if (world.motes.length < world.params.maxMotes) {
     world.spawnAccum += world.params.spawnRate * dt;
@@ -280,6 +293,14 @@ export function updateWorld(world: World, dt: number): void {
             other.mourningG = dg;
             other.mourningB = db;
           }
+        }
+      }
+
+      // Grief trigger: motes whose preferred companion just died
+      for (const other of world.motes) {
+        if (other.preferredMote === m && other.energy > 0) {
+          other.grieving = GRIEF_DURATION;
+          other.preferredMote = null;
         }
       }
     }
