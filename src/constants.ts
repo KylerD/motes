@@ -4,7 +4,7 @@
 // ---- Physics ----
 export const GRAVITY = 60;
 export const MAX_FALL = 60;
-export const WALK_SPEED = 14;
+export const WALK_SPEED = 5;
 export const JUMP_OVER = 4;
 
 // ---- Spatial ----
@@ -40,12 +40,12 @@ export const DIRECTION_CHANGE_RATE = 0.02;
 
 // ---- Social forces ----
 export const SOCIAL_ATTRACT_DIST = 12;
-export const SOCIAL_ATTRACT_STRENGTH = 4;
+export const SOCIAL_ATTRACT_STRENGTH = 2;
 export const REPULSION_DIST = 12;
-export const REPULSION_STRENGTH = 30;
-export const SOCIAL_FORCE_CLAMP = 10;
+export const REPULSION_STRENGTH = 10;
+export const SOCIAL_FORCE_CLAMP = 3;
 export const ELDER_ATTRACT_STRENGTH = 2;
-export const BONDED_ATTRACT_STRENGTH = 4;
+export const BONDED_ATTRACT_STRENGTH = 2;
 
 // ---- Energy ----
 export const ENERGY_TRANSFER_BASE = 0.05;
@@ -115,13 +115,14 @@ export const AGE_GOLD_STRENGTH = 0.40;
 export const MAX_SPEED_MULTIPLIER = 120;
 
 // Phase params table (indexed by phase)
+// Few motes, slow arrival — each creature is an individual you can watch.
 export const PHASE_PARAMS = [
-  { spawnRate: 4,  maxMotes: 20, energyDecay: 0.008, bondStrength: 0.3 },
-  { spawnRate: 3,  maxMotes: 45, energyDecay: 0.012, bondStrength: 0.5 },
-  { spawnRate: 2,  maxMotes: 60, energyDecay: 0.015, bondStrength: 0.8 },
-  { spawnRate: 2,  maxMotes: 70, energyDecay: 0.018, bondStrength: 0.9 },
-  { spawnRate: 0,  maxMotes: 70, energyDecay: 0.04,  bondStrength: 0.3 },
-  { spawnRate: 0,  maxMotes: 70, energyDecay: 0.07,  bondStrength: 0.1 },
+  { spawnRate: 1,  maxMotes: 2,  energyDecay: 0.006, bondStrength: 0.3 },
+  { spawnRate: 1,  maxMotes: 5,  energyDecay: 0.010, bondStrength: 0.5 },
+  { spawnRate: 1,  maxMotes: 7,  energyDecay: 0.012, bondStrength: 0.8 },
+  { spawnRate: 1,  maxMotes: 8,  energyDecay: 0.015, bondStrength: 0.9 },
+  { spawnRate: 0,  maxMotes: 8,  energyDecay: 0.03,  bondStrength: 0.3 },
+  { spawnRate: 0,  maxMotes: 8,  energyDecay: 0.05,  bondStrength: 0.1 },
 ] as const;
 
 // ---- Events ----
@@ -189,6 +190,13 @@ export const COMPAT_FAST_FRIEND_MULT = 1.5;
 
 // ---- Rejection ----
 export const REJECTION_TOGETHERNESS_THRESHOLD = 0.3;
+
+// ---- Resting ----
+export const REST_MIN_DURATION = 3;
+export const REST_MAX_DURATION = 8;
+export const REST_COMFORT_THRESHOLD = 0.45;   // comfort above this triggers rest
+export const REST_CURIOSITY_BREAK = 0.65;     // curiosity above this breaks rest
+export const REST_NEAR_FAV_DIST = 15;         // must be near fav position to rest
 
 // ---- Target selection ----
 export const EXPLORE_DISTANCE = 40;

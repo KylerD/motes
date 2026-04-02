@@ -133,6 +133,9 @@ export interface Mote {
   stableTimer: number;         // seconds bonded without bond-count change
   lastEnergy: number;          // for sharp energy drop detection
   lastEnergyTime: number;      // timestamp of lastEnergy sample
+
+  // Resting state
+  restTimer: number;           // >0 = resting (countdown), 0 = moving
 }
 
 // ---- Physics ----

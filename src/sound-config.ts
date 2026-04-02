@@ -134,7 +134,7 @@ export const BIOME_PHASE_SCALES: Record<Biome, number[][]> = {
 // Phase multipliers for ambient bed gain — drives the sonic arc.
 // Genesis at 8%: barely breathing, the world hasn't found its voice yet.
 // Silence at 2%: the world has gone. Almost nothing remains.
-export const PHASE_AMBIENT_MULT = [0.08, 0.60, 0.85, 1.00, 0.55, 0.02];
+export const PHASE_AMBIENT_MULT = [0.25, 0.80, 1.00, 1.00, 0.70, 0.15];
 
 /** Phase-dependent parameters for note scheduling */
 export interface PhaseAudioConfig {
@@ -148,15 +148,15 @@ export interface PhaseAudioConfig {
 
 export const PHASE_AUDIO: PhaseAudioConfig[] = [
   // Genesis: one fragile voice, very long decay, no chirps — the world barely breathing
-  { volume: 0.04, noteIntervalScale: 9.0, decay: 2.8, filterFreq: 280,  chirpRate: 0,    maxVoices: 1 },
+  { volume: 0.12, noteIntervalScale: 9.0, decay: 2.8, filterFreq: 280,  chirpRate: 0,    maxVoices: 1 },
   // Exploration: starting to find its voice — 4 voices, playful chirps emerging
-  { volume: 0.15, noteIntervalScale: 1.5, decay: 0.6, filterFreq: 1200, chirpRate: 0.06, maxVoices: 4 },
+  { volume: 0.30, noteIntervalScale: 1.5, decay: 0.6, filterFreq: 1200, chirpRate: 0.06, maxVoices: 4 },
   // Organization: building, harmonics forming, community forming
-  { volume: 0.20, noteIntervalScale: 1.0, decay: 0.4, filterFreq: 1600, chirpRate: 0.08, maxVoices: 6 },
+  { volume: 0.40, noteIntervalScale: 1.0, decay: 0.4, filterFreq: 1600, chirpRate: 0.08, maxVoices: 6 },
   // Complexity: ALL 8 voices alive, peak richness, chirps flying
-  { volume: 0.25, noteIntervalScale: 0.6, decay: 0.3, filterFreq: 2400, chirpRate: 0.12, maxVoices: 8 },
+  { volume: 0.45, noteIntervalScale: 0.6, decay: 0.3, filterFreq: 2400, chirpRate: 0.12, maxVoices: 8 },
   // Dissolution: 5 voices, gaps forming, notes getting farther apart
-  { volume: 0.14, noteIntervalScale: 2.0, decay: 0.8, filterFreq: 800,  chirpRate: 0.04, maxVoices: 5 },
+  { volume: 0.28, noteIntervalScale: 2.0, decay: 0.8, filterFreq: 800,  chirpRate: 0.04, maxVoices: 5 },
   // Silence: NO cluster voices, NO chirps — empty. Only lonely drone if last motes remain.
-  { volume: 0.015, noteIntervalScale: 99,  decay: 4.0, filterFreq: 180,  chirpRate: 0,    maxVoices: 0 },
+  { volume: 0.06, noteIntervalScale: 99,  decay: 4.0, filterFreq: 180,  chirpRate: 0,    maxVoices: 0 },
 ];

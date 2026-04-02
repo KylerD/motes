@@ -39,6 +39,8 @@ import {
   FAV_POSITION_ALPHA, FAV_POSITION_INTERVAL, FAV_POSITION_ENERGY_THRESHOLD,
   AVOIDANCE_DURATION, AVOIDANCE_ENERGY_DROP, AVOIDANCE_ENERGY_WINDOW,
   EXPLORE_DISTANCE, GRIEF_SPEED_MULT,
+  REST_MIN_DURATION, REST_MAX_DURATION, REST_COMFORT_THRESHOLD,
+  REST_CURIOSITY_BREAK, REST_NEAR_FAV_DIST,
   COMPAT_WANDERLUST_SOCIAL_WEIGHT, COMPAT_HARDINESS_WEIGHT,
   COMPAT_BOND_THRESHOLD, COMPAT_FAST_FRIEND_THRESHOLD, COMPAT_FAST_FRIEND_MULT,
   GRIEF_BOND_THRESHOLD, REJECTION_TOGETHERNESS_THRESHOLD,
@@ -107,6 +109,7 @@ export function createMote(
     stableTimer: 0,
     lastEnergy: energy,
     lastEnergyTime: 0,
+    restTimer: 0,
     grounded: false,
     direction: rng() < 0.5 ? -1 : 1,
     spawnFlash: 1.0,
@@ -299,6 +302,40 @@ export function updateMote(
   updateDrives(m, dt, hasNeighbor);
   updateMemory(m, dt);
 
+  // Resting: motes pause when comfortable and near their favorite spot.
+  // Curiosity building up breaks the rest. Creates visible stillness.
+  if (m.restTimer > 0) {
+    m.restTimer -= dt;
+    if (m.restTimer <= 0 || m.curiosity > REST_CURIOSITY_BREAK) {
+      m.restTimer = 0;
+    } else {
+      // While resting: no horizontal movement, just gravity and bonding
+      m.vx = 0;
+      // Still apply gravity
+      if (!m.grounded) {
+        m.vy += GRAVITY * dt;
+        m.vy = Math.min(m.vy, MAX_FALL);
+      }
+      // Vertical movement + grounding
+      m.y += m.vy * dt;
+      const surfY = getSurfaceY(terrain, m.x);
+      if (m.y >= surfY) { m.y = surfY; m.vy = 0; m.grounded = true; }
+      else { m.grounded = false; }
+      // Still age bonds and process bond formation (skip movement/social forces)
+      for (const b of m.bonds) {
+        m.bondAges.set(b, (m.bondAges.get(b) ?? 0) + dt);
+      }
+      return;
+    }
+  }
+  // Enter rest when: near favorite position, comfort is high, not grieving
+  if (m.restTimer === 0 && m.grounded && m.grieving === 0) {
+    const distToFav = Math.abs(m.x - m.favX);
+    if (distToFav < REST_NEAR_FAV_DIST && m.comfort > REST_COMFORT_THRESHOLD && m.curiosity < REST_CURIOSITY_BREAK) {
+      m.restTimer = REST_MIN_DURATION + rng() * (REST_MAX_DURATION - REST_MIN_DURATION);
+    }
+  }
+
   // Gravity
   if (!m.grounded) {
     m.vy += GRAVITY * dt;
@@ -452,8 +489,8 @@ export function updateMote(
     m.direction = targetX > m.x ? 1 : -1;
   }
 
-  // Small random perturbation (keeps movement organic, uses seeded rng)
-  if (rng() < 0.03 * dt * 60) {
+  // Rare random perturbation (keeps movement organic without constant jitter)
+  if (rng() < 0.005 * dt * 60) {
     m.direction *= -1;
   }
 
