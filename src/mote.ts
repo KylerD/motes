@@ -21,7 +21,6 @@ import {
   HARDINESS_FLASH_GAIN, HARDINESS_FLASH_DECAY,
   WALK_SPEED_BASE, WALK_SPEED_WANDERLUST,
   SAND_SPEED, CANOPY_SPEED, CAVE_SPEED, SHALLOW_WATER_SPEED,
-  FRENZY_ENERGY_THRESHOLD, FRENZY_MAX_MULT, DIRECTION_CHANGE_RATE,
   SOCIAL_ATTRACT_DIST, SOCIAL_ATTRACT_STRENGTH,
   REPULSION_DIST, REPULSION_STRENGTH, SOCIAL_FORCE_CLAMP,
   ELDER_ATTRACT_STRENGTH, BONDED_ATTRACT_STRENGTH,
@@ -39,6 +38,7 @@ import {
   GRIEF_COMFORT_OVERRIDE, GRIEF_TOGETHERNESS_FLOOR,
   FAV_POSITION_ALPHA, FAV_POSITION_INTERVAL, FAV_POSITION_ENERGY_THRESHOLD,
   AVOIDANCE_DURATION, AVOIDANCE_ENERGY_DROP, AVOIDANCE_ENERGY_WINDOW,
+  EXPLORE_DISTANCE, GRIEF_SPEED_MULT,
 } from "./constants";
 
 // Re-export for backward compatibility
@@ -296,8 +296,9 @@ export function updateMote(
     m.vy = Math.min(m.vy, MAX_FALL);
   }
 
-  // Walking behavior (age slows movement)
-  const walkSpeed = WALK_SPEED * (WALK_SPEED_BASE + m.temperament.wanderlust * WALK_SPEED_WANDERLUST) * ageMod;
+  // Walking behavior (age slows movement, grief slows further)
+  const griefMod = m.grieving > 0 ? GRIEF_SPEED_MULT : 1.0;
+  const walkSpeed = WALK_SPEED * (WALK_SPEED_BASE + m.temperament.wanderlust * WALK_SPEED_WANDERLUST) * ageMod * griefMod;
 
   // Terrain-dependent movement speed
   let speedMod = 1.0;
@@ -306,17 +307,6 @@ export function updateMote(
   else if (standingTile === Tile.Cave) speedMod = CAVE_SPEED;
   else if (standingTile === Tile.ShallowWater) speedMod = SHALLOW_WATER_SPEED;
   const finalSpeed = walkSpeed * speedMod;
-
-  // Decision making: change direction occasionally
-  // Wanderers at low energy: frantic direction reversals — can't settle, can't stop
-  const wandererFrenzy = (
-    m.temperament.wanderlust > m.temperament.sociability &&
-    m.temperament.wanderlust > m.temperament.hardiness &&
-    m.energy < FRENZY_ENERGY_THRESHOLD
-  ) ? 1 + (1 - m.energy / FRENZY_ENERGY_THRESHOLD) * (FRENZY_MAX_MULT - 1) : 1; // up to 4x more erratic
-  if (rng() < DIRECTION_CHANGE_RATE * dt * 60 * wandererFrenzy) {
-    m.direction *= -1;
-  }
 
   // Social force: move toward nearby motes if sociable
   let socialFx = 0;
@@ -398,6 +388,59 @@ export function updateMote(
 
   // Clamp accumulated attraction so groups don't death-ball
   socialFx += Math.max(-SOCIAL_FORCE_CLAMP, Math.min(SOCIAL_FORCE_CLAMP, socialAttract));
+
+  // Target selection: weighted blend of drive targets
+  // Runs after neighbor scan so closestUnbonded is known
+  const totalDrive = m.comfort + m.curiosity + m.togetherness;
+  let targetX = m.x; // default: stay put
+
+  if (totalDrive > 0.01) {
+    // Comfort target: favorite position
+    const comfortX = m.favX;
+
+    // Curiosity target: point ahead in current direction
+    let exploreX = m.x + m.direction * EXPLORE_DISTANCE;
+    if (exploreX < 4 || exploreX > W - 4) exploreX = m.x - m.direction * EXPLORE_DISTANCE;
+
+    // Togetherness target: preferred companion, or nearest compatible mote
+    let companionX = m.x;
+    let hasCompanionTarget = false;
+    if (m.preferredMote && m.preferredMote.energy > 0) {
+      companionX = m.preferredMote.x;
+      hasCompanionTarget = true;
+    } else if (closestUnbonded) {
+      companionX = closestUnbonded.x;
+      hasCompanionTarget = true;
+    }
+
+    const cWeight = m.comfort;
+    const qWeight = m.curiosity;
+    const tWeight = hasCompanionTarget ? m.togetherness : 0;
+    const wSum = cWeight + qWeight + tWeight;
+
+    if (wSum > 0.01) {
+      targetX = (cWeight * comfortX + qWeight * exploreX + tWeight * companionX) / wSum;
+    }
+  }
+
+  // Avoidance repulsion
+  if (m.avoidTimer > 0) {
+    const avoidDx = m.x - m.avoidX;
+    const avoidDist = Math.abs(avoidDx);
+    if (avoidDist < 40 && avoidDist > 0.5) {
+      targetX += (avoidDx / avoidDist) * 15; // push away from bad spot
+    }
+  }
+
+  // Set direction to face target
+  if (Math.abs(targetX - m.x) > 1) {
+    m.direction = targetX > m.x ? 1 : -1;
+  }
+
+  // Small random perturbation (keeps movement organic, uses seeded rng)
+  if (rng() < 0.03 * dt * 60) {
+    m.direction *= -1;
+  }
 
   // Age all existing bonds
   for (const b of m.bonds) {
