@@ -38,11 +38,7 @@ try {
   await page.locator('#deselect').click();
   await page.locator('#lens').selectOption('life');
   const body = await page.evaluate(() => window.__tidepool.pool.cells[7]);
-  const point = await page.evaluate(({ x, y }) => {
-    const r = document.querySelector('canvas').getBoundingClientRect(), v = window.__tidepool.view;
-    const scale = Math.min(r.width / 1600, r.height / 960) * v.zoom;
-    return { x: r.width / 2 + (x - v.x) * scale, y: r.height / 2 + (y - v.y) * scale };
-  }, body);
+  const point = await page.evaluate(({ x, y }) => window.__tidepool.project(x, y), body);
   await page.locator('[data-tool="feed"]').click();
   const nutrients = await page.evaluate(() => window.__tidepool.pool.nutrients.length);
   await page.locator('#pool').click({ position: point });

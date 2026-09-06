@@ -21,7 +21,7 @@ function init(): void {
   let history = new History(createPool(seed, preset));
   const canvas = el<HTMLCanvasElement>('pool'), renderer = new PoolRenderer(canvas), audio = new PoolAudio();
   const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
-  const view: View = { x: innerWidth < 700 ? 690 : 780, y: 450, zoom: innerWidth < 700 ? 3 : 1.15, selected: null, lens: 'life', tool: 'observe', pointer: null, reduced: reducedQuery.matches };
+  const view: View = { x: innerWidth < 700 ? 1100 : 780, y: innerWidth < 700 ? 400 : 450, zoom: innerWidth < 700 ? 2.5 : 1.15, selected: null, lens: 'life', tool: 'observe', pointer: null, reduced: reducedQuery.matches };
   let paused = reducedQuery.matches, speed = 1, follow = false, comparing = false, accumulator = 0, last = performance.now(), lastUi = 0;
   let groupKey = '', selectedKey = '', messageUntil = 0, lastEventStep = -1, lastEventText = '', exploring = false;
   let raf = 0, sumRender = 0, renderSamples = 0, maxRender = 0;
@@ -47,7 +47,7 @@ function init(): void {
   function reset(nextSeed: number, nextPreset: Preset): void {
     history = new History(createPool(nextSeed, nextPreset));
     comparing = false; follow = false; view.selected = null;
-    view.x = innerWidth < 700 ? 690 : 780; view.y = 450; view.zoom = innerWidth < 700 ? 3 : 1.15;
+    view.x = innerWidth < 700 ? 1100 : 780; view.y = innerWidth < 700 ? 400 : 450; view.zoom = innerWidth < 700 ? 2.5 : 1.15;
     groupKey = ''; lastEventStep = -1; accumulator = 0; habitat.value = nextPreset;
     const url = new URL(location.href); url.searchParams.set('seed', String(nextSeed)); url.searchParams.set('habitat', nextPreset);
     window.history.replaceState(null, '', url);
@@ -169,8 +169,9 @@ function init(): void {
     if (gesture && (view.tool === 'observe' || e.buttons === 4)) {
       if (Math.hypot(p.x - gesture.startX, p.y - gesture.startY) > 5) gesture.moved = true;
       if (gesture.moved) {
-        follow = false; view.x = clamp(view.x - (p.x - gesture.x) / renderer.scale, 0, WIDTH);
-        view.y = clamp(view.y - (p.y - gesture.y) / renderer.scale, 0, HEIGHT);
+        const before = renderer.toWorld(gesture.x, gesture.y, view), after = renderer.toWorld(p.x, p.y, view);
+        follow = false; view.x = clamp(view.x + before.x - after.x, 0, WIDTH);
+        view.y = clamp(view.y + before.y - after.y, 0, HEIGHT);
       }
       gesture.x = p.x; gesture.y = p.y;
     }
@@ -187,9 +188,7 @@ function init(): void {
     pointers.delete(e.pointerId); gesture = null; pinch = 0;
     if (moved || pointers.size > 0 || suppressTap) return;
     if (view.tool === 'observe') {
-      let closest: number | null = null, distance = 35 / Math.max(0.6, renderer.scale);
-      for (const c of showing().cells) { const d = Math.hypot(c.x - point.x, c.y - point.y); if (d < distance) { closest = c.id; distance = d; } }
-      select(closest);
+      select(renderer.pick(showing(), p.x, p.y, view));
     } else actAt(point);
   });
   canvas.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); gesture = null; pinch = 0; suppressTap = true; });
@@ -244,18 +243,30 @@ function init(): void {
   raf = requestAnimationFrame(frame);
   if (params.has('debug')) Object.defineProperty(window, '__tidepool', { configurable: true, value: {
     get pool() { return history.pool; }, get reference() { return history.reference; }, get paused() { return paused; },
-    get view() { return { ...view }; }, get rendering() { return { meanMs: sumRender / Math.max(1, renderSamples), maxMs: maxRender, samples: renderSamples }; },
+    get view() { return { ...view }; }, get rendering() { return { meanMs: sumRender / Math.max(1, renderSamples), maxMs: maxRender, samples: renderSamples, ...renderer.diagnostics }; },
+    project: (x: number, y: number) => renderer.toScreen(x, y, view),
+    cellScreen: (id: number) => { const c = showing().cells.find(cell => cell.id === id); return c ? renderer.toScreenCell(c, view) : null; },
+    unproject: (x: number, y: number) => renderer.toWorld(x, y, view),
     advance(steps: number) { for (let i = 0; i < Math.min(6000, steps); i++) history.advance(); updateUi(); },
     export: () => history.export(),
   } });
   window.addEventListener('pagehide', e => {
     cancelAnimationFrame(raf); audio.update(showing(), view.selected, true);
-    if (!e.persisted) { resize.disconnect(); audio.dispose(); }
+    if (!e.persisted) { resize.disconnect(); audio.dispose(); renderer.dispose(); }
   });
   window.addEventListener('pageshow', e => {
     if (!e.persisted) return;
     last = performance.now(); accumulator = 0; renderer.resize();
     raf = requestAnimationFrame(frame);
+  });
+  let contextPaused = false;
+  canvas.addEventListener('webglcontextlost', e => {
+    e.preventDefault(); contextPaused = paused; paused = true; playback();
+    say('The pond is resting while its view recovers.', 12000);
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    paused = contextPaused; last = performance.now(); accumulator = 0; playback();
+    say('The pond is back, just where you left it.');
   });
 }
 

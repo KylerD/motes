@@ -134,11 +134,14 @@ a { color: var(--gold); text-underline-offset: 4px; }
 
 /* A cosy game-like pond: warm instruments, soft dusk, deliberately visible pixels. */
 :root { --ink: #29394d; --panel: #34434d; --text: #f1e8cd; --quiet: #c3cbbb; --line: #68766e; --gold: #f1d39b; }
-#pool { image-rendering: pixelated; }
+#pool { image-rendering: auto; }
+#pool[data-renderer='canvas'] { image-rendering: pixelated; }
 .masthead { background: linear-gradient(#222d43e0, #222d4300); }
 .instruments { background: linear-gradient(#222d4300, #253145ee 40%, #253145); }
 .sound-button, .text-button, .population, time, .lens-group label { color: #d8dfcd; }
 .pool-caption { color: #dce6d8; background: #29394dde; padding: 5px 10px; border-radius: 7px; }
+.habitat-controls { background: #29394de8; padding: 8px 12px; border-radius: 9px; }
+#specimen-select { background-color: #29394df0; color: #e4ead8; padding: 9px 10px; border-radius: 8px; }
 .moment p { color: #f0e0c4; }
 .volume-control { width: 65px; display: flex; align-items: center; }
 .timeline-row { border-color: #69797080; }
