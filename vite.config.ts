@@ -8,6 +8,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         journal: resolve(__dirname, "journal.html"),
+        original: resolve(__dirname, "original.html"),
       },
     },
   },

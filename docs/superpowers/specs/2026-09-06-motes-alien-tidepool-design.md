@@ -1,8 +1,10 @@
 # Motes — the alien tidepool
 
 **Date:** 6 September 2026  
-**Status:** Proposal, with a bounded first proof. The new simulation is not implemented.  
+**Status:** The bounded cellular model, exploration tools and generative sound are implemented. See README.md for the actual shipped scope. The larger research ambitions below remain a design vision.
 **Brief:** Reimagine Motes with full creative autonomy. The finished, unchanging codebase must be fascinating to run and watch. Scheduled development and return incentives are outside this proposal.
+
+**Art-direction update:** The user subsequently chose a cosy video-game style and lofi-page feeling. DESIGN.md and PRODUCT.md are authoritative for the implemented pond. The realistic concept plate in this proposal is historical exploration, not a visual target.
 
 ## The decision
 

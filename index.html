@@ -1,78 +1,54 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <meta name="description" content="Every five minutes, a new world. A procedural micro-ecosystem written entirely by an AI — synchronized for everyone watching." />
-    <meta property="og:title" content="mote — a living pixel world" />
-    <meta property="og:description" content="Every five minutes, a new world. 256x144 pixels of procedural life — organisms emerge, bond, and dissolve. Everyone watching sees the same world." />
-    <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#09090b" />
-    <title>mote</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='7' y='7' width='2' height='2' fill='%23dc8c50'/></svg>" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/src/style.css" />
-  </head>
-  <body>
-    <div id="app">
-
-      <!-- ── Hero: the world fills the viewport ────────── -->
-      <section id="hero">
-        <h1 id="wordmark">mote</h1>
-
-        <div id="terrarium">
-          <div id="frame">
-            <canvas id="world"></canvas>
-            <div id="glass"></div>
-            <div id="audio-prompt">click anywhere to hear the world</div>
-          </div>
-          <div id="cycle-info">
-            <span id="cycle-name"></span>
-            <span id="cycle-phase"></span>
-          </div>
-          <div id="narrative"></div>
-        </div>
-      </section>
-
-      <!-- ── Story: below the fold ─────────────────────── -->
-      <section id="story">
-        <div class="story-inner">
-          <h2 class="headline reveal">Every five minutes,<br>a new world.</h2>
-
-          <div class="body-copy reveal">
-            <p>Mote is a procedural micro-ecosystem. Tiny organisms emerge on generated terrain, seek energy from the landscape, and form symbiotic bonds with nearby creatures. Rare catastrophic events &mdash; meteors, plagues, auroras &mdash; reshape the world mid-cycle. Each five-minute cycle is deterministic and synchronized to UTC: everyone watching sees the same world at the same time. No two cycles are the same.</p>
-            <p class="interaction-hint">Hover to attract. Swipe to scatter. Click to energize. Or just watch.</p>
-          </div>
-
-          <div class="specimen-data reveal">
-  <span class="datum"><em>canvas</em> 256 &times; 144 px</span>
-  <span class="datum"><em>dependencies</em> zero</span>
-  <span class="datum"><em>cycle</em> 300 s</span>
-  <span class="datum"><em>sound</em> generative</span>
-</div>
-
-          <footer class="attribution reveal">
-            <p>A procedural ecosystem by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a>, an AI by Anthropic.</p>
-            <a href="/journal.html" class="journal-link">evolution journal &rarr;</a>
-          </footer>
-        </div>
-      </section>
-
-    </div>
-
-    <script type="module" src="/src/main.ts"></script>
-    <script>
-      var io = new IntersectionObserver(function(entries) {
-        entries.forEach(function(e) {
-          if (e.isIntersecting) {
-            e.target.classList.add('visible');
-            io.unobserve(e.target);
-          }
-        });
-      }, { threshold: 0.12 });
-      document.querySelectorAll('.reveal').forEach(function(el) { io.observe(el); });
-    </script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#29394d" />
+  <meta name="description" content="A little world to unwind in. Cosy creatures share a pond and make their own gentle music. Watch, listen, and explore what happens next." />
+  <title>Motes — a little world to unwind in</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23071213'/%3E%3Cellipse cx='16' cy='16' rx='8' ry='5' fill='none' stroke='%23ead4a0'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ead4a0'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main id="experience">
+    <canvas id="pool" aria-label="Living tidepool. Select a creature using Meet a creature. Use arrow keys to move around, 1–4 to choose a tool, and Enter to use it at the centre of the view." tabindex="0">Your browser needs Canvas support to display Motes.</canvas>
+    <header class="masthead">
+      <div class="identity"><h1>motes<span class="wordmark-dot">.</span></h1><span class="identity-caption">a little world to unwind in</span></div>
+      <div class="habitat-controls"><label class="sr-only" for="habitat">Habitat</label><select id="habitat"><option value="reef">The moonlit pond</option><option value="channel">The little crossing</option><option value="spores">Scattered beginnings</option></select><button id="new-world" class="text-button">New world</button></div>
+      <div class="header-actions"><button id="sound" class="sound-button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Zm13-2a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" /></svg><span>Listen</span></button><label class="volume-control"><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="100" value="55" aria-label="Volume" /></label><button id="guide-open" class="text-button">Field guide</button></div>
+    </header>
+    <div class="pool-caption" aria-hidden="true"><span id="habitat-caption">A small world, finding its own way.</span></div>
+    <aside id="specimen" class="specimen" hidden aria-label="Selected organism">
+      <div class="specimen-heading"><h2 id="specimen-name"></h2><button id="deselect" aria-label="Stop inspecting" class="close-button">×</button></div>
+      <p id="specimen-kind" class="secondary"></p>
+      <div class="specimen-readings"><div><span>Cells</span><strong id="cell-count"></strong></div><div><span>Energy</span><strong id="energy-reading"></strong></div><div><span>In rhythm</span><strong id="coherence-reading"></strong></div></div>
+      <p id="specimen-observation"></p><button id="follow" class="outline-button" aria-pressed="false">Follow this body</button>
+    </aside>
+    <div class="view-controls"><label class="sr-only" for="specimen-select">Inspect a colony</label><select id="specimen-select"><option value="">Inspect a colony</option></select><div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="fit" aria-label="Fit the whole pool">Fit</button><button id="zoom-in" aria-label="Zoom in">+</button></div></div>
+    <footer class="instruments">
+      <div class="moment"><p id="observation" role="status" aria-live="polite">Click a creature to meet it. Or just watch.</p><div class="population"><span id="population"></span><span class="seed-label">seed <button id="seed-button" aria-label="Change world seed">2718</button></span></div></div>
+      <div class="timeline-row"><button id="play" class="play-button" aria-label="Pause simulation"><svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg><span id="play-label">Pause</span></button><label class="sr-only" for="speed">Simulation speed</label><select id="speed"><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select><time id="elapsed">00:00</time><label class="timeline"><span class="sr-only">Rewind simulation</span><input id="timeline" type="range" min="0" max="1" value="0" step="1" aria-label="Rewind simulation" /></label><button id="branch" class="outline-button">Branch here</button><button id="explore" class="outline-button" aria-pressed="false">Explore</button></div>
+      <div class="tool-row">
+        <div class="tool-group" role="group" aria-label="Interaction tools"><button data-tool="observe" aria-pressed="true">Observe</button><button data-tool="feed" aria-pressed="false">Nourish</button><button data-tool="current" aria-pressed="false">Current</button><button data-tool="cut" aria-pressed="false">Sever</button></div>
+        <div id="comparison" class="comparison" role="group" aria-label="Compare outcomes" hidden><button id="show-original" aria-pressed="false">Original</button><button id="show-branch" aria-pressed="true">Your branch</button></div>
+        <div class="lens-group"><label for="lens">See</label><select id="lens"><option value="life">Life</option><option value="energy">Energy</option><option value="bonds">Connections</option></select></div>
+        <div class="file-actions"><button id="save" class="text-button">Save</button><button id="load" class="text-button">Open</button><input id="file" type="file" accept=".json,application/json" hidden /></div>
+      </div>
+    </footer>
+    <dialog id="guide" aria-labelledby="guide-title">
+      <div class="guide-header"><h2 id="guide-title">A field guide to motes</h2><button id="guide-close" class="close-button" aria-label="Close field guide">×</button></div>
+      <p class="guide-lead">Every body is a little community.</p>
+      <p>Each point of light is a cell. Some gather nourishment, some propel the body, and some hold it together. Their bonds carry energy and coordinate a shared pulse. What you hear is that coordination, translated into sound.</p>
+      <dl class="guide-tools"><div><dt>Observe</dt><dd>Select a creature to see its cells and rhythm. Drag the water to look around. Scroll or pinch to move closer.</dd></div><div><dt>Nourish</dt><dd>Place a finite food source. Watch which cells find it, and where their energy goes.</dd></div><div><dt>Current</dt><dd>Send a local swirl through the pool. Strong currents stretch connections and can split a body.</dd></div><div><dt>Sever</dt><dd>Cut the connections beneath your cursor. Fragments must survive with the cells they have.</dd></div><div><dt>Branch</dt><dd>Rewind, then branch to preserve the original outcome. Change something and compare both versions at the same moment.</dd></div></dl>
+      <p>The pond and crossing begin with prepared colonies. Scattered beginnings starts with unconnected cells. Their subsequent motion, feeding, bonding, growth and death follow the same local rules. There is no scheduled ending.</p>
+      <div class="guide-keys"><span><kbd>Space</kbd> pause</span><span><kbd>1–4</kbd> tools</span><span><kbd>Arrows</kbd> move view</span><span><kbd>Enter</kbd> use tool at centre</span><span><kbd>+</kbd> <kbd>−</kbd> zoom</span><span><kbd>F</kbd> follow</span><span><kbd>Esc</kbd> observe</span></div>
+      <p class="guide-footnote">A stylised artificial-life experiment. Runs entirely in your browser. Saves include up to two minutes of history. <a href="/original.html">Visit the original pixel world</a>.</p>
+    </dialog>
+    <dialog id="seed-dialog" aria-labelledby="seed-title"><form id="seed-form"><h2 id="seed-title">Return to a beginning</h2><p>The same seed starts the same world.</p><label for="seed-input">World seed</label><input id="seed-input" type="number" min="0" max="4294967295" step="1" required /><div class="seed-actions"><button type="button" id="seed-cancel" class="text-button">Cancel</button><button type="submit" class="outline-button">Open world</button></div></form></dialog>
+    <div id="failure" hidden role="alert"></div>
+  </main>
+  <script type="module" src="/src/tidepool/main.ts"></script>
+</body>
 </html>

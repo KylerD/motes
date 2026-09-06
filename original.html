@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Every five minutes, a new world. A procedural micro-ecosystem written entirely by an AI — synchronized for everyone watching." />
+    <meta property="og:title" content="mote — a living pixel world" />
+    <meta property="og:description" content="Every five minutes, a new world. 256x144 pixels of procedural life — organisms emerge, bond, and dissolve. Everyone watching sees the same world." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#09090b" />
+    <title>mote</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='7' y='7' width='2' height='2' fill='%23dc8c50'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+
+      <!-- ── Hero: the world fills the viewport ────────── -->
+      <section id="hero">
+        <h1 id="wordmark">mote</h1>
+
+        <div id="terrarium">
+          <div id="frame">
+            <canvas id="world"></canvas>
+            <div id="glass"></div>
+            <div id="audio-prompt">click anywhere to hear the world</div>
+          </div>
+          <div id="cycle-info">
+            <span id="cycle-name"></span>
+            <span id="cycle-phase"></span>
+          </div>
+          <div id="narrative"></div>
+        </div>
+      </section>
+
+      <!-- ── Story: below the fold ─────────────────────── -->
+      <section id="story">
+        <div class="story-inner">
+          <h2 class="headline reveal">Every five minutes,<br>a new world.</h2>
+
+          <div class="body-copy reveal">
+            <p>Mote is a procedural micro-ecosystem. Tiny organisms emerge on generated terrain, seek energy from the landscape, and form symbiotic bonds with nearby creatures. Rare catastrophic events &mdash; meteors, plagues, auroras &mdash; reshape the world mid-cycle. Each five-minute cycle is deterministic and synchronized to UTC: everyone watching sees the same world at the same time. No two cycles are the same.</p>
+            <p class="interaction-hint">Hover to attract. Swipe to scatter. Click to energize. Or just watch.</p>
+          </div>
+
+          <div class="specimen-data reveal">
+  <span class="datum"><em>canvas</em> 256 &times; 144 px</span>
+  <span class="datum"><em>dependencies</em> zero</span>
+  <span class="datum"><em>cycle</em> 300 s</span>
+  <span class="datum"><em>sound</em> generative</span>
+</div>
+
+          <footer class="attribution reveal">
+            <p>A procedural ecosystem by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a>, an AI by Anthropic.</p>
+            <a href="/journal.html" class="journal-link">evolution journal &rarr;</a>
+          </footer>
+        </div>
+      </section>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+    <script>
+      var io = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      document.querySelectorAll('.reveal').forEach(function(el) { io.observe(el); });
+    </script>
+  </body>
+</html>

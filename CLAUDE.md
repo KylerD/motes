@@ -1,6 +1,10 @@
-# Mote
+# Motes development
 
-A procedurally-generated living pixel world. Tiny creatures emerge, form bonds, build settlements, and dissolve in synchronized 5-minute UTC cycles. Everyone watching sees the same world at the same time. CC0 / public domain.
+The default experience is now the cosy cellular pond in `src/tidepool/`, entered through `index.html`. Read `README.md`, `PRODUCT.md` and `DESIGN.md` for its architecture and intended personality. It is a fixed artificial-life artwork to watch and listen to, with optional causal exploration. There is no required daily development workflow.
+
+Keep the headless model deterministic, render from real state without consuming simulation randomness, validate imported experiments before replacing the current state, and keep audio opt-in. Preserve comfortable watching as the default; disclose detailed instruments through Explore. Run `npm test` and `npm run build`, then the appropriate browser scripts after interaction changes.
+
+The following architecture describes the preserved original at `original.html`, not the new default. Its old constraints apply only to that route. CC0 / public domain.
 
 ## Architecture
 
@@ -65,17 +69,16 @@ npx tsc --noEmit     # type-check
 npx vite build       # production build
 ```
 
-## Evolution Log
+## Original archive
 
-`public/evolution-log.json` is the project's persistent thinking journal. Each daily session reads it first to understand what's been done, what was considered, and what's worth exploring next. New entries are appended — never modified or deleted. The log also surfaces in the app at `journal.html` for humans to read.
+`public/evolution-log.json` and `journal.html` preserve the earlier project's development history. Existing entries remain intact.
 
-The daily evolution prompt lives at `.claude/daily-evolve.md`. Read it for the full workflow.
+`.claude/daily-evolve.md` records the previous workflow and is not required for the new pond.
 
-## Design Constraints
+## Original route constraints
 
 - Zero npm runtime dependencies — browser APIs (WebGL, Web Audio, Canvas 2D) are encouraged
 - 256×144 pixel canvas, 5-minute cycle structure — these are sacred
 - Deterministic: same cycle number must produce the same world for everyone
 - Emotionally compelling — the experience should make people stop, watch, and come back
 - Ambitious evolution — push rendering, sound, and creature behavior toward what's mesmerizing, not merely functional
-- The daily evolution prompt at `.claude/daily-evolve.md` sets the creative bar — read it
