@@ -45,6 +45,7 @@ try {
   report.elevatedPicking = true;
   await page.reload(); await ready(page);
   const initial = await page.evaluate(() => window.__tidepool.rendering.geometries);
+  const initialTextures = await page.evaluate(() => window.__tidepool.rendering.textures);
   for (let i = 0; i < 8; i++) {
     await page.locator('#habitat').selectOption(i % 2 ? 'reef' : 'channel');
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -52,6 +53,9 @@ try {
   const final = await page.evaluate(() => window.__tidepool.rendering.geometries);
   assert.ok(final <= initial + 2, `Geometry count grew across resets: ${initial} -> ${final}`);
   report.geometryCounts = { initial, final };
+  const finalTextures = await page.evaluate(() => window.__tidepool.rendering.textures);
+  assert.equal(finalTextures, initialTextures, 'Render textures must remain bounded across habitat resets.');
+  report.textureCounts = { initial: initialTextures, final: finalTextures };
 
   await page.locator('#play').click(); await page.waitForFunction(() => window.__tidepool.pool.step > 8);
   await page.evaluate(() => {
@@ -65,6 +69,22 @@ try {
   await page.evaluate(() => window.__contextExtension.restoreContext());
   await page.waitForFunction(() => !window.__tidepool.paused && window.__tidepool.pool.step > 10);
   report.contextRecovery = true;
+
+  // Recovery must redraw the same picture, including the off-screen print texture.
+  await page.locator('#play').click();
+  await page.addStyleTag({ content: '#experience > :not(canvas) { visibility: hidden !important; }' });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const beforeRecovery = await page.screenshot();
+  const pausedStep = await page.evaluate(() => window.__tidepool.pool.step);
+  await page.evaluate(() => window.__contextExtension.loseContext());
+  await page.waitForFunction(() => document.querySelector('#pool').getContext('webgl2').isContextLost());
+  await page.waitForTimeout(150);
+  await page.evaluate(() => window.__contextExtension.restoreContext());
+  await page.waitForFunction(() => !document.querySelector('#pool').getContext('webgl2').isContextLost());
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal(await page.evaluate(() => window.__tidepool.pool.step), pausedStep);
+  assert.ok(beforeRecovery.equals(await page.screenshot()), 'Context recovery must restore the entire paused scene.');
+  report.exactRecoveredAppearance = true;
 
   const fallback = await browser.newPage({ reducedMotion: 'reduce' }); watch(fallback);
   await fallback.addInitScript(() => {

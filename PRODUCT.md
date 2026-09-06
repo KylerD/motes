@@ -4,7 +4,7 @@ Motes is a cosy artificial-life artwork for the web. It should be enjoyable to l
 
 ## Current direction
 
-On 6 September 2026 the user delegated the transformation with full creative authority, explicitly chose a cosy video-game personality and a lofi-page feeling over realism, and removed the 2D and dependency restrictions. That preference supersedes the realistic alien-tidepool concept plate. The cellular simulation remains the underlying idea; the finished surface is a quiet 3D storybook pond, rendered with Three.js.
+On 6 September 2026 the user delegated the transformation with full creative authority, explicitly chose a cosy video-game personality and a lofi-page feeling over realism, and removed the 2D and dependency restrictions. Subsequent feedback asked for more lofi, aesthetic graphics. The current surface is a quiet 3D storybook pond, rendered with Three.js and an illustrated print treatment: softened pixels, pigment texture, mossy greens and warm lantern glow. The cellular simulation remains the underlying idea.
 
 ## Experience
 

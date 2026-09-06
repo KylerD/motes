@@ -94,6 +94,9 @@ try {
   await page.keyboard.press('Escape');
   await page.locator('#habitat').selectOption('spores');
   assert.equal(await page.evaluate(() => window.__tidepool.pool.bonds.length), 0);
+  await page.screenshot({ path: 'captures-cozy/scattered-beginnings.png' });
+  await page.evaluate(() => window.__tidepool.advance(1800));
+  await page.screenshot({ path: 'captures-cozy/scattered-one-minute.png' });
   await page.locator('#seed-button').click();
   await page.locator('#seed-input').fill('42');
   await page.getByRole('button', { name: 'Open world', exact: true }).click();

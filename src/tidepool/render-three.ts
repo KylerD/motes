@@ -4,11 +4,12 @@ import type { Pool, View, Cell, Colony } from './model';
 import { colonies } from './world';
 import { PondCamera, WATER, UNIT, sceneX, sceneZ } from './camera';
 import { makeGarden, makeWater, disposeObject, visualNoise } from './garden';
+import { PostcardPass, paintedMaterial } from './postcard';
 
 const TAU = Math.PI * 2;
 const white = new T.Color('#fff1cf'), colors = LINEAGES.map(l => new T.Color(l.color));
 type Body = { mesh: T.Mesh<T.ExtrudeGeometry, T.MeshStandardMaterial>; step: number; count: number };
-export const cellElevation = (cell: Cell) => 0.255 + Math.sin(cell.phase) * 0.016;
+export const cellElevation = (cell: Cell) => 0.243 + Math.sin(cell.phase) * 0.006;
 
 function hull(cells: Cell[]): Cell[] {
   const points = cells.slice().sort((a, b) => a.x - b.x || a.y - b.y);
@@ -39,6 +40,7 @@ function skin(group: Colony): T.ExtrudeGeometry {
 export class ThreePoolRenderer {
   readonly kind = 'three';
   private renderer: T.WebGLRenderer;
+  private postcard: PostcardPass;
   private scene = new T.Scene();
   private projection = new PondCamera();
   private garden: T.Group | null = null;
@@ -64,29 +66,31 @@ export class ThreePoolRenderer {
 
   constructor(private canvas: HTMLCanvasElement, context: WebGL2RenderingContext) {
     this.renderer = new T.WebGLRenderer({ canvas, context, antialias: true, alpha: false });
+    this.postcard = new PostcardPass(this.renderer);
+    this.renderer.info.autoReset = false;
     this.renderer.outputColorSpace = T.SRGBColorSpace;
     this.renderer.toneMapping = T.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.03;
     this.renderer.setClearColor('#283d50');
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = T.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
-    this.scene.add(new T.HemisphereLight('#d9e6ed', '#495578', 1.35));
-    const sun = new T.DirectionalLight('#ffe0b7', 1.6); sun.position.set(-4, 12, 7);
-    sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+    this.scene.add(new T.HemisphereLight('#d3cce6', '#685479', 1.55));
+    const sun = new T.DirectionalLight('#ffd5b2', 1.2); sun.position.set(-4, 12, 7);
+    sun.castShadow = true; sun.shadow.mapSize.set(512, 512);
     Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 12, bottom: -12, near: 0.1, far: 40 });
     sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.025; this.scene.add(sun);
     this.scene.add(this.water, this.rings);
-    const shadow = new T.Mesh(new T.PlaneGeometry(35, 25), new T.ShadowMaterial({ opacity: 0.22 }));
+    const shadow = new T.Mesh(new T.PlaneGeometry(35, 25), new T.ShadowMaterial({ color: '#343452', opacity: 0.17 }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = WATER - 0.031; shadow.receiveShadow = true; this.scene.add(shadow);
     const instances = (geometry: T.BufferGeometry, material: T.Material, max: number) => {
       const mesh = new T.InstancedMesh(geometry, material, max); mesh.count = 0; mesh.frustumCulled = false;
       mesh.instanceMatrix.setUsage(T.DynamicDrawUsage); this.scene.add(mesh); return mesh;
     };
-    this.cells = instances(new T.SphereGeometry(1, 12, 8), new T.MeshStandardMaterial({ color: 'white', roughness: 0.55, metalness: 0, emissive: '#7e7763', emissiveIntensity: 0.08 }), MAX_CELLS);
+    this.cells = instances(new T.SphereGeometry(1, 10, 6), paintedMaterial('white'), MAX_CELLS);
     this.eyes = instances(new T.SphereGeometry(1, 10, 8), new T.MeshStandardMaterial({ color: '#29333e', roughness: 0.4 }), MAX_CELLS);
     this.glints = instances(new T.SphereGeometry(1, 6, 4), new T.MeshBasicMaterial({ color: '#fff4d9' }), MAX_CELLS);
     this.food = instances(new T.OctahedronGeometry(1), new T.MeshBasicMaterial({ color: '#f1d596', transparent: true, opacity: 0.62 }), 1800);
     this.bonds = instances(new T.CylinderGeometry(1, 1, 1, 5), new T.MeshBasicMaterial({ color: 'white', transparent: true, opacity: 0.75 }), 3000);
-    this.fireflies = instances(new T.SphereGeometry(1, 5, 4), new T.MeshBasicMaterial({ color: '#efe1a8', transparent: true, opacity: 0.58 }), 70);
+    this.fireflies = instances(new T.SphereGeometry(1, 5, 4), new T.MeshBasicMaterial({ color: new T.Color('#ffddb1').multiplyScalar(2.6), transparent: true, opacity: 0.72 }), 70);
     const ring = (color: string) => {
       const m = new T.Mesh(new T.RingGeometry(0.98, 1, 64), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, side: T.DoubleSide, depthWrite: false }));
       m.rotation.x = -Math.PI / 2; this.scene.add(m); return m;
@@ -100,6 +104,7 @@ export class ThreePoolRenderer {
     const r = this.canvas.getBoundingClientRect(); this.width = Math.max(1, r.width); this.height = Math.max(1, r.height);
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5, 1800 / this.width));
     this.renderer.setSize(this.width, this.height, false);
+    this.postcard.resize(this.width, this.height);
   }
   toWorld(x: number, y: number, view: View) { this.projection.update(this.width, this.height, view); return this.projection.toWorld(x, y); }
   toScreen(x: number, y: number, view: View, elevation = 0) { this.projection.update(this.width, this.height, view); return this.projection.toScreen(x, y, elevation); }
@@ -112,10 +117,14 @@ export class ThreePoolRenderer {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }
   draw(pool: Pool, view: View): void {
+    this.renderer.info.reset();
     const terrainKey = JSON.stringify([pool.seed, pool.preset, pool.obstacles]);
     if (terrainKey !== this.gardenKey) {
       if (this.garden) { this.scene.remove(this.garden); disposeObject(this.garden); }
       this.garden = makeGarden(pool); this.scene.add(this.garden); this.gardenKey = terrainKey;
+      const bank = pool.obstacles[pool.preset === 'channel' ? 0 : 1];
+      this.water.material.uniforms.hasLamp.value = bank ? 1 : 0;
+      if (bank) this.water.material.uniforms.lamp.value.set(sceneX(bank.x) - 0.35, sceneZ(bank.y) + bank.ry * UNIT + 0.38);
       this.renderer.shadowMap.needsUpdate = true;
     }
     this.projection.update(this.width, this.height, view); this.scale = this.projection.scale;
@@ -127,7 +136,7 @@ export class ThreePoolRenderer {
       ids.add(g.id);
       let body = this.bodies.get(g.id);
       if (!body) {
-        const mesh = new T.Mesh(skin(g), new T.MeshStandardMaterial({ roughness: 0.68, metalness: 0, color: colors[g.lineage] }));
+        const mesh = new T.Mesh(skin(g), paintedMaterial(colors[g.lineage]));
         this.scene.add(mesh); body = { mesh, step: pool.step, count: g.cells.length }; this.bodies.set(g.id, body);
       } else if (this.previousPool !== pool || pool.step !== body.step || body.count !== g.cells.length) {
         body.mesh.geometry.dispose(); body.mesh.geometry = skin(g); body.step = pool.step; body.count = g.cells.length;
@@ -153,7 +162,8 @@ export class ThreePoolRenderer {
     for (const [id, body] of this.bodies) if (!ids.has(id)) { this.scene.remove(body.mesh); disposeObject(body.mesh); this.bodies.delete(id); }
     pool.cells.forEach((c, i) => {
       const radius = c.radius * UNIT * (1.05 + c.activity * 0.12), height = WATER + cellElevation(c);
-      this.instance(this.cells, i, sceneX(c.x), height, sceneZ(c.y), radius * (c.role === 1 ? 1.4 : 1), radius * 0.75, radius, c.angle);
+      const subtle = view.lens === 'life' ? 0.66 : 1;
+      this.instance(this.cells, i, sceneX(c.x), height, sceneZ(c.y), radius * (c.role === 1 ? 1.4 : 1) * subtle, radius * (view.lens === 'life' ? 0.17 : 0.75), radius * subtle, c.angle);
       this.color.copy(view.lens === 'energy' ? this.color.set(c.energy > 0.55 ? '#d7e99b' : '#ecab92') : colors[c.lineage]).lerp(white, 0.32 + c.activity * 0.3);
       this.cells.setColorAt(i, this.color);
     });
@@ -172,7 +182,7 @@ export class ThreePoolRenderer {
     }
     this.finish(this.bonds, bondCount);
     let foodCount = 0;
-    for (const r of pool.nutrients) for (let i = 0; i < Math.floor(r.amount * 35) && foodCount < 1800; i++) {
+    for (const r of pool.nutrients) for (let i = 0; i < Math.floor(r.amount * (view.lens === 'life' ? 17 : 35)) && foodCount < 1800; i++) {
       const a = visualNoise(i + r.id * 23) * TAU + time * 0.005, radius = Math.sqrt(visualNoise(i + r.id * 59)) * r.radius * UNIT * 0.8;
       const s = 0.012 + visualNoise(i + 7) * 0.009;
       this.instance(this.food, foodCount++, sceneX(r.x) + Math.cos(a) * radius, WATER + 0.008, sceneZ(r.y) + Math.sin(a) * radius, s, s * 0.45, s);
@@ -201,10 +211,10 @@ export class ThreePoolRenderer {
       ring.scale.setScalar((20 + age * 35 + ring.userData.index * 18) * UNIT); ring.material.opacity = Math.max(0, 0.35 - age * 0.065);
     }
     this.previousPool = pool;
-    this.renderer.render(this.scene, this.projection.camera);
+    this.postcard.draw(this.renderer, this.scene, this.projection.camera, view.lens === 'life');
   }
   dispose(): void {
     this.canvas.removeEventListener('webglcontextrestored', this.restoreShadows);
-    disposeObject(this.scene); this.renderer.dispose();
+    disposeObject(this.scene); this.postcard.dispose(); this.renderer.dispose();
   }
 }
