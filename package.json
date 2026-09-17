@@ -7,17 +7,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "capture": "node scripts/capture.mjs",
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/three": "^0.185.4",
     "playwright": "^1.58.2",
     "typescript": "^5.9.3",
     "vite": "^6.4.1",
     "vitest": "^4.1.9"
-  },
-  "dependencies": {
-    "three": "^0.185.1"
   }
 }

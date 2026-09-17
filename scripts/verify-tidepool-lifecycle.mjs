@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 const root=resolve('dist');
 const server=createServer((req,res)=>{
   const url=new URL(req.url,'http://localhost');
+  if(url.pathname==='/away.html'){res.setHeader('Content-Type','text/html');res.end('<!doctype html><title>Navigation test</title><p>Temporary test destination.</p>');return;}
   const path=resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));
   if(!path.startsWith(root)){res.writeHead(403).end();return;}
   try{res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(path)]||'application/octet-stream');res.end(readFileSync(path));}catch{res.writeHead(404).end();}
@@ -17,7 +18,7 @@ const reports=[];const output=(kind,data)=>{reports.push({kind,...data});writeFi
 try{
   const context=await browser.newContext({viewport:{width:1440,height:960},reducedMotion:'reduce',hasTouch:true});
   const page=await context.newPage();
-  await page.goto(url+'/?debug');await page.waitForFunction(()=>window.__tidepool);
+  await page.goto(url+'/?debug&view=pond');await page.waitForFunction(()=>window.__tidepool);
   await page.evaluate(()=>{window.reviewCacheToken='same-document';window.addEventListener('pageshow',e=>window.reviewPersisted=e.persisted);});
   await page.evaluate(() => {
     window.reviewEvents = [];
@@ -28,7 +29,7 @@ try{
     document.addEventListener('visibilitychange', () => record('visibility'));
   });
   await page.locator('#play').click();await page.waitForFunction(()=>window.__tidepool.pool.step>10);
-  await page.locator('#guide-open').click();await page.locator('a[href="/original.html"]').click();
+  await page.goto(url+'/away.html');
   await page.goBack({timeout:2500}).catch(error=>{if(!page.url().startsWith(url+'/?debug'))throw error;});await page.waitForFunction(()=>window.__tidepool);
   const before=await page.evaluate(()=>({step:window.__tidepool.pool.step,samples:window.__tidepool.rendering.samples,paused:window.__tidepool.paused,cacheToken:window.reviewCacheToken,persisted:window.reviewPersisted}));
   await page.waitForTimeout(400);
@@ -37,7 +38,7 @@ try{
   assert.equal(before.persisted, true);
   assert.ok(after.step > before.step && after.samples > before.samples, JSON.stringify({before,after}));
   await page.reload();await page.waitForFunction(()=>window.__tidepool);
-  await page.locator('#explore').click();await page.locator('[data-tool="feed"]').click();
+  await page.locator('[data-tool="feed"]').click();
   const nutrients=await page.evaluate(()=>window.__tidepool.pool.nutrients.length);
   const cdp=await context.newCDPSession(page);
   const a={x:650,y:450,id:1},b={x:750,y:450,id:2};

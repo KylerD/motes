@@ -17,8 +17,8 @@ try {
     };
   });
   page.on('pageerror', e => failures.push(e.message));
-  await page.goto(`${url}/?debug&seed=2718`);
-  await page.waitForFunction(() => window.__tidepool);
+  await page.goto(`${url}/?debug&view=pond&seed=2718`);
+  await page.waitForFunction(() => window.__tidepool?.painting.ready);
   await page.screenshot({ path: 'captures-cozy/desktop.png' });
   assert.equal(await page.evaluate(() => window.__tidepool.paused), true);
   await page.getByRole('button', { name: 'Play simulation', exact: true }).click();
@@ -32,7 +32,6 @@ try {
   await page.locator('#follow').click();
   assert.equal(await page.locator('#follow').getAttribute('aria-pressed'), 'true');
   await page.locator('#fit').click();
-  await page.getByRole('button', { name: 'Explore', exact: true }).click();
   await page.locator('#lens').selectOption('energy');
   await page.screenshot({ path: 'captures-cozy/desktop-inspect.png' });
   await page.locator('#deselect').click();
@@ -105,14 +104,11 @@ try {
   await page.locator('#new-world').click();
   assert.notEqual(await page.evaluate(() => window.__tidepool.pool.seed), 42);
   const diagnostics = await page.evaluate(() => window.__tidepool.rendering);
-  await page.goto(`${url}/original.html?cycle=1000`);
-  await page.locator('#world').waitFor();
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, reducedMotion: 'reduce' });
   const phone = await mobile.newPage(); phone.on('pageerror', e => failures.push(e.message));
-  await phone.goto(`${url}/?debug&seed=2718`); await phone.waitForFunction(() => window.__tidepool);
+  await phone.goto(`${url}/?debug&view=pond&seed=2718`); await phone.waitForFunction(() => window.__tidepool?.painting.ready);
   await phone.screenshot({ path: 'captures-cozy/mobile.png' });
   assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  await phone.locator('#explore').tap();
   await phone.screenshot({ path: 'captures-cozy/mobile-explore.png' });
   await phone.locator('#specimen-select').selectOption({ index: 1 });
   assert.equal(await phone.locator('#specimen').isVisible(), true);
@@ -120,6 +116,6 @@ try {
   assert.equal(await phone.locator('#guide').isVisible(), true);
   await phone.locator('#guide-close').tap();
   assert.deepEqual(failures, []);
-  writeFileSync('captures-cozy/verification.json', JSON.stringify({ passed: true, errors: failures, rendering: diagnostics, desktop: '1440x960', mobile: '390x844', checks: ['transport', 'selection', 'follow', 'lenses', 'feed', 'sever', 'current', 'fork/compare', 'rewind', 'save/open', 'invalid-file', 'audio/volume', 'seed/presets', 'guide', 'original-route', 'mobile'] }, null, 2));
+  writeFileSync('captures-cozy/verification.json', JSON.stringify({ passed: true, errors: failures, rendering: diagnostics, desktop: '1440x960', mobile: '390x844', checks: ['transport', 'selection', 'follow', 'lenses', 'feed', 'sever', 'current', 'fork/compare', 'rewind', 'save/open', 'invalid-file', 'audio/volume', 'seed/presets', 'guide', 'mobile'] }, null, 2));
   console.log(JSON.stringify({ passed: true, rendering: diagnostics, sound, browserErrors: failures }));
 } finally { await browser.close(); }

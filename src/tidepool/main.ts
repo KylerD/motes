@@ -2,9 +2,11 @@ import './style.css';
 import { WIDTH, HEIGHT, DT, LINEAGES, clamp } from './model';
 import type { View, Tool, Lens, Preset, Pool } from './model';
 import { createPool, colonies } from './world';
-import { PoolRenderer } from './render';
 import { PoolAudio } from './audio';
 import { History, readExperiment } from './history';
+import { SanctuaryRenderer } from './sanctuary';
+import { SANCTUARIES } from './sanctuary-space';
+import type { SanctuaryMood } from './sanctuary-space';
 
 const el = <T extends HTMLElement = HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -19,17 +21,54 @@ function init(): void {
   const seed = rawSeed !== null && /^\d+$/.test(rawSeed) ? Number(rawSeed) >>> 0 : 2718;
   const preset = (['reef', 'channel', 'spores'].includes(params.get('habitat') ?? '') ? params.get('habitat') : 'reef') as Preset;
   let history = new History(createPool(seed, preset));
-  const canvas = el<HTMLCanvasElement>('pool'), renderer = new PoolRenderer(canvas), audio = new PoolAudio();
+  const canvas = el<HTMLCanvasElement>('pool'), audio = new PoolAudio();
+  let mood: SanctuaryMood = params.get('scene') === 'meadow' ? 'meadow' : 'rain';
+  const renderer = new SanctuaryRenderer(canvas,mood); canvas.dataset.renderer = renderer.kind;
   const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
-  const view: View = { x: innerWidth < 700 ? 1100 : 780, y: innerWidth < 700 ? 400 : 450, zoom: innerWidth < 700 ? 2.5 : 1.15, selected: null, lens: 'life', tool: 'observe', pointer: null, reduced: reducedQuery.matches };
+  const view: View = { x: WIDTH/2, y: HEIGHT/2, zoom: 1, selected: null, lens: 'life', tool: 'observe', pointer: null, reduced: reducedQuery.matches };
   let paused = reducedQuery.matches, speed = 1, follow = false, comparing = false, accumulator = 0, last = performance.now(), lastUi = 0;
-  let groupKey = '', selectedKey = '', messageUntil = 0, lastEventStep = -1, lastEventText = '', exploring = false;
+  let groupKey = '', selectedKey = '', messageUntil = 0, lastEventStep = -1, lastEventText = '', exploring = params.get('view') === 'pond';
+  let artFailureHandled = false;
   let raf = 0, sumRender = 0, renderSamples = 0, maxRender = 0;
   const timeline = el<HTMLInputElement>('timeline'), habitat = el<HTMLSelectElement>('habitat'), chooser = el<HTMLSelectElement>('specimen-select');
   habitat.value = preset;
   const showing = (): Pool => comparing && history.reference ? history.reference : history.pool;
   const say = (message: string, duration = 6000) => { el('observation').textContent = message; messageUntil = performance.now() + duration; };
   const press = (id: string, on: boolean) => el(id).setAttribute('aria-pressed', String(on));
+
+  function scenery(): void {
+    const scene = SANCTUARIES[mood];
+    el('scene-title').textContent = scene.title; el('scene-subtitle').textContent = scene.subtitle;
+    el<HTMLSelectElement>('scenery').value = mood;
+    el('experience').dataset.scene = mood;
+    el('weather-label').textContent = `${mood === 'rain' ? 'Rain' : 'Breeze'} ${renderer.weather ? 'on' : 'off'}`;
+    el('weather').querySelector('path')!.setAttribute('d',mood === 'rain' ? 'M5 13a4 4 0 0 1 0-8 6 6 0 0 1 11-1 4.5 4.5 0 0 1 2 9M7 17l-1 3m6-3-1 3m6-3-1 3' : 'M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 17h6a2 2 0 1 1-2 2');
+    press('weather',renderer.weather); audio.setAtmosphere(mood,renderer.weather);
+  }
+  function setExploring(on: boolean): void {
+    exploring = on; renderer.exploring = on;
+    if (on) view.zoom = innerWidth < 700 ? 1.2 : 2;
+    el('experience').classList.toggle('exploring',on); el('experience').classList.toggle('watching',!on);
+    press('explore',on); el('explore').textContent = on ? 'Just unwind' : 'Explore';
+    if (!on) { comparing = false; select(null); setTool('observe'); view.lens = 'life'; el<HTMLSelectElement>('lens').value = 'life'; view.x = WIDTH/2; view.y = HEIGHT/2; view.zoom = 1; }
+    const url = new URL(location.href); if (on) url.searchParams.set('view','pond'); else url.searchParams.delete('view');
+    window.history.replaceState(null,'',url);
+    renderer.resize();
+    canvas.setAttribute('aria-label',on ? 'Living tidepool. Select a creature using Meet a creature. Arrow keys move, 1–4 choose tools, Enter applies a tool.' : 'Living sanctuary. Click the water to send a ripple. Explore opens the cellular world. Space pauses.');
+  }
+  function quiet(on: boolean): void {
+    el('experience').classList.toggle('quiet',on);
+    if (on) el('return-controls').focus(); else el('quiet').focus();
+  }
+  el<HTMLSelectElement>('scenery').addEventListener('change',e => {
+    mood = (e.target as HTMLSelectElement).value as SanctuaryMood;
+    renderer.setMood(mood); artFailureHandled = false; scenery();
+    const url = new URL(location.href); url.searchParams.set('scene',mood); window.history.replaceState(null,'',url);
+  });
+  click('weather',() => { renderer.weather = !renderer.weather; scenery(); });
+  click('retry-art',() => { renderer.retryArt(); artFailureHandled = false; });
+  click('quiet',() => quiet(true)); click('return-controls',() => quiet(false));
+  scenery();
 
   function playback(): void {
     el('play').setAttribute('aria-label', paused ? 'Play simulation' : 'Pause simulation');
@@ -43,11 +82,11 @@ function init(): void {
     document.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === tool)));
     say(({ observe: 'Pick a little creature. Drag the water to wander.', feed: 'Click the water to leave a little nourishment.', current: 'Click the water to send a gentle swirl.', cut: 'Click across a body to separate its connections.' })[tool]);
   }
-  function zoom(factor: number): void { view.zoom = clamp(view.zoom * factor, 0.65, 5); }
+  function zoom(factor: number): void { view.zoom = clamp(view.zoom * factor, 1, 5); }
   function reset(nextSeed: number, nextPreset: Preset): void {
     history = new History(createPool(nextSeed, nextPreset));
     comparing = false; follow = false; view.selected = null;
-    view.x = innerWidth < 700 ? 1100 : 780; view.y = innerWidth < 700 ? 400 : 450; view.zoom = innerWidth < 700 ? 2.5 : 1.15;
+    view.x = WIDTH/2; view.y = HEIGHT/2; view.zoom = 1;
     groupKey = ''; lastEventStep = -1; accumulator = 0; habitat.value = nextPreset;
     const url = new URL(location.href); url.searchParams.set('seed', String(nextSeed)); url.searchParams.set('habitat', nextPreset);
     window.history.replaceState(null, '', url);
@@ -64,7 +103,6 @@ function init(): void {
     el('seed-button').textContent = String(pool.seed);
     el('comparison').hidden = !history.branched;
     press('show-original', comparing); press('show-branch', !comparing);
-    el('habitat-caption').textContent = comparing ? 'The way it was.' : history.branched ? 'A different little possibility.' : 'A little world, in no hurry.';
     const choices = groups.filter(g => g.cells.length >= 4).slice(0, 12);
     const key = choices.map(g => `${g.id}:${g.cells.length}`).join(',');
     if (groupKey !== key && document.activeElement !== chooser) {
@@ -96,15 +134,17 @@ function init(): void {
   click('play', () => { paused = !paused; playback(); });
   el<HTMLSelectElement>('speed').addEventListener('change', e => { speed = Number((e.target as HTMLSelectElement).value); });
   click('sound', () => {
+    el('sound-status').hidden = true;
     if (!audio.muted) { audio.setMuted(true); press('sound', false); el('sound').querySelector('span')!.textContent = 'Listen'; return; }
     void audio.enable().then(() => { press('sound', true); el('sound').querySelector('span')!.textContent = 'Sound on'; })
-      .catch(() => say('Sound couldn’t start. Tap Listen to try again.'));
+      .catch(() => {
+        const message = 'Sound couldn’t start. Tap Listen to try again.';
+        say(message); el('sound-status').textContent = message; el('sound-status').hidden = false;
+      });
   });
   el<HTMLInputElement>('volume').addEventListener('input', e => audio.setVolume(Number((e.target as HTMLInputElement).value) / 100));
   click('explore', () => {
-    exploring = !exploring; el('experience').classList.toggle('exploring', exploring); press('explore', exploring);
-    el('explore').textContent = exploring ? 'Just unwind' : 'Explore';
-    if (!exploring) { setTool('observe'); view.lens = 'life'; el<HTMLSelectElement>('lens').value = 'life'; }
+    setExploring(!exploring);
   });
   click('guide-open', () => el<HTMLDialogElement>('guide').showModal());
   click('guide-close', () => el<HTMLDialogElement>('guide').close());
@@ -159,6 +199,11 @@ function init(): void {
     if (pointers.size >= 2) { const [a, b] = [...pointers.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); gesture.moved = true; suppressTap = true; }
   });
   canvas.addEventListener('pointermove', e => {
+    if (!exploring) {
+      const p = local(e);
+      if (gesture && Math.hypot(p.x-gesture.startX,p.y-gesture.startY)>5) gesture.moved = true;
+      return;
+    }
     const p = local(e); view.pointer = renderer.toWorld(p.x, p.y, view);
     if (!pointers.has(e.pointerId)) return;
     pointers.set(e.pointerId, p);
@@ -169,9 +214,9 @@ function init(): void {
     if (gesture && (view.tool === 'observe' || e.buttons === 4)) {
       if (Math.hypot(p.x - gesture.startX, p.y - gesture.startY) > 5) gesture.moved = true;
       if (gesture.moved) {
-        const before = renderer.toWorld(gesture.x, gesture.y, view), after = renderer.toWorld(p.x, p.y, view);
-        follow = false; view.x = clamp(view.x + before.x - after.x, 0, WIDTH);
-        view.y = clamp(view.y + before.y - after.y, 0, HEIGHT);
+        const delta = renderer.panDelta(p.x-gesture.x,p.y-gesture.y,view);
+        follow = false; view.x = clamp(view.x + delta.x, 0, WIDTH);
+        view.y = clamp(view.y + delta.y, 0, HEIGHT);
       }
       gesture.x = p.x; gesture.y = p.y;
     }
@@ -187,6 +232,11 @@ function init(): void {
     const p = local(e), point = renderer.toWorld(p.x, p.y, view), moved = gesture?.moved;
     pointers.delete(e.pointerId); gesture = null; pinch = 0;
     if (moved || pointers.size > 0 || suppressTap) return;
+    if (!exploring) {
+      const water = renderer.space.hit(p.x,p.y);
+      if (water) { history.command({ type: 'current',x: water.x,y: water.y,strength: .45 }); say('A ripple, and a different little possibility.'); }
+      return;
+    }
     if (view.tool === 'observe') {
       select(renderer.pick(showing(), p.x, p.y, view));
     } else actAt(point);
@@ -194,22 +244,23 @@ function init(): void {
   canvas.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); gesture = null; pinch = 0; suppressTap = true; });
   canvas.addEventListener('pointerleave', () => { view.pointer = null; });
   canvas.addEventListener('wheel', e => {
-    e.preventDefault(); const p = local(e), before = renderer.toWorld(p.x, p.y, view);
-    zoom(Math.exp(-e.deltaY * 0.001)); const after = renderer.toWorld(p.x, p.y, view);
-    view.x = clamp(view.x + before.x - after.x, 0, WIDTH); view.y = clamp(view.y + before.y - after.y, 0, HEIGHT); follow = false;
+    if (!exploring) return;
+    e.preventDefault(); zoom(Math.exp(-e.deltaY * 0.001)); follow = false;
   }, { passive: false });
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && el('experience').classList.contains('quiet')) { quiet(false); return; }
     if (document.querySelector('dialog[open]') || (e.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(e.target.tagName))) return;
     if (e.code === 'Space') { e.preventDefault(); paused = !paused; playback(); }
-    else if (e.key === '+' || e.key === '=') zoom(1.2);
-    else if (e.key === '-') zoom(1 / 1.2);
+    else if ((e.key === '+' || e.key === '=') && exploring) zoom(1.2);
+    else if (e.key === '-' && exploring) zoom(1 / 1.2);
     else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      if (!exploring) return;
       e.preventDefault(); follow = false;
       view.x = clamp(view.x + (e.key === 'ArrowRight' ? 40 : e.key === 'ArrowLeft' ? -40 : 0) / view.zoom, 0, WIDTH);
       view.y = clamp(view.y + (e.key === 'ArrowDown' ? 40 : e.key === 'ArrowUp' ? -40 : 0) / view.zoom, 0, HEIGHT);
       view.pointer = { x: view.x, y: view.y };
     }
-    else if (e.key === 'Enter') { e.preventDefault(); actAt({ x: view.x, y: view.y }); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (exploring) actAt({ x: view.x, y: view.y }); else history.command({ type: 'current',x: WIDTH/2,y: HEIGHT/2,strength: .45 }); }
     else if (e.key.toLowerCase() === 'f') el('follow').click();
     else if (e.key === 'Escape') { select(null); setTool('observe'); }
     else if (['1', '2', '3', '4'].includes(e.key)) { if (!exploring) el('explore').click(); setTool((['observe', 'feed', 'current', 'cut'] as Tool[])[Number(e.key) - 1]); view.pointer = { x: view.x, y: view.y }; }
@@ -221,9 +272,9 @@ function init(): void {
     view.reduced = e.matches;
     if (e.matches) { paused = true; follow = false; playback(); }
   });
-  const resize = new ResizeObserver(() => renderer.resize()); resize.observe(canvas); renderer.resize();
+  const resize = new ResizeObserver(() => { renderer.resize(); }); resize.observe(canvas); renderer.resize();
   document.addEventListener('visibilitychange', () => { last = performance.now(); accumulator = 0; audio.update(showing(), view.selected, document.hidden || paused); });
-  playback(); updateUi();
+  playback(); updateUi(); setExploring(exploring);
 
   function frame(now: number): void {
     const delta = Math.min((now - last) / 1000, 0.1); last = now;
@@ -234,7 +285,14 @@ function init(): void {
         const group = colonies(pool).find(g => g.cells.some(c => c.id === view.selected));
         if (group) { const ease = 1 - Math.exp(-delta * 1.6); view.x += (group.x - view.x) * ease; view.y += (group.y + 20 - view.y) * ease; }
       }
-      const renderStart = performance.now(); renderer.draw(pool, view);
+      const renderStart = performance.now();
+      renderer.draw(pool,view);
+      el('scene-loading').hidden = renderer.ready;
+      el('retry-art').hidden = !renderer.failed;
+      if (renderer.failed && !artFailureHandled) {
+        artFailureHandled = true; el('loading-message').textContent = 'The scenery couldn’t load. Your world is still here.';
+        say('The lights and controls still work. Retry artwork to load the scenery.',12000);
+      }
       const renderMs = performance.now() - renderStart; sumRender += renderMs; renderSamples++; maxRender = Math.max(maxRender, renderMs);
       if (now - lastUi > 180) { updateUi(); audio.update(pool, view.selected, paused); lastUi = now; }
     }
@@ -244,6 +302,8 @@ function init(): void {
   if (params.has('debug')) Object.defineProperty(window, '__tidepool', { configurable: true, value: {
     get pool() { return history.pool; }, get reference() { return history.reference; }, get paused() { return paused; },
     get view() { return { ...view }; }, get rendering() { return { meanMs: sumRender / Math.max(1, renderSamples), maxMs: maxRender, samples: renderSamples, ...renderer.diagnostics }; },
+    get painting() { return { ready: renderer.ready, failed: renderer.failed, mood, weather: renderer.weather, exploring }; },
+    paintingProject: (x: number,y: number) => renderer.space.project(x,y),
     project: (x: number, y: number) => renderer.toScreen(x, y, view),
     cellScreen: (id: number) => { const c = showing().cells.find(cell => cell.id === id); return c ? renderer.toScreenCell(c, view) : null; },
     unproject: (x: number, y: number) => renderer.toWorld(x, y, view),
@@ -260,11 +320,12 @@ function init(): void {
     raf = requestAnimationFrame(frame);
   });
   let contextPaused = false;
-  canvas.addEventListener('webglcontextlost', e => {
+  canvas.addEventListener('contextlost', e => {
     e.preventDefault(); contextPaused = paused; paused = true; playback();
     say('The pond is resting while its view recovers.', 12000);
   });
-  canvas.addEventListener('webglcontextrestored', () => {
+  canvas.addEventListener('contextrestored', () => {
+    renderer.resize();
     paused = contextPaused; last = performance.now(); accumulator = 0; playback();
     say('The pond is back, just where you left it.');
   });

@@ -1,17 +1,23 @@
 # Product
 
-Motes is a cosy artificial-life artwork for the web. It should be enjoyable to leave open, both to watch and to listen to, while rewarding curiosity about how small cells become bodies. The fixed codebase must be interesting on its own. Daily development loops, streaks and return incentives are outside scope.
+Motes is an atmospheric artificial-life artwork: a world to leave open, watch and listen to, with enough causal depth to reward curiosity. The static codebase must be interesting on its own. Daily development loops, streaks and return incentives are outside scope.
 
-## Current direction
+## Creative direction
 
-On 6 September 2026 the user delegated the transformation with full creative authority, explicitly chose a cosy video-game personality and a lofi-page feeling over realism, and removed the 2D and dependency restrictions. Subsequent feedback asked for more lofi, aesthetic graphics. The current surface is a quiet 3D storybook pond, rendered with Three.js and an illustrated print treatment: softened pixels, pigment texture, mossy greens and warm lantern glow. The cellular simulation remains the underlying idea.
+The user delegated full implementation authority and explicitly rejected proposals as the deliverable. Their illustrated neon-city and golden-meadow references clarified that “lofi” means rich colour, dramatic light, inhabited scenery, atmospheric depth and restful motion. It does not mean muted miniature graphics.
+
+On 7 September 2026 the user asked to remove code that does not serve this direction. The resulting application has one visual world and one renderer. The old pixel world, toy pond, Three.js scenery, alternate renderers, development journal and daily-evolution machinery are removed.
 
 ## Experience
 
-The first screen is already a running world. Watch, listen, meet a creature or follow it. Explore discloses the deeper instruments: interventions, energy and connection views, rewind, branching and save/open. There is no mandatory task, score or scheduled ending.
+The first viewport is an original painting animated with rain or pollen, moving water and living cellular lights. Choose Neon rain or Golden hour, press Listen, send a ripple or hide the controls. Switching scenery preserves the ecology.
+
+Explore reveals the same communities within the same painted water. It adds selection, follow, camera controls, energy and connection lenses, interventions, rewind, branching and save/open. There is no mandatory task, score or scheduled ending.
 
 ## Product truth
 
-Cells are active particles. Bonds carry force, transfer energy and coordinate pulses. Organisms are connected components with documented prepared presets. Local rules drive subsequent motion, feeding, bonding, growth and death. This is stylised artificial life, not a claim of biological realism, intelligence or unlimited evolutionary novelty.
+Cells are active particles. Bonds carry force, transfer energy and coordinate pulses. Communities are connected components with prepared presets. Local rules drive subsequent motion, feeding, bonding, growth and death. This is bounded, stylised artificial life, without claims of biological realism or unlimited evolutionary novelty.
 
-The TypeScript and Vite application uses Three.js, native Web Audio and a Canvas fallback when WebGL 2 is unavailable. There is no backend. Its simulated ecology is planar; the 3D scenery and water pattern are an expressive presentation, not additional physical or biological claims. The original pixel artwork remains at /original.html. All implementation and verification are local; no deployment is implied.
+The scenery is an expressive setting, not a geometrically exact ecological landscape. Analytical lenses draw the model's submerged shelves and food sources. Original generated illustrations are local project assets; water, weather and living lights are separate rendering layers.
+
+The application uses TypeScript, Vite, Canvas 2D and native Web Audio. No runtime npm dependencies or backend are required. Audio starts deliberately; pause, reduced motion, failure recovery and accessible controls are part of the experience.

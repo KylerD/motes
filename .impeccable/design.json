@@ -1,0 +1,327 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-17T13:34:26.406Z",
+  "title": "Design System: Motes",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Night ink",
+        "tonalRamp": [
+          "oklch(15% 0.035 244)",
+          "oklch(26% 0.035 244)",
+          "oklch(37% 0.035 244)",
+          "oklch(49% 0.035 244)",
+          "oklch(61% 0.035 244)",
+          "oklch(73% 0.035 244)",
+          "oklch(85% 0.035 244)",
+          "oklch(95% 0.035 244)"
+        ]
+      },
+      "panel": {
+        "role": "secondary",
+        "displayName": "Deep teal",
+        "tonalRamp": [
+          "oklch(15% 0.043 224)",
+          "oklch(26% 0.043 224)",
+          "oklch(37% 0.043 224)",
+          "oklch(49% 0.043 224)",
+          "oklch(61% 0.043 224)",
+          "oklch(73% 0.043 224)",
+          "oklch(85% 0.043 224)",
+          "oklch(95% 0.043 224)"
+        ]
+      },
+      "text": {
+        "role": "primary",
+        "displayName": "Warm cream",
+        "tonalRamp": [
+          "oklch(15% 0.027 76)",
+          "oklch(26% 0.027 76)",
+          "oklch(37% 0.027 76)",
+          "oklch(49% 0.027 76)",
+          "oklch(61% 0.027 76)",
+          "oklch(73% 0.027 76)",
+          "oklch(85% 0.027 76)",
+          "oklch(95% 0.027 76)"
+        ]
+      },
+      "quiet": {
+        "role": "neutral",
+        "displayName": "Mist",
+        "tonalRamp": [
+          "oklch(15% 0.015 177)",
+          "oklch(26% 0.015 177)",
+          "oklch(37% 0.015 177)",
+          "oklch(49% 0.015 177)",
+          "oklch(61% 0.015 177)",
+          "oklch(73% 0.015 177)",
+          "oklch(85% 0.015 177)",
+          "oklch(95% 0.015 177)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Waterline",
+        "tonalRamp": [
+          "oklch(15% 0.035 194)",
+          "oklch(26% 0.035 194)",
+          "oklch(37% 0.035 194)",
+          "oklch(49% 0.035 194)",
+          "oklch(61% 0.035 194)",
+          "oklch(73% 0.035 194)",
+          "oklch(85% 0.035 194)",
+          "oklch(95% 0.035 194)"
+        ]
+      },
+      "gold": {
+        "role": "primary",
+        "displayName": "Lantern gold",
+        "tonalRamp": [
+          "oklch(15% 0.077 79)",
+          "oklch(26% 0.077 79)",
+          "oklch(37% 0.077 79)",
+          "oklch(49% 0.077 79)",
+          "oklch(61% 0.077 79)",
+          "oklch(73% 0.077 79)",
+          "oklch(85% 0.077 79)",
+          "oklch(95% 0.077 79)"
+        ]
+      },
+      "outline-backing": {
+        "role": "neutral",
+        "displayName": "Shelter backing",
+        "tonalRamp": [
+          "oklch(15% 0.044 249)",
+          "oklch(26% 0.044 249)",
+          "oklch(37% 0.044 249)",
+          "oklch(49% 0.044 249)",
+          "oklch(61% 0.044 249)",
+          "oklch(73% 0.044 249)",
+          "oklch(85% 0.044 249)",
+          "oklch(95% 0.044 249)"
+        ]
+      },
+      "outline-text": {
+        "role": "neutral",
+        "displayName": "Shelter cream",
+        "tonalRamp": [
+          "oklch(15% 0.034 78)",
+          "oklch(26% 0.034 78)",
+          "oklch(37% 0.034 78)",
+          "oklch(49% 0.034 78)",
+          "oklch(61% 0.034 78)",
+          "oklch(73% 0.034 78)",
+          "oklch(85% 0.034 78)",
+          "oklch(95% 0.034 78)"
+        ]
+      },
+      "active-backing": {
+        "role": "secondary",
+        "displayName": "Selected teal",
+        "tonalRamp": [
+          "oklch(15% 0.039 192)",
+          "oklch(26% 0.039 192)",
+          "oklch(37% 0.039 192)",
+          "oklch(49% 0.039 192)",
+          "oklch(61% 0.039 192)",
+          "oklch(73% 0.039 192)",
+          "oklch(85% 0.039 192)",
+          "oklch(95% 0.039 192)"
+        ]
+      },
+      "active-text": {
+        "role": "secondary",
+        "displayName": "Pale gold",
+        "tonalRamp": [
+          "oklch(15% 0.06 89)",
+          "oklch(26% 0.06 89)",
+          "oklch(37% 0.06 89)",
+          "oklch(49% 0.06 89)",
+          "oklch(61% 0.06 89)",
+          "oklch(73% 0.06 89)",
+          "oklch(85% 0.06 89)",
+          "oklch(95% 0.06 89)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Scene title",
+        "purpose": "Warm serif captions at the lower edge of the painting."
+      },
+      "wordmark": {
+        "displayName": "Motes wordmark",
+        "purpose": "Compact lower-case identity."
+      },
+      "body": {
+        "displayName": "Guide prose",
+        "purpose": "Readable dialog explanations."
+      },
+      "label": {
+        "displayName": "Controls",
+        "purpose": "Plain, compact interface labels."
+      },
+      "reading": {
+        "displayName": "Colony readings",
+        "purpose": "Monospaced model measurements."
+      },
+      "time": {
+        "displayName": "Time and speed",
+        "purpose": "Small monospaced transport values."
+      }
+    },
+    "shadows": [
+      {
+        "name": "scene-title",
+        "value": "0 2px 15px #061222",
+        "purpose": "Text shadow keeping the caption legible over painted water."
+      },
+      {
+        "name": "identity-caption",
+        "value": "0 2px 8px #061324",
+        "purpose": "Local text shadow for the small italic header caption."
+      },
+      {
+        "name": "header-action",
+        "value": "0 2px 8px #031126",
+        "purpose": "Text shadow for Listen and Field guide."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "color .18s ease, background .18s ease",
+        "purpose": "Subtle button and select state changes; disabled with reduced motion."
+      },
+      {
+        "name": "world-time",
+        "value": "pool.step * DT",
+        "purpose": "Shared clock for all moving painting layers and live lights."
+      },
+      {
+        "name": "follow-easing",
+        "value": "1 - Math.exp(-delta * 1.6)",
+        "purpose": "Explore follow camera only; disabled with reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "1150px"
+      },
+      {
+        "name": "compact-controls",
+        "value": "850px"
+      },
+      {
+        "name": "phone",
+        "value": "700px"
+      },
+      {
+        "name": "short-viewport",
+        "value": "600px (max-height)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Outline action",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Explore, Branch and Follow actions.",
+      "html": "<button class=\"ds-outline\">Explore</button>",
+      "css": ".ds-outline{font:14px Arial,sans-serif;color:var(--text,#fff0d8);background:#102335b0;border:1px solid #d2ded184;border-radius:7px;padding:9px 15px;cursor:pointer;transition:color .18s ease,background .18s ease}.ds-outline:hover{background:#284657df;color:#fff9ec}.ds-outline:focus-visible{outline:2px solid var(--gold,#f4d3a0);outline-offset:4px}.ds-outline[aria-pressed='true']{color:var(--gold,#f4d3a0)}.ds-outline:disabled{opacity:.35;cursor:default}"
+    },
+    {
+      "name": "Text action",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Quiet actions such as Save, Open and Field guide.",
+      "html": "<button class=\"ds-text\">Field guide</button>",
+      "css": ".ds-text{font:14px Arial,sans-serif;color:var(--quiet,#d6e2df);padding:9px 2px;border:0;background:none;cursor:pointer;transition:color .18s ease,background .18s ease}.ds-text:hover{color:#fff9ec}.ds-text:focus-visible{outline:2px solid var(--gold,#f4d3a0);outline-offset:4px}.ds-text[aria-pressed='true']{color:var(--gold,#f4d3a0)}"
+    },
+    {
+      "name": "Scenery selector",
+      "kind": "input",
+      "refersTo": "scene-select",
+      "description": "Named settings with a literary type treatment.",
+      "html": "<span class=\"ds-scene-wrap\"><select class=\"ds-scene\" aria-label=\"Scenery\"><option>Neon rain</option><option>Golden hour</option></select><svg class=\"ds-chevron\" viewBox=\"0 0 10 6\" aria-hidden=\"true\"><path d=\"m1 1 4 4 4-4\"/></svg></span>",
+      "css": ".ds-scene-wrap{position:relative;display:inline-block}.ds-scene{appearance:none;font:19px var(--serif,'EB Garamond',Georgia,serif);background:#061528b8;color:#fff2e3;border:1px solid var(--line,#8cb1b16b);border-radius:6px;padding:9px 29px 9px 12px;cursor:pointer;transition:color .18s ease,background .18s ease}.ds-scene option{background:var(--panel,#102d39);color:var(--text,#fff1df)}.ds-scene:hover{border-color:#cee4d6}.ds-scene:focus-visible{outline:2px solid var(--gold,#f4d3a0);outline-offset:4px}.ds-chevron{position:absolute;right:10px;top:calc(50% - 3px);width:10px;height:6px;fill:none;stroke:var(--quiet,#d6e2df);pointer-events:none}"
+    },
+    {
+      "name": "Exploration tools",
+      "kind": "nav",
+      "refersTo": "tool-selected",
+      "description": "A segmented group with a clear active tool.",
+      "html": "<div class=\"ds-tools\" role=\"group\" aria-label=\"Interaction tools\"><button aria-pressed=\"true\">Observe</button><button aria-pressed=\"false\">Nourish</button><button aria-pressed=\"false\">Current</button><button aria-pressed=\"false\">Sever</button></div>",
+      "css": ".ds-tools{display:inline-flex;align-items:center;border:1px solid var(--line,#8cb1b16b);border-radius:7px;padding:3px;background:#102b36d9}.ds-tools button{font:14px Arial,sans-serif;border:0;background:none;border-radius:4px;padding:9px 16px;color:var(--quiet,#d6e2df);cursor:pointer;transition:color .18s ease,background .18s ease}.ds-tools button[aria-pressed='true']{background:#315454;color:#fff0c6}.ds-tools button:hover{background:#234652}.ds-tools button:focus-visible{outline:2px solid var(--gold,#f4d3a0);outline-offset:4px}"
+    },
+    {
+      "name": "Seed field",
+      "kind": "input",
+      "refersTo": "seed-input",
+      "description": "Monospaced entry for returning to a beginning.",
+      "html": "<label class=\"ds-seed-label\" for=\"ds-seed\">World seed</label><input id=\"ds-seed\" class=\"ds-seed\" type=\"number\" value=\"2718\" min=\"0\" max=\"4294967295\" step=\"1\">",
+      "css": ".ds-seed-label{display:block;font:14px Arial,sans-serif;color:var(--text,#fff1df);margin:18px 0 7px}.ds-seed{font-family:var(--mono,'IBM Plex Mono',monospace);background:#091f2a;color:var(--text,#fff1df);border:1px solid #7b9b91;padding:12px;width:100%;border-radius:5px;caret-color:var(--gold,#f4d3a0)}.ds-seed:focus-visible{outline:2px solid var(--gold,#f4d3a0);outline-offset:4px}"
+    },
+    {
+      "name": "Community inspector",
+      "kind": "card",
+      "refersTo": "specimen-panel",
+      "description": "A compact, readable window into actual colony state.",
+      "html": "<aside class=\"ds-specimen\"><h2>Mallow</h2><p class=\"ds-kind\">A community of cells</p><div class=\"ds-readings\"><div><span>Cells</span><strong>24</strong></div><div><span>Energy</span><strong>78%</strong></div><div><span>In rhythm</span><strong>91%</strong></div></div><p class=\"ds-observation\">Example colony readings.</p><button class=\"ds-outline\" aria-pressed=\"false\">Follow this body</button></aside>",
+      "css": ".ds-outline{font:14px Arial,sans-serif;color:var(--text,#fff0d8);background:#102335b0;border:1px solid #d2ded184;border-radius:7px;padding:9px 15px;cursor:pointer;transition:color .18s ease,background .18s ease}.ds-outline:hover{background:#284657df;color:#fff9ec}.ds-outline:focus-visible{outline:2px solid var(--gold,#f4d3a0);outline-offset:4px}.ds-outline[aria-pressed='true']{color:var(--gold,#f4d3a0)}.ds-outline:disabled{opacity:.35;cursor:default}.ds-specimen{width:235px;padding:18px 19px;background:#0e2937f5;border:1px solid #90b4ae80;border-radius:12px;color:var(--text,#fff1df)}.ds-specimen h2{font:400 33px/1 var(--serif,'EB Garamond',Georgia,serif);margin:0}.ds-kind{color:var(--quiet,#d6e2df);font:13px Arial,sans-serif;margin:8px 0 21px}.ds-readings{display:flex;justify-content:space-between;gap:12px}.ds-readings span{display:block;font:12px Arial,sans-serif;color:var(--quiet,#d6e2df);margin-bottom:6px}.ds-readings strong{font:400 16px var(--mono,'IBM Plex Mono',monospace);color:#f0e8d3}.ds-observation{color:#d4e2ce;font:italic 18px/1.35 var(--serif,'EB Garamond',Georgia,serif);margin:17px 0}.ds-specimen .ds-outline{width:100%}"
+    },
+    {
+      "name": "Field guide surface",
+      "kind": "custom",
+      "refersTo": "dialog",
+      "description": "The quiet dialog surface for explanatory prose.",
+      "html": "<section class=\"ds-guide\" aria-label=\"Field guide example\"><h2>A field guide to motes</h2><p class=\"ds-lead\">A place to be. A world to discover.</p><p>Choose neon rain or golden hour, press Listen, and settle in.</p><button class=\"ds-text\">Close</button></section>",
+      "css": ".ds-guide{background:var(--panel,#102d39);color:var(--text,#fff1df);border:1px solid #779d9c;border-radius:12px;padding:30px 34px;max-width:600px}.ds-guide h2{font:400 32px/1.2 var(--serif,'EB Garamond',Georgia,serif);margin:0}.ds-guide p{font:15px/1.7 Arial,sans-serif;color:#d1dfd6}.ds-guide .ds-lead{font:italic 25px/1.3 var(--serif,'EB Garamond',Georgia,serif);color:#f3e5c9;margin:22px 0 12px}.ds-text{font:14px Arial,sans-serif;color:var(--quiet,#d6e2df);padding:9px 2px;border:0;background:none;cursor:pointer;transition:color .18s ease,background .18s ease}.ds-text:hover{color:#fff9ec}.ds-text:focus-visible{outline:2px solid var(--gold,#f4d3a0);outline-offset:4px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Living Painting",
+    "overview": "Motes is a richly illustrated place to settle into. Saturated light, inhabited scenery and atmospheric distance carry its cosy, lofi character. The two current settings are a rainy neon rooftop refuge and a sunlit fantasy meadow. The user's image references establish this expressive, painted treatment; the page should feel restful without becoming visually empty.\n\nThe artwork fills the viewport. Small cream controls sit around its edges, allowing the scenery and the communities of light in its water to remain the focus. Explore reveals those same communities within the same painting. The interface supports curiosity while keeping the setting present.",
+    "keyCharacteristics": [
+      "Original environment illustrations with local layers of moving water, weather and living light.",
+      "Rich scene colour, warm cream typography and restrained dark teal controls.",
+      "A quiet watching surface that reveals deeper instruments through Explore.",
+      "Restful motion and deliberate, optional sound."
+    ],
+    "rules": [
+      {
+        "name": "The Scenery Rule",
+        "body": "Keep the interface palette steady across settings. Rain uses cyan, blue and pink scenery; the meadow uses gold and forest teal. Scene-specific top and bottom scrims protect the same cream controls.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Type Rule",
+        "body": "Reserve the expressive serif for names, scene captions and observations. Keep controls and numbers easy to scan.",
+        "section": "typography"
+      },
+      {
+        "name": "The Readable Shelter Rule",
+        "body": "Keep a local dark backing or scrim behind controls wherever the painting can become bright. Preserve visible gold focus outlines.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep the painting visible and dominant in Watch and Explore.",
+      "**Do** use the established cream, teal and gold interface roles across both settings.",
+      "**Do** project living lights, selections and interventions through the same space as the painted water.",
+      "**Do** use model time for visual movement and preserve pause, replay and reduced-motion behaviour.",
+      "**Do** keep sound opt-in and provide visible recovery when artwork or audio cannot start.",
+      "**Do** check desktop and phone crops together with readable controls."
+    ],
+    "donts": [
+      "**Don't** restore the retired toy diorama, pixel world, alternate renderer or development-journal interface.",
+      "**Don't** replace the painted aesthetic with photorealistic materials or generic miniature game assets.",
+      "**Don't** introduce camera orbit, entrance delays or restless interface animation.",
+      "**Don't** turn colony readings into decorative or fabricated data.",
+      "**Don't** let interface decoration compete with the illustrated environment."
+    ]
+  }
+}
