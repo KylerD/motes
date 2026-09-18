@@ -49,11 +49,14 @@ npm test
 npm run build
 node scripts/verify-scenes.mjs
 node scripts/verify-music.mjs
+node scripts/verify-mix.mjs
 node scripts/render-music-preview.mjs
 ```
 
 Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, daily revisiting, control panels, pause, retry, preferences, visibility events, music scheduling and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it can take duration, output path, seed and scene arguments.
 
 Technical audio checks establish playback and signal health, not a claim that every generated track meets someone's musical taste. The listening experience remains the quality bar.
+
+The mix check renders isolated music and atmosphere stems for all four scenes, with and without drums. At default levels, atmosphere must stay at least 18 dB below both the quiet opening and the theme in these fixtures. Scene-specific attenuation applies beneath the slider, so saved preferences receive the same calibration. Player and offline previews share the same defaults.
 
 Original application code: CC0 / public domain. Illustration prompts and piano provenance accompany their assets.

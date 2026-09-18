@@ -1,5 +1,5 @@
 import './style.css';
-import { RadioAudio } from './music/audio';
+import { DEFAULT_MIX, RadioAudio } from './music/audio';
 import { edition,dayLabel,localDay,validDay,isScene,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
 import { SceneRenderer } from './scenes/renderer';
 
@@ -17,7 +17,7 @@ try { renderer=new SceneRenderer(canvas,current); }
 catch(error) { $('failure').hidden=false;$('failure').textContent=error instanceof Error?error.message:'The scene could not start. Try reloading.';throw error; }
 
 interface Preferences { volume:number; ambience:number; mode:'beats'|'ambient' }
-let preferences:Preferences={volume:.65,ambience:.38,mode:'beats'};
+let preferences:Preferences={volume:DEFAULT_MIX.music,ambience:DEFAULT_MIX.ambience,mode:'beats'};
 try {
   const saved=JSON.parse(localStorage.getItem('motes-listening')||'null');
   if(saved && typeof saved==='object') {

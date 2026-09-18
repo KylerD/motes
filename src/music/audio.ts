@@ -1,6 +1,7 @@
 import { composeTrack, type Mood, type MusicMode, type Track } from './composer';
-import { createGraph, disposeGraph, holdParameter, loadPiano, scheduleNote, setSoundMode, startAmbience, stopVoices, type SoundGraph } from './sound';
+import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, loadPiano, scheduleNote, setSoundMode, startAmbience, stopVoices, type SoundGraph } from './sound';
 export { composeTrack } from './composer';
+export { DEFAULT_MIX } from './sound';
 export type { Mood, MusicMode, Track } from './composer';
 
 interface Segment {track:Track;start:number;cursor:number}
@@ -17,8 +18,8 @@ export class RadioAudio {
   private disposed=false;
   private wanted=false;
   private running=false;
-  private volume=0.72;
-  private ambienceVolume=0.34;
+  private volume:number=DEFAULT_MIX.music;
+  private ambienceVolume:number=DEFAULT_MIX.ambience;
   private mode:MusicMode='beats';
   private index=1;
   private track:Track;
@@ -192,7 +193,7 @@ export async function renderPreview(options:{seed?:number;mood?:Mood;index?:numb
   const graph=createGraph(context,await loadPiano(context),track.seed);
   graph.output.gain.setValueAtTime(0,0);graph.output.gain.linearRampToValueAtTime(1,0.3);
   graph.output.gain.setValueAtTime(1,seconds-0.3);graph.output.gain.linearRampToValueAtTime(0,seconds);
-  graph.ambience.gain.value=options.ambience??0.25;setSoundMode(graph,options.mode??'beats');
+  graph.ambience.gain.value=options.ambience??DEFAULT_MIX.ambience;setSoundMode(graph,options.mode??'beats');
   startAmbience(graph,options.mood??'rain',0);
   let song=track,start=0.05,index=options.index??0;
   while(start<seconds) {

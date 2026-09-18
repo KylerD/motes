@@ -1,6 +1,10 @@
 import { randomSource, type Mood, type MusicMode, type ScoreEvent } from './composer';
 
 const sampleNotes = [47,51,54,57,60,63,66,69,72,75,78,81];
+export const DEFAULT_MIX = { music:0.65, ambience:0.38 } as const;
+// Match continuous textures as a quiet bed beneath the sparse piano opening.
+// The user slider scales this calibrated level, including previously saved settings.
+const ambienceTrim:Record<Mood,number> = {rain:0.14,meadow:0.25,snow:0.45,coast:0.16};
 export type PianoBank = Map<number, AudioBuffer>;
 /** Firefox has no cancelAndHoldAtTime. Capture the current value before cancelling its automation. */
 export function holdParameter(parameter:AudioParam,time:number):void {
@@ -50,7 +54,7 @@ function impulse(context: BaseAudioContext, seed:number): AudioBuffer {
 export function createGraph(context: BaseAudioContext, bank:PianoBank, seed:number): SoundGraph {
   const nodes:AudioNode[]=[];
   const gain=(v:number) => {const g=context.createGain();g.gain.value=v;nodes.push(g);return g;};
-  const output=gain(0), music=gain(0.72), ambience=gain(0.25);
+  const output=gain(0), music=gain(DEFAULT_MIX.music), ambience=gain(DEFAULT_MIX.ambience);
   const compressor=context.createDynamicsCompressor();
   compressor.threshold.value=-12;compressor.knee.value=16;compressor.ratio.value=3;compressor.attack.value=0.008;compressor.release.value=0.22;
   const ceiling=gain(0.78);
@@ -148,7 +152,7 @@ export function startAmbience(graph:SoundGraph,mood:Mood,at=graph.context.curren
     for(let i=0;i<fade;i++){const blend=i/fade;data[length-fade+i]=data[length-fade+i]*(1-blend)+data[i]*blend;}
   }
   const source=context.createBufferSource();source.buffer=buffer;source.loop=true;source.loopStart=0.04;source.loopEnd=24;
-  const gain=context.createGain();gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(1,at+0.6);
+  const gain=context.createGain();gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(ambienceTrim[mood],at+0.6);
   source.connect(gain);gain.connect(graph.ambience);
   for(const old of graph.ambienceSources) {
     holdParameter(old.gain.gain,at);old.gain.gain.linearRampToValueAtTime(0,at+0.6);
