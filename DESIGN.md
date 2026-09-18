@@ -1,99 +1,86 @@
 ---
 name: Motes
-description: Illustrated sanctuaries with living light, quiet weather and generative sound.
+description: Living paintings and warm, jazzy lofi; somewhere to slow down.
 colors:
-  ink: "#071b29"
-  panel: "#102d39"
+  ink: "#0b1d2b"
+  panel: "#102a37"
   text: "#fff1df"
-  quiet: "#d6e2df"
-  line: "#8cb1b16b"
+  muted: "#ccd8d7"
   gold: "#f4d3a0"
-  outline-backing: "#102335b0"
-  outline-text: "#fff0d8"
-  active-backing: "#315454"
-  active-text: "#fff0c6"
+  line: "#9db2b348"
+  listen-surface: "#fff0d9"
+  listen-ink: "#142938"
+  listen-hover: "#ffdfac"
+  panel-surface: "#0f2836fa"
+  field-surface: "#193642"
+  scenes-surface: "#112c3cad"
+  control-hover: "#2b4550"
 typography:
-  display:
-    fontFamily: "'EB Garamond', Georgia, serif"
-    fontSize: "43px"
-    fontWeight: 400
-    lineHeight: 1.15
-    letterSpacing: "-.02em"
   wordmark:
     fontFamily: "'EB Garamond', Georgia, serif"
-    fontSize: "46px"
+    fontSize: "47px"
     fontWeight: 400
-    lineHeight: 0.9
+    lineHeight: 0.95
     letterSpacing: "-.035em"
+  display:
+    fontFamily: "'EB Garamond', Georgia, serif"
+    fontSize: "clamp(36px, 3.4vw, 51px)"
+    fontWeight: 400
+    lineHeight: 1.1
+    letterSpacing: "-.02em"
+  title:
+    fontFamily: "'EB Garamond', Georgia, serif"
+    fontSize: "29px"
+    fontWeight: 400
+    lineHeight: 1.1
+    letterSpacing: "-.02em"
+  track:
+    fontFamily: "'EB Garamond', Georgia, serif"
+    fontSize: "21px"
+    fontWeight: 400
+    lineHeight: 1.25
   body:
     fontFamily: "Arial, sans-serif"
-    fontSize: "15px"
-    lineHeight: 1.7
-  label:
-    fontFamily: "Arial, sans-serif"
     fontSize: "14px"
-  reading:
-    fontFamily: "'IBM Plex Mono', monospace"
-    fontSize: "16px"
-    fontWeight: 400
-  time:
-    fontFamily: "'IBM Plex Mono', monospace"
-    fontSize: "12px"
+    lineHeight: 1.5
 rounded:
-  tool: "4px"
-  field: "5px"
-  select: "6px"
-  control: "7px"
+  field: "4px"
+  control: "6px"
   panel: "12px"
 spacing:
-  compact: "8px"
-  small: "12px"
-  group: "17px"
-  row: "22px"
-  wide: "24px"
   desktop-inset: "38px"
+  phone-inset: "23px"
+  panel: "25px"
+  phone-panel: "22px"
 components:
-  button-outline:
-    backgroundColor: "{colors.outline-backing}"
-    textColor: "{colors.outline-text}"
-    typography: "{typography.label}"
+  button-listen:
+    backgroundColor: "{colors.listen-surface}"
+    textColor: "{colors.listen-ink}"
+    typography: "{typography.body}"
     rounded: "{rounded.control}"
-    padding: "9px 15px"
-  button-outline-hover:
-    backgroundColor: "#284657df"
-    textColor: "#fff9ec"
+    padding: "0 20px 0 15px"
+    height: "48px"
+  button-listen-hover:
+    backgroundColor: "{colors.listen-hover}"
   button-text:
-    textColor: "{colors.quiet}"
-    typography: "{typography.label}"
-    padding: "9px 2px"
-  scene-select:
-    backgroundColor: "#061528b8"
-    textColor: "#fff2e3"
-    rounded: "{rounded.select}"
-    padding: "9px 29px 9px 12px"
-  tool-selected:
-    backgroundColor: "{colors.active-backing}"
-    textColor: "{colors.active-text}"
-    typography: "{typography.label}"
-    rounded: "{rounded.tool}"
-    padding: "9px 16px"
-  seed-input:
-    backgroundColor: "#091f2a"
+    textColor: "{colors.text}"
+    padding: "8px 4px"
+  button-scenes:
+    backgroundColor: "{colors.scenes-surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.control}"
+    padding: "0 16px 0 19px"
+  panel:
+    backgroundColor: "{colors.panel-surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.panel}"
+    padding: "{spacing.panel}"
+  date-input:
+    backgroundColor: "{colors.field-surface}"
     textColor: "{colors.text}"
     rounded: "{rounded.field}"
-    padding: "12px"
+    padding: "10px"
     width: "100%"
-  specimen-panel:
-    backgroundColor: "#0e2937f5"
-    textColor: "{colors.text}"
-    rounded: "{rounded.panel}"
-    padding: "18px 19px"
-    width: "235px"
-  dialog:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.text}"
-    rounded: "{rounded.panel}"
-    padding: "30px 34px"
 ---
 
 # Design System: Motes
@@ -102,146 +89,66 @@ components:
 
 **Creative North Star: "The Living Painting"**
 
-Motes is a richly illustrated place to settle into. Saturated light, inhabited scenery and atmospheric distance carry its cosy, lofi character. The two current settings are a rainy neon rooftop refuge and a sunlit fantasy meadow. The user's image references establish this expressive, painted treatment; the page should feel restful without becoming visually empty.
+Motes is an illustrated place to settle into with warm, jazzy lofi. Saturated scenery, soft environmental movement and a small radio player share the screen. Cream serif captions feel conversational; the surrounding controls stay quiet and useful.
 
-The artwork fills the viewport. Small cream controls sit around its edges, allowing the scenery and the communities of light in its water to remain the focus. Explore reveals those same communities within the same painting. The interface supports curiosity while keeping the setting present.
+Four authored paintings establish the world: Neon rain, Golden hour, Last light station and The last chapter. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.
 
 **Key Characteristics:**
 
-- Original environment illustrations with local layers of moving water, weather and living light.
-- Rich scene colour, warm cream typography and restrained dark teal controls.
-- A quiet watching surface that reveals deeper instruments through Explore.
-- Restful motion and deliberate, optional sound.
+- Full-viewport paintings with moving water, weather, light and small distant events.
+- Warm cream typography and restrained navy/teal controls across all four places.
+- Opt-in music, independent scene motion and a view with controls hidden.
 
-This document records the implemented system in `src/tidepool/style.css`, `sanctuary.ts`, `sanctuary-space.ts` and `audio.ts`. The original artwork and exact generation prompts are recorded in [public/scenes/ARTWORK.md](public/scenes/ARTWORK.md).
+Source of truth: `index.html`, `src/style.css`, `src/main.ts` and `src/scenes/`. Artwork provenance lives in `public/scenes/ARTWORK.md`.
 
 ## Colors
 
-The scenery owns the rich colour; the interface uses warm light against deep teal and navy.
+The paintings carry the saturated colour. Interface colours remain steady across scenes.
 
-### Primary
-
-- **Lantern gold** (`gold`): the wordmark dot, visible keyboard focus, range thumbs, links and most pressed states.
-- **Warm cream** (`text`): the primary interface text. Specific scene captions use nearby cream tints already defined in the stylesheet.
-
-### Secondary
-
-- **Deep teal** (`panel`): dialog surfaces and select options.
-- **Selected teal and pale gold** (`active-backing`, `active-text`): the active exploration tool. Selection must remain visible without borrowing the scenery's neon palette.
-
-### Neutral
-
-- **Night ink** (`ink`): the page foundation while artwork loads.
-- **Mist** (`quiet`): secondary controls, labels and readings.
-- **Waterline** (`line`): translucent borders and separators.
-- **Shelter backing and cream** (`outline-backing`, `outline-text`): outline actions that remain readable over the painting.
-
-**The Scenery Rule.** Keep the interface palette steady across settings. Rain uses cyan, blue and pink scenery; the meadow uses gold and forest teal. Scene-specific top and bottom scrims protect the same cream controls.
-
-Canvas lights use four lineage colours per setting. Energy and connection lenses add purposeful highlights to expose model state; these are analytical marks, not new interface accents.
+- **Primary:** lantern `gold` marks focus, hover text, the wordmark dot, range thumbs and the selected scene check. The warm `listen-surface` makes playback the clearest action.
+- **Neutral:** `text` is warm cream; `muted` supports explanations and secondary labels. `ink` backs the page; `panel` supports fallback surfaces. Near-opaque `panel-surface` keeps settings readable, and `line` supplies quiet separators.
+- **Control surfaces:** `field-surface` supports native inputs, while translucent `scenes-surface` lets the painting remain present around scene navigation. `control-hover` and `listen-hover` provide immediate feedback.
 
 ## Typography
 
-**Display Font:** EB Garamond, with Georgia and serif fallbacks.
-**Body Font:** Arial, with a sans-serif fallback.
-**Label/Mono Font:** IBM Plex Mono, with a monospace fallback.
+EB Garamond with Georgia fallback gives the wordmark, scene captions, panel headings, track names and place names their soft literary character. Arial carries functional labels. No monospaced readings or numerical display treatment is used beyond tabular slider percentages.
 
-Garamond supplies a warm, literary voice. Plain sans-serif controls remain compact and familiar; monospaced readings distinguish measurements from the atmosphere. Web fonts are requested in the page head, with usable local fallbacks.
-
-### Hierarchy
-
-- **Display:** the scene title uses the frontmatter display role; it becomes 35px on narrow screens and 30px on short viewports.
-- **Wordmark:** the compact lower-case name uses the wordmark role; it becomes 40px on narrow screens.
-- **Panel titles:** serif headings, normally 32–33px; smaller specimen and dialog headings become 29px on phones.
-- **Body:** dialog prose uses the body role. Scene subtitles use 16px/1.5, becoming 14px on phones.
-- **Label:** most actions and form controls use the label role. Weather and secondary controls may use 12–13px.
-- **Reading:** specimen values use the reading role. Time and speed use the smaller time role; time has tabular numerals.
-- **Aside voice:** identity captions, observations and guide introductions use italic Garamond.
-
-**The Quiet Type Rule.** Reserve the expressive serif for names, scene captions and observations. Keep controls and numbers easy to scan.
+The frontmatter records the desktop hierarchy. Scene subtitles are 15px; panel prose is 13px with 1.65 line height. Place names use 23px/1.15 serif. The tagline is italic 17px/1; atmosphere copy is italic 18px/1.2. Track details use 11px with .02em spacing. Preserve sentence case and short lines; track names truncate on one line.
 
 ## Layout
 
-One full-viewport canvas sits beneath an HTML interface. The experience uses dynamic viewport height, a minimum height of 360px and clipped overflow. There is no scrolling landing-page stack.
+The painting occupies `100dvh` with a 400px minimum height and clipped overflow. The masthead sits at the top; the caption sits 134px above the bottom. Desktop chrome uses the desktop inset. The radio runs along the bottom, with listening controls left and atmosphere/place navigation right. Mix is 354px wide at bottom-left; places is 388px at bottom-right; editions is 360px wide at top-right. Only one panel opens at a time.
 
-On desktop, the header uses three columns: identity left, scenery centred and listening controls right. Its outer inset is 38px. The scene title and transport sit at the lower edge. Transparent regions of the footer pass pointer input through to the water.
+At 1120px and below, the tagline and atmosphere copy disappear. At 700px and below, minimum height becomes 440px, the player becomes two rows with a 21px gap, atmosphere copy returns, and the caption sits 174px above the bottom. The wordmark becomes 40px, scene title 36px, track title 19px and panel heading 27px. Mix becomes an icon; fullscreen and the calendar icon are hidden. Listen becomes 43px high. Mix/places panels span between 18px side insets, 163px above the bottom, with phone panel padding.
 
-Explore replaces the scene caption with observation, timeline and tool controls. Habitat controls appear below the wordmark; an inspector appears toward the upper right and view controls sit above the footer. The tools use one horizontal row where space permits. The guide and seed entry use native dialogs.
+Panels scroll internally and are capped at viewport height minus 125px on desktop or 120px on phone. On short desktop views (height at most 600px, width at least 701px), the caption moves to 112px, its title becomes 35px, and panels sit 20px above the bottom with a height cap of viewport minus 45px.
 
-Responsive changes are deliberate:
-
-- At 1150px and below, the identity caption disappears and outer horizontal insets narrow to 26px.
-- At 850px and below, the volume slider disappears; Explore also hides the weather and hide-controls actions.
-- At 700px and below, the header wraps, scenery occupies its own row in Watch, and the wordmark and Listen remain opposite one another. Explore hides the scenery selector, wraps tools, and moves the compact inspector to the left. Insets are approximately 22–23px.
-- At 600px height and below, the scene caption and lower padding contract.
-
-The artwork covers the viewport with a scene-specific horizontal anchor: 0.43 for rain and 0.60 for meadow. Explore pans and zooms the painting and projected cells together. Camera offsets are bounded so no empty canvas appears at an image edge.
+Paintings use a cover crop with vertical centring. Horizontal anchors are .43 for rain and snow, .60 for meadow and .56 for coast. Keep water masks, lights, steam and shoreline interaction aligned to image coordinates through every crop.
 
 ## Elevation & Depth
 
-Depth comes primarily from the illustration: foreground shelter or foliage, reflective water and a distant city or mountain horizon. Interface depth uses local dark backings, translucent borders and protective gradients. It does not use a raised-card shadow system.
+Depth comes from the illustration, translucent controls and dark edge gradients, without card shadows or backdrop blur. The masthead scrim runs from `#03112689` to transparent; the player scrim runs from transparent through `#041529b8` at 55% to `#031225e8`. Text shadows protect the wordmark, actions and captions; exact recipes live in the sidecar.
 
-Text over the painting receives small dark shadows. The scene title uses a broad soft shadow (`0 2px 15px #061222`); header captions and actions use smaller shadows. Dialogs use an opaque teal surface and a dark translucent backdrop. The specimen panel is nearly opaque so small readings stay legible.
-
-**The Readable Shelter Rule.** Keep a local dark backing or scrim behind controls wherever the painting can become bright. Preserve visible gold focus outlines.
+Layer order is painting, player (1), masthead/caption (2), return-controls (3), panels (5), then status feedback (7). Panels use a fine `#849c9d75` border and a nearly opaque surface, preserving the scene around them.
 
 ## Shapes
 
-Controls have gently rounded rectangular edges. Tool segments are the tightest; inputs and selects are slightly softer; action groups use the control radius; inspectors and dialogs use the panel radius. Thin translucent strokes define groups without heavy frames.
-
-Icons are small outline SVGs with rounded line ends. Range controls use a thin track and a circular thumb. Canvas cells are luminous points with soft halos; selected communities and interventions use projected rings. The painted shoreline remains irregular.
+Controls have gently rounded corners; panels use the larger panel radius. Date fields, selects and scene thumbnails use the field radius. Scene choices are image-and-text rows with fine dividers, not separate cards. Range tracks are 2px high with round 11px thumbs. Most line icons are 21px with 1.5px rounded strokes; the playback icon is filled at rest.
 
 ## Components
 
-### Outline and text actions
-
-Outline actions such as Explore, Branch and Follow have a translucent dark backing, thin pale border and compact padding. Hover lightens the backing. Text actions omit the box and use the quiet text role; hover raises their contrast.
-
-Interactive controls use a visible 2px gold focus outline with a 4px offset. Disabled buttons reduce opacity. Most pressed buttons become gold; the tool group and weather control use their specific selected treatments.
-
-### Scenery and analytical selects
-
-The scenery selector uses Garamond at 19px, or 18px on phones, with a small down-chevron and a dark translucent backing. Analytical selects use compact sans-serif or monospaced text. Options retain the solid panel background.
-
-### Transport and sound
-
-Play, weather, quiet mode and Explore form the sparse Watch transport. Explore adds speed, time, rewind and branching. Listen is a labelled outline speaker icon; sound starts only after the user's action. Volume uses a thin track and small gold thumb.
-
-The audio texture combines up to five mellow colony voices, soft pulse notes, restrained echo and a filtered rain or breeze bed. Pause and hidden tabs fade sound; weather may be disabled separately. Audio-start failure appears beside Listen in Watch and clears on retry.
-
-### Exploration tools and inspector
-
-Observe, Nourish, Current and Sever share a lightly bordered segmented group. The selected segment has a teal fill and pale gold text. The lenses and file actions stay beside the group when space allows and wrap on phones.
-
-The inspector is a small dark panel with a serif community name, three monospaced readings, an italic observation and a full-width Follow action. Community colour may tint the name. Selection can also be made through a labelled native selector.
-
-### Dialogs and fields
-
-The field guide and seed form share the solid teal dialog surface, restrained border and rounded corners. The guide uses serif headings, readable sans-serif prose and compact keyboard keycaps. Seed input uses monospaced text, a dark fill and a gold caret. Dialog content scrolls internally when necessary.
-
-### The living painting
-
-A single Canvas 2D renderer draws the original illustration, shoreline-masked water displacement, model-driven lights and optional weather. Rain adds fine falling lines and small splashes; the meadow adds drifting pollen and tiny butterflies. Motion uses simulation time, so pause and replay preserve the picture. The renderer never consumes simulation randomness.
-
-Explore adds real bonds, energy, food fields and submerged-shelf outlines over the same painted water. Those overlays explain the model; the scenery is an expressive setting rather than a geometric map of the ecology.
-
-Reduced motion starts paused and disables interface transitions and follow-camera easing. Hide controls leaves the scene with a small Show controls action. Artwork failure retains the lights and controls and presents Retry artwork.
+- **Radio:** Listen changes to Tuning in…, Pause and Resume as appropriate. Its icon and label remain visible through each state. Next track, Mix and a quiet 2px progress strip support playback. Track names use serif type; supporting copy stays small. Disabled controls use .35 opacity.
+- **Mix:** separate Music and Atmosphere sliders, Warm lofi beats/Piano, no drums choices, and Scene motion On/Still. Slider rows use 79px / flexible / 35px columns with 13px gaps. Sound preferences persist locally.
+- **Place browser:** four thumbnail rows, brief weather descriptions and a gold check for the selected place. Desktop thumbnails are 91×62px; phone thumbnails are 85×55px. “Take me to today’s place” restores the daily selection.
+- **Editions:** a native date input revisits a local calendar day. A quiet new-day invitation appears without interrupting the current session. The current song finishes when changing edition; the next belongs to the new place/date.
+- **Motion:** 1600ms scene crossfades, subtle water displacement, slow lighting variation, weather, steam and occasional birds/butterflies remain subordinate to the painting. Water taps create ripples only inside painted shorelines. Motion is independent of audio; Still and reduced-motion preference freeze the scene. Reduced motion also removes CSS transitions. Background tabs stop visual rendering while ordinary audio playback continues.
+- **Access and recovery:** 2px gold keyboard outlines with 5px offset; labelled native controls; visible retry feedback. Escape closes panels or restores hidden chrome. Hide controls leaves a small Show controls action. Space toggles playback outside interactive controls. Panels return focus to their trigger when closed normally.
 
 ## Do's and Don'ts
 
-### Do:
-
-- **Do** keep the painting visible and dominant in Watch and Explore.
-- **Do** use the established cream, teal and gold interface roles across both settings.
-- **Do** project living lights, selections and interventions through the same space as the painted water.
-- **Do** use model time for visual movement and preserve pause, replay and reduced-motion behaviour.
-- **Do** keep sound opt-in and provide visible recovery when artwork or audio cannot start.
-- **Do** check desktop and phone crops together with readable controls.
-
-### Don't:
-
-- **Don't** restore the retired toy diorama, pixel world, alternate renderer or development-journal interface.
-- **Don't** replace the painted aesthetic with photorealistic materials or generic miniature game assets.
-- **Don't** introduce camera orbit, entrance delays or restless interface animation.
-- **Don't** turn colony readings into decorative or fabricated data.
-- **Don't** let interface decoration compete with the illustrated environment.
+- **Do** preserve the illustrated, cosy videogame character and keep every scene beautiful when still.
+- **Do** keep controls around the painting, protect legibility with the existing scrims and retain visible keyboard focus.
+- **Do** distinguish the four authored paintings from daily atmospheric and musical editions.
+- **Don't** reintroduce organisms, names and stats, experiments or an Explore interface.
+- **Don't** make motion depend on music or start audio without a listening action.
+- **Don't** add dashboard density, realistic rendering or toy-like procedural scenery.

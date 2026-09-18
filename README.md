@@ -1,8 +1,8 @@
 # Motes
 
-A place to be, with a little world inside it. Neon rain falls over a rooftop refuge; afternoon light settles into a hidden meadow. Original illustrations, moving reflections and quiet weather frame communities of living lights. Their rhythms become a gentle generative soundtrack.
+Living scenes and warm, jazzy lofi. A place to leave open while you read, work or do nothing at all.
 
-Open the page and watch. **Listen** starts sound. Click the water to send a ripple. **Explore** reveals the cells, energy and connections inside the same painting.
+Four original illustrated places unfold through water, weather, light and small distant movements: **Neon rain**, **Golden hour**, **Last light station** and **The last chapter**. A new local calendar day chooses a different place and a fresh musical/atmospheric edition. You can visit any place or return to a date.
 
 ## Run
 
@@ -11,58 +11,49 @@ npm ci
 npm run dev -- --host 127.0.0.1 --port 5175
 ```
 
-Build with `npm run build`; serve `dist/` on any static host, or use `npm run preview`. TypeScript, Canvas 2D and native Web Audio power the app. There are no runtime npm dependencies, accounts, API keys or backend. Web fonts load from Google Fonts with local fallbacks.
+`npm run build` produces a static `dist/` site. There is no backend, account, runtime npm dependency, API key or daily content-generation job. Web fonts come from Google Fonts with local fallbacks.
 
-## Watch and listen
+## Listen
 
-Choose **Neon rain** or **Golden hour**. Scene changes preserve the simulation. Rain or breeze can be switched off separately from music. Hide controls to leave just the artwork; Escape brings them back.
+**Listen** starts the radio. **Next track** moves to another arrangement. **Mix** controls music and atmosphere separately, offers a version without drums, and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. Hide controls leaves the scene; Escape restores them.
 
-The paintings are local assets, with their generation prompts and provenance in [public/scenes/ARTWORK.md](public/scenes/ARTWORK.md). Only the chosen painting loads initially; the other loads when selected. Water displacement, rain, butterflies, pollen and cell lights are rendered separately. Movement follows simulation time, so paused and imported moments keep the same picture. If a painting fails to load, the lights and controls remain available with a retry action.
+The music is composed locally into 64-bar tracks with an opening, theme, variation, quieter passage, return and ending. Voice-led seventh/ninth chords, repeating melodic phrases, soft swung percussion and round bass accompany recordings of a real Kawai upright piano. New songs vary harmony, key, tempo, motif, performance and arrangement details deterministically from the edition and track number. The instrument samples are local CC0 assets; see [audio provenance](public/audio/README.md).
 
-## A world with consequences
+A dedicated Web Audio look-ahead clock schedules music independently of rendering. Hiding the tab stops visual rendering while audio continues; browser or operating-system suspension can still interrupt playback. Controls and media-session playback actions support pause/resume. Failed sample loading is visible and retryable.
 
-Each community is a connected body of active cells. Elastic bonds transmit force, share energy conservatively and couple internal oscillators. Those oscillators affect propulsion and contraction. Local food gradients steer cells. Feeding supplies energy; maintenance, movement and budding spend it. Strained connections can break, leaving independently surviving fragments.
+## Living scenes, daily editions
 
-Gathered communities and Across the shallows start with prepared bodies; Scattered beginnings starts with unconnected cells. Subsequent motion, feeding, bonding, growth and death follow local rules. The model supports at most 340 cells and runs at 30 fixed steps per simulated second. It is a deliberately bounded artificial-life model, without biological intelligence, fluid dynamics or open-ended evolution. External nourishment and phenomenological detritus supply resources; bond energy transfer is conservative.
+The four paintings are authored assets, not new AI images generated each day. Each date changes the selected place and its seed for music, weather intensity, wind, light and event timing. Water reflections move; rain makes ripples, snow drifts, steam curls above cups, butterflies and distant birds pass through. A tap inside painted water makes a ripple. Reduced-motion preference starts with the scene still, independently of the radio.
 
-Explore adds inspection, follow, pan, zoom, nourishment, currents, severing, energy and connection lenses. The lenses trace the model's submerged shelves and food sources over the artistic water. Rewind roughly two minutes, branch, and compare outcomes at the same simulation time. Save/open stores a self-contained validated JSON checkpoint and retained interventions. Existing cellular-experiment saves remain compatible.
+The same date and place reproduce the same starting edition. An open session receives a quiet invitation at midnight instead of an abrupt change. Visiting today's edition resets to the daily place; an explicit scene URL pins a chosen place. Examples: `/?day=2026-09-17`, `/?day=2026-09-17&scene=snow`.
 
-A URL such as `/?seed=2718&scene=rain&habitat=spores` shares a beginning. `view=pond` opens Explore immediately. A saved experiment records the ecology and interventions; scenery is chosen separately.
-
-## Interaction
-
-Touch supports tap, drag and pinch in Explore. Keyboard: Space pauses; 1–4 opens the tools; arrows pan; Enter applies the current tool (or a central ripple while watching); +/− zoom; F follows a selected community; Escape restores controls or returns to Observe. A selector makes inspection available without clicking tiny lights. Reduced-motion preference starts paused and disables camera easing. Hidden tabs stop simulation and fade audio.
+Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. If an image fails, sound and controls remain available with a retry action.
 
 ## Code
 
-| Module in `src/tidepool/` | Responsibility |
+| Module | Responsibility |
 | --- | --- |
-| `model.ts`, `world.ts` | Serializable state, seeded random generator, communities and interventions |
-| `dynamics.ts`, `geometry.ts` | Forces, coupling, growth, resource transfer and submerged-shelf constraints |
-| `history.ts` | Checkpoints, rewind, branches and validated save/open |
-| `sanctuary.ts` | The single renderer: paintings, water, weather, live lights and exploration lenses |
-| `sanctuary-space.ts` | Shared projection for scenery, cells, camera and interaction |
-| `audio.ts` | Bounded colony voices, pulse notes and rain/wind sound beds |
-| `main.ts`, `style.css` | Input, transport, lifecycle and the interface |
+| `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere |
+| `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
+| `src/music/composer.ts` | Pure, deterministic musical form, harmony, motifs and performance |
+| `src/music/sound.ts` | Sampled piano, bass, drums, reverb and atmosphere |
+| `src/music/audio.ts` | Playback clock, track continuity, loading, volume and lifecycle |
+| `src/main.ts`, `src/style.css` | Listening interface, daily navigation, preferences and accessibility |
 
-The renderer never consumes simulation randomness. Checkpoints include the random state. Replay is exact in the tested runtime; different JavaScript engines are not promised bit-identical transcendental maths. Audio uses the browser's audio clock.
-
-The superseded pixel world, toy diorama, alternate renderers, development journal and daily-evolution workflow have been removed. Git history retains earlier implementations.
+The organism simulation, names, stats, experiments, lenses, save/rewind tools and all previous renderers have been removed. Git history preserves the earlier direction.
 
 ## Verify
 
 ```sh
 npm test
 npm run build
-node scripts/verify-sanctuaries.mjs
-node scripts/verify-rendering.mjs
-node scripts/verify-tidepool.mjs
-node scripts/verify-tidepool-lifecycle.mjs
-node scripts/probe-tidepool.mjs
+node scripts/verify-scenes.mjs
+node scripts/verify-music.mjs
+node scripts/render-music-preview.mjs
 ```
 
-Browser scripts use Playwright Chromium (`npx playwright install chromium`). They expect the local server at port 5175, overridable with `MOTES_URL`; the lifecycle script serves `dist/` itself. Checks cover both paintings on desktop/phone, pause and import determinism, live motion, maximum-zoom picking, bounded asset caches, failed-art retry, interventions, branching, saves, audio output and real browser back caching. The headless ecology probe runs ten simulated minutes per preset. Captures are ignored development artifacts.
+Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, daily revisiting, control panels, pause, retry, preferences, visibility events, music scheduling and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it can take duration, output path, seed and scene arguments.
 
-Renderer timings under `?debug` measure CPU drawing submission, not total GPU frame time. [DESIGN.md](DESIGN.md) records the visual system and [PRODUCT.md](PRODUCT.md) the product intent.
+Technical audio checks establish playback and signal health, not a claim that every generated track meets someone's musical taste. The listening experience remains the quality bar.
 
-Original Motes code: CC0 / public domain. Illustration provenance accompanies the local scene assets.
+Original application code: CC0 / public domain. Illustration prompts and piano provenance accompany their assets.

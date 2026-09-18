@@ -1,6 +1,6 @@
-# Original sanctuary paintings
+# Original scene paintings
 
-Generated with the built-in image generation tool on 6 September 2026 for Motes. The user's supplied screenshots served as mood and style references, not runtime assets. Both finished paintings are local project assets. Animated water, weather and cellular lights are drawn separately at runtime.
+Four original paintings generated with the built-in image generation tool for Motes: the rooftop and meadow on 6 September 2026, the station and reading room on 17 September 2026. The user's supplied screenshots served as mood and style references, not runtime assets. All finished paintings are local project assets. Water, weather, local light and small environmental events are drawn separately at runtime. The exact original prompts below and in the JSON sidecars are retained as provenance; the earlier prompts' cellular-light concept has since been removed from the application.
 
 ## Neon rain
 
@@ -15,3 +15,11 @@ Use case: stylized-concept. Asset type: original full-bleed environment painting
 The reference is STYLE AND MOOD guidance only: brilliant golden wildflower meadow, cool teal atmospheric forest, painterly fantasy-game beauty, a restful feeling after a long journey. Create a different original composition.
 Paint a secluded old stone sanctuary in a mountain meadow at late golden hour. On the LEFT third, a weathered arch with ivy and a low wall shelters an empty cloak draped over a wooden bench, a traveler’s pack and a sheathed sword resting beside it, suggesting someone has finally come home. No dominant human character. Thick sunlit golden grasses, oxeye daisies and pink wildflowers fill the foreground edges. Through the arch and beyond, deep teal pines and distant blue mountain silhouettes fall away into mist. A broad dark jade reflecting pool occupies the CENTER-LOWER image (x roughly 25–78%, y 62–92%), framed by irregular natural stone and meadow flowers. Keep its middle open and gently reflective for animated points of light added by code. A small old stone lantern rests at its far right edge. A graceful tree at the upper right filters enormous warm shafts of afternoon sunlight into the scene.
 Comfortable human-level environmental composition with strong foreground, middle and distant layers, not isometric, not overhead, not a toy diorama. Exquisitely detailed painterly videogame fantasy environment / lofi illustration. Visible expressive brushwork in foliage, bold sun yellow and olive gold against cool petrol blue and teal; tiny bright flower accents. Radiant yet restful, no beige wash. The pond is calm. Do not paint bright floating dots, butterflies or moving particles: those will be animated by code. No UI, lettering, title, watermark, logos, photorealism, pixel art or clay rendering. Fully finished edge-to-edge landscape painting.
+
+## Last light station
+
+An original snowbound mountain station, with warm cafe windows, a cup on the sill and a valley at dusk. Runtime snowfall, lamp light and steam animate the setting. Exact generation prompt: [last-light-station.png.json](last-light-station.png.json).
+
+## The last chapter
+
+An original coastal bookshop balcony, with a reading nook and a sunset over the bay. Water, steam, warm lamps and occasional distant birds animate the setting. Exact generation prompt: [the-last-chapter.png.json](the-last-chapter.png.json).

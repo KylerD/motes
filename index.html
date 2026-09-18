@@ -1,60 +1,60 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#081a2d" />
-  <meta name="description" content="Rain above the city. Sunlight in a hidden meadow. Settle into a living illustration with gentle generative sound and an artificial-life world beneath the water." />
-  <title>Motes — a little world to unwind in</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23071213'/%3E%3Cellipse cx='16' cy='16' rx='8' ry='5' fill='none' stroke='%23ead4a0'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ead4a0'/%3E%3C/svg%3E" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#102332" />
+  <meta name="description" content="Beautiful living scenes, warm jazzy beats and a new atmosphere every day. A place to leave the world on quiet." />
+  <title>Motes — somewhere to slow down</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23102332'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23ead4a0'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ead4a0'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <main id="experience" class="watching" data-scene="rain">
-    <canvas id="pool" aria-label="Living tidepool. Select a creature using Meet a creature. Use arrow keys to move around, 1–4 to choose a tool, and Enter to use it at the centre of the view." tabindex="0">Your browser needs Canvas support to display Motes.</canvas>
-    <header class="masthead">
-      <div class="identity"><h1>motes<span class="wordmark-dot">.</span></h1><span class="identity-caption">a little world to unwind in</span></div>
-      <div class="habitat-controls"><label class="sr-only" for="habitat">Community starting conditions</label><select id="habitat"><option value="reef">Gathered communities</option><option value="channel">Across the shallows</option><option value="spores">Scattered beginnings</option></select><button id="new-world" class="text-button">New world</button></div>
-      <div class="scene-control"><label class="sr-only" for="scenery">Scenery</label><select id="scenery"><option value="rain">Neon rain</option><option value="meadow">Golden hour</option></select></div>
-      <div class="header-actions"><button id="sound" class="sound-button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Zm13-2a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" /></svg><span>Listen</span></button><label class="volume-control"><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="100" value="55" aria-label="Volume" /></label><button id="guide-open" class="text-button">Field guide</button></div>
-    </header>
-    <p id="sound-status" role="status" aria-live="polite" hidden></p>
-    <aside id="specimen" class="specimen" hidden aria-label="Selected organism">
-      <div class="specimen-heading"><h2 id="specimen-name"></h2><button id="deselect" aria-label="Stop inspecting" class="close-button">×</button></div>
-      <p id="specimen-kind" class="secondary"></p>
-      <div class="specimen-readings"><div><span>Cells</span><strong id="cell-count"></strong></div><div><span>Energy</span><strong id="energy-reading"></strong></div><div><span>In rhythm</span><strong id="coherence-reading"></strong></div></div>
-      <p id="specimen-observation"></p><button id="follow" class="outline-button" aria-pressed="false">Follow this body</button>
-    </aside>
-    <div class="view-controls"><label class="sr-only" for="specimen-select">Inspect a colony</label><select id="specimen-select"><option value="">Inspect a colony</option></select><div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="fit" aria-label="Fit the whole pool">Fit</button><button id="zoom-in" aria-label="Zoom in">+</button></div></div>
-    <footer class="instruments">
-      <div class="scene-story"><h2 id="scene-title">Rain, above the city.</h2><p id="scene-subtitle">A little shelter from the world.</p></div>
-      <div class="moment"><p id="observation" role="status" aria-live="polite">Click a creature to meet it. Or just watch.</p><div class="population"><span id="population"></span><span class="seed-label">seed <button id="seed-button" aria-label="Change world seed">2718</button></span></div></div>
-      <div class="timeline-row"><button id="play" class="play-button" aria-label="Pause simulation"><svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg><span id="play-label">Pause</span></button><label class="sr-only" for="speed">Simulation speed</label><select id="speed"><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select><time id="elapsed">00:00</time><label class="timeline"><span class="sr-only">Rewind simulation</span><input id="timeline" type="range" min="0" max="1" value="0" step="1" aria-label="Rewind simulation" /></label><button id="branch" class="outline-button">Branch here</button><button id="weather" class="weather-button" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13a4 4 0 0 1 0-8 6 6 0 0 1 11-1 4.5 4.5 0 0 1 2 9M7 17l-1 3m6-3-1 3m6-3-1 3" /></svg><span id="weather-label">Rain on</span></button><button id="quiet" class="text-button" aria-label="Hide controls"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg></button><button id="explore" class="outline-button" aria-pressed="false">Explore</button></div>
-      <div class="tool-row">
-        <div class="tool-group" role="group" aria-label="Interaction tools"><button data-tool="observe" aria-pressed="true">Observe</button><button data-tool="feed" aria-pressed="false">Nourish</button><button data-tool="current" aria-pressed="false">Current</button><button data-tool="cut" aria-pressed="false">Sever</button></div>
-        <div id="comparison" class="comparison" role="group" aria-label="Compare outcomes" hidden><button id="show-original" aria-pressed="false">Original</button><button id="show-branch" aria-pressed="true">Your branch</button></div>
-        <div class="lens-group"><label for="lens">See</label><select id="lens"><option value="life">Life</option><option value="energy">Energy</option><option value="bonds">Connections</option></select></div>
-        <div class="file-actions"><button id="save" class="text-button">Save</button><button id="load" class="text-button">Open</button><input id="file" type="file" accept=".json,application/json" hidden /></div>
+  <main id="experience">
+    <canvas id="scene" aria-label="An illustrated place with gently changing light and weather. Use Motion to pause animation.">Your browser needs Canvas support to display Motes.</canvas>
+    <header class="masthead chrome">
+      <div class="identity"><h1>motes<span>.</span></h1><p>somewhere to slow down</p></div>
+      <div class="header-actions">
+        <button id="edition-toggle" class="text-button" aria-expanded="false" aria-controls="edition-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="15" rx="2"/><path d="M8 3v6m8-6v6M4 12h16"/></svg><span id="edition-label">Today’s edition</span></button>
+        <button id="fullscreen" class="icon-button" aria-label="Enter fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m8 0h4v-4"/></svg></button>
+        <button id="quiet" class="icon-button" aria-label="Hide controls"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10 10a3 3 0 0 0 4 4M9 5a13 13 0 0 1 3-.4c6 0 10 7.4 10 7.4a20 20 0 0 1-4 4M6 6a23 23 0 0 0-4 6s4 7.4 10 7.4a12 12 0 0 0 5-1"/></svg></button>
       </div>
+    </header>
+    <section class="scene-caption chrome" aria-labelledby="scene-title"><h2 id="scene-title">Somewhere to slow down.</h2><p id="scene-subtitle">A little space in your day.</p></section>
+    <footer class="player chrome">
+      <div class="listening">
+        <button id="listen" class="listen-button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="listen-path" d="m9 5 11 7-11 7Z"/></svg><span id="listen-label">Listen</span></button>
+        <div class="now-playing"><span id="track-title">Warm keys. A slower rhythm.</span><span id="track-detail">Original music, unfolding here</span></div>
+        <button id="next-track" class="icon-button" aria-label="Next track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7-10 7ZM19 5v14"/></svg></button>
+        <button id="mix-toggle" class="text-button" aria-expanded="false" aria-controls="mix-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v5m0 4v9M12 3v10m0 4v4M19 3v3m0 4v11M2 8h6M9 13h6M16 6h6"/></svg><span>Mix</span></button>
+      </div>
+      <div class="place-controls"><span id="atmosphere-description"></span><button id="scenes-toggle" class="scenes-button" aria-expanded="false" aria-controls="scenes-panel"><span>Find a place</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 7 7-7 7"/></svg></button></div>
+      <div class="track-progress" aria-hidden="true"><div id="track-progress"></div></div>
     </footer>
-    <button id="return-controls" class="text-button" aria-label="Show controls">Show controls</button>
-    <div id="scene-loading" role="status"><p id="loading-message">Finding your quiet place…</p><button id="retry-art" class="outline-button" hidden>Retry artwork</button></div>
-    <dialog id="guide" aria-labelledby="guide-title">
-      <div class="guide-header"><h2 id="guide-title">A field guide to motes</h2><button id="guide-close" class="close-button" aria-label="Close field guide">×</button></div>
-      <p class="guide-lead">A place to be. A world to discover.</p>
-      <p>Choose neon rain or golden hour, press Listen, and settle in. Click the water to send a ripple. The moving lights in the pond are living cells; their positions, energy and pulses come from the simulation. Rain and meadow breeze add a quiet sound bed. Hide controls to leave just the scene.</p>
-      <p>Explore reveals the communities within the same painted water. Select a light to follow its colony, or reveal energy and connections. These lenses also trace the submerged shelves and food sources of the model. The scenery is an artistic setting; switching lenses keeps your world running.</p>
-      <p>Each point of light is a cell. Some gather nourishment, some propel the body, and some hold it together. Their bonds carry energy and coordinate a shared pulse. What you hear is that coordination, translated into sound.</p>
-      <dl class="guide-tools"><div><dt>Observe</dt><dd>Select a creature to see its cells and rhythm. Drag the water to look around. Scroll or pinch to move closer.</dd></div><div><dt>Nourish</dt><dd>Place a finite food source. Watch which cells find it, and where their energy goes.</dd></div><div><dt>Current</dt><dd>Send a local swirl through the pool. Strong currents stretch connections and can split a body.</dd></div><div><dt>Sever</dt><dd>Cut the connections beneath your cursor. Fragments must survive with the cells they have.</dd></div><div><dt>Branch</dt><dd>Rewind, then branch to preserve the original outcome. Change something and compare both versions at the same moment.</dd></div></dl>
-      <p>The pond and crossing begin with prepared colonies. Scattered beginnings starts with unconnected cells. Their subsequent motion, feeding, bonding, growth and death follow the same local rules. There is no scheduled ending.</p>
-      <div class="guide-keys"><span><kbd>Space</kbd> pause</span><span><kbd>1–4</kbd> tools</span><span><kbd>Arrows</kbd> move view</span><span><kbd>Enter</kbd> use tool at centre</span><span><kbd>+</kbd> <kbd>−</kbd> zoom</span><span><kbd>F</kbd> follow</span><span><kbd>Esc</kbd> observe</span></div>
-      <p class="guide-footnote">A stylised artificial-life experiment. Runs entirely in your browser. Saves include up to two minutes of history. Original environment illustrations are animated with live cells, water and weather.</p>
-    </dialog>
-    <dialog id="seed-dialog" aria-labelledby="seed-title"><form id="seed-form"><h2 id="seed-title">Return to a beginning</h2><p>The same seed starts the same world.</p><label for="seed-input">World seed</label><input id="seed-input" type="number" min="0" max="4294967295" step="1" required /><div class="seed-actions"><button type="button" id="seed-cancel" class="text-button">Cancel</button><button type="submit" class="outline-button">Open world</button></div></form></dialog>
-    <div id="failure" hidden role="alert"></div>
+    <aside id="mix-panel" class="panel mix-panel" aria-label="Sound and motion" hidden>
+      <div class="panel-heading"><h2>Make yourself at home.</h2><button class="icon-button close-panel" aria-label="Close mix"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <label class="slider-row" for="music-volume"><span>Music</span><input id="music-volume" type="range" min="0" max="100" value="65" /><output id="music-level" for="music-volume">65%</output></label>
+      <label class="slider-row" for="ambience-volume"><span>Atmosphere</span><input id="ambience-volume" type="range" min="0" max="100" value="38" /><output id="ambience-level" for="ambience-volume">38%</output></label>
+      <div class="mix-options"><label for="music-mode">The music</label><select id="music-mode"><option value="beats">Warm lofi beats</option><option value="ambient">Piano, no drums</option></select></div>
+      <button id="motion" class="motion-button" aria-pressed="true"><span>Scene motion</span><span id="motion-label">On</span></button>
+      <p>Music keeps playing when you switch tabs.</p>
+    </aside>
+    <aside id="scenes-panel" class="panel scenes-panel" aria-labelledby="places-title" hidden>
+      <div class="panel-heading"><h2 id="places-title">Stay a while.</h2><button class="icon-button close-panel" aria-label="Close places"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <p class="panel-intro">Four places. A different feeling every day.</p><div id="scene-list" class="scene-list"></div>
+      <button id="daily-place" class="text-button">Take me to today’s place</button>
+    </aside>
+    <aside id="edition-panel" class="panel edition-panel" aria-labelledby="edition-title" hidden>
+      <div class="panel-heading"><h2 id="edition-title">A day worth returning to.</h2><button class="icon-button close-panel" aria-label="Close editions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <p>Each day brings a different place, light, weather and musical arrangement. Nothing to keep up with.</p>
+      <label for="edition-date">Visit a day</label><input id="edition-date" type="date" min="2000-01-01" max="2100-12-31" /><button id="today" class="text-button">Come back to today</button>
+    </aside>
+    <button id="return-controls" class="return-controls" hidden>Show controls</button>
+    <div id="art-status" class="art-status" role="status"><p id="art-message">Finding a quiet place…</p><button id="retry-art" class="small-button" hidden>Try again</button></div>
+    <p id="status" class="status" role="status" aria-live="polite" hidden></p>
+    <button id="new-day" class="new-day chrome" hidden>A new day is here. Visit today’s edition <span aria-hidden="true">→</span></button>
+    <div id="failure" class="failure" role="alert" hidden></div>
   </main>
-  <script type="module" src="/src/tidepool/main.ts"></script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

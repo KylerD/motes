@@ -1,11 +1,11 @@
 # Motes development
 
-The application is a living illustration entered through `index.html`, implemented in `src/tidepool/`. Read README.md, PRODUCT.md and DESIGN.md for the current product and visual system.
+Read README.md, PRODUCT.md and DESIGN.md. The entry is index.html; implementation is src/main.ts, src/scenes/ and src/music/.
 
-Use the two original sanctuary paintings with the unified Canvas 2D renderer. Explore reveals real cells, connections and energy inside the same artwork. Do not reintroduce the superseded pixel world, toy diorama, alternate renderer, journal or daily-evolution workflow.
+Motes is living scenery and warm jazzy lofi radio. Do not reintroduce organisms, names/stats, simulation tools, development journals or daily repository automation. The four original illustrations and music are the product.
 
-Keep the model deterministic, render from real state without consuming simulation randomness, validate imported experiments before replacing state, and keep audio opt-in. Art, camera and cell picking share one projection. All visual motion follows simulation time. Preserve comfortable watching as the default and reveal instruments through Explore.
+Keep the pure composer deterministic and musical: repeated themes, voice-led harmony, arranged sections and restrained performance variation. Piano recordings are local CC0 assets. Never consume scenery randomness from the audio clock. Audio scheduling must continue independently of requestAnimationFrame. Keep samples, scheduled voices and decoded assets bounded. Preserve sample failures/retry and smooth pause/resume.
 
-Run `npm test`, `npm run build`, and the relevant browser scripts after changes. Test failed artwork/retry, both scene crops, pause, history and mobile input when touching those flows. Original paintings and exact generation prompts live in `public/scenes/`.
+Daily editions use validated local dates; no surprise scene or song interruption at midnight. Keep ordinary daily URLs unpinned and explicit scene choices shareable. Reduced motion affects scenery independently of listening. All controls need visible focus, useful labels and readable contrast over the art.
 
-There is no backend, account, API key or scheduled development requirement.
+Run npm test, npm run build and relevant browser scripts. Check desktop and phone together. Audio work also needs a rendered PCM preview and lifecycle checks. Original art prompts and audio provenance live alongside local assets.
