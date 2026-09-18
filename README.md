@@ -19,6 +19,8 @@ npm run dev -- --host 127.0.0.1 --port 5175
 
 The music is composed locally into 64-bar tracks with an opening, theme, variation, quieter passage, return and ending. Voice-led seventh/ninth chords, repeating melodic phrases, soft swung percussion and round bass accompany recordings of a real Kawai upright piano. New songs vary harmony, key, tempo, motif, performance and arrangement details deterministically from the edition and track number. The instrument samples are local CC0 assets; see [audio provenance](public/audio/README.md).
 
+Piano, melody, bass and drums share one swung performance grid. Kick accents follow the bass, backbeats sit slightly behind the shared pulse, and restrained hat patterns leave space for the piano. The short kick and filtered percussion stay soft; piano echoes follow the track tempo.
+
 A dedicated Web Audio look-ahead clock schedules music independently of rendering. Hiding the tab stops visual rendering while audio continues; browser or operating-system suspension can still interrupt playback. Controls and media-session playback actions support pause/resume. Failed sample loading is visible and retryable.
 
 ## Living scenes, daily editions

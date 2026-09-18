@@ -15,6 +15,7 @@ export interface Voice { start: number; end: number; gain: GainNode; source: Aud
 export interface SoundGraph {
   context: BaseAudioContext; output: GainNode; music: GainNode; ambience: GainNode;
   piano: BiquadFilterNode; melody: BiquadFilterNode; bass: GainNode; drums: GainNode;
+  echoDelay: DelayNode; echoBeat: number;
   ambienceSources: {source:AudioBufferSourceNode;gain:GainNode}[]; voices: Set<Voice>; bank: PianoBank;
   drumBuffers: Map<string,AudioBuffer>; nodes: AudioNode[]; seed: number;
 }
@@ -67,14 +68,14 @@ export function createGraph(context: BaseAudioContext, bank:PianoBank, seed:numb
   const wet=gain(0.20);pianoHP.connect(reverb);reverb.connect(wet);wet.connect(music);
   const bass=gain(1),drums=gain(1);bass.connect(music);drums.connect(music);
   // Shared delay adds depth to the upper piano without accumulating unbounded feedback.
-  const delay=context.createDelay(1);delay.delayTime.value=0.31;
-  const echo=gain(0.095);melody.connect(delay);delay.connect(echo);echo.connect(pianoHP);
+  const delay=context.createDelay(1);delay.delayTime.value=0.8;
+  const echo=gain(0.065);melody.connect(delay);delay.connect(echo);echo.connect(pianoHP);
   nodes.push(compressor,piano,melody,pianoHP,reverb,delay);
   const drumBuffers=new Map<string,AudioBuffer>();
-  drumBuffers.set('snare',noiseBuffer(context,0.24,seed^34,(t,n)=>n*Math.exp(-t*24)*(1-Math.exp(-t*1600))));
-  drumBuffers.set('hat',noiseBuffer(context,0.28,seed^76,(t,n)=>n*Math.exp(-t*42)*(1-Math.exp(-t*3000))));
-  drumBuffers.set('rim',noiseBuffer(context,0.075,seed^99,(t,n)=>n*Math.exp(-t*100)));
-  return {context,output,music,ambience,piano,melody,bass,drums,bank,drumBuffers,nodes,seed,voices:new Set(),ambienceSources:[]};
+  drumBuffers.set('snare',noiseBuffer(context,0.20,seed^34,(t,n)=>(n*0.72+Math.sin(2*Math.PI*185*t)*0.28)*Math.exp(-t*30)*(1-Math.exp(-t*1400))));
+  drumBuffers.set('hat',noiseBuffer(context,0.12,seed^76,(t,n)=>n*Math.exp(-t*70)*(1-Math.exp(-t*1800))));
+  drumBuffers.set('rim',noiseBuffer(context,0.075,seed^99,(t,n)=>(n*0.4+Math.sin(2*Math.PI*1700*t)*0.6)*Math.exp(-t*110)));
+  return {context,output,music,ambience,piano,melody,bass,drums,echoDelay:delay,echoBeat:0,bank,drumBuffers,nodes,seed,voices:new Set(),ambienceSources:[]};
 }
 
 export function setSoundMode(graph:SoundGraph,mode:MusicMode) {
@@ -97,6 +98,10 @@ export function scheduleNote(graph:SoundGraph,event:ScoreEvent,time:number,secon
   const duration=event.duration*secondsPerBeat;
   const nodes:AudioNode[]=[gain,pan];
   if(event.instrument==='piano'||event.instrument==='melody') {
+    if(event.instrument==='melody'&&graph.echoBeat!==secondsPerBeat){
+      // A quarter-note repeat preserves the source note's swing phase at every tempo.
+      graph.echoDelay.delayTime.setValueAtTime(secondsPerBeat,time);graph.echoBeat=secondsPerBeat;
+    }
     const sample=sampleNotes.reduce((best,n)=>Math.abs(n-event.note)<Math.abs(best-event.note)?n:best,sampleNotes[0]);
     const source=context.createBufferSource();source.buffer=graph.bank.get(sample)!;
     source.playbackRate.value=Math.pow(2,(event.note-sample)/12);
@@ -119,16 +124,16 @@ export function scheduleNote(graph:SoundGraph,event:ScoreEvent,time:number,secon
     trackVoice(graph,oscillator,gain,nodes,time,time+duration+0.15);
   } else if(event.instrument==='kick') {
     const oscillator=context.createOscillator();oscillator.type='sine';
-    oscillator.frequency.setValueAtTime(115,time);oscillator.frequency.exponentialRampToValueAtTime(46,time+0.085);
+    oscillator.frequency.setValueAtTime(78,time);oscillator.frequency.exponentialRampToValueAtTime(52,time+0.045);
     oscillator.connect(gain);pan.connect(graph.drums);nodes.push(oscillator);
-    gain.gain.setValueAtTime(0,time);gain.gain.linearRampToValueAtTime(event.velocity*0.46,time+0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001,time+0.30);
-    trackVoice(graph,oscillator,gain,nodes,time,time+0.34);
+    gain.gain.setValueAtTime(0,time);gain.gain.linearRampToValueAtTime(event.velocity*0.36,time+0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001,time+0.18);
+    trackVoice(graph,oscillator,gain,nodes,time,time+0.22);
   } else {
     const source=context.createBufferSource();source.buffer=graph.drumBuffers.get(event.instrument)!;
-    const filter=context.createBiquadFilter();filter.type=event.instrument==='hat'?'highpass':'bandpass';
-    filter.frequency.value=event.instrument==='hat'?6500:event.instrument==='rim'?1700:1450;
-    filter.Q.value=event.instrument==='rim'?3:0.65;
+    const filter=context.createBiquadFilter();filter.type='bandpass';
+    filter.frequency.value=event.instrument==='hat'?4300:event.instrument==='rim'?1700:1150;
+    filter.Q.value=event.instrument==='rim'?1.1:0.65;
     source.connect(filter);filter.connect(gain);pan.connect(graph.drums);nodes.push(source,filter);
     gain.gain.value=event.velocity*(event.instrument==='hat'?0.30:event.instrument==='rim'?0.45:0.68);
     trackVoice(graph,source,gain,nodes,time,time+0.30);
@@ -165,6 +170,8 @@ export function startAmbience(graph:SoundGraph,mood:Mood,at=graph.context.curren
 }
 
 export function stopVoices(graph:SoundGraph,at:number,fade=0.12,from=-Infinity) {
+  // Skipping/pausing must also discard tempo changes queued for abandoned notes.
+  graph.echoDelay.delayTime.cancelScheduledValues(Math.max(at,from));graph.echoBeat=0;
   for(const voice of graph.voices) {
     if(voice.start<from)continue;
     holdParameter(voice.gain.gain,at);

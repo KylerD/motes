@@ -27,6 +27,20 @@ describe('daily radio composition', () => {
     expect(between(8,16,'melody').map(e => e.note)).toEqual(between(40,48,'melody').map(e => e.note));
     expect(between(60,64,'melody').length).toBeLessThan(between(8,12,'melody').length);
   });
+  it.each(['rain','meadow','snow','coast'] as Mood[])('keeps the %s rhythm section and melody in one swung pocket', (mood) => {
+    for(let seed=0;seed<8;seed++) {
+      const track=composeTrack(seed,mood);
+      const offGrid=track.events.filter(event=>event.instrument!=='piano').filter(event=>{
+        const eighth=Math.round(event.beat*2);
+        const grid=eighth/2+(eighth%2?track.swing:0);
+        return Math.abs(event.beat-grid)>0.025;
+      });
+      expect(offGrid.slice(0,3),'Melody and percussion should share the same eighth-note swing, with at most a small performance offset.').toEqual([]);
+      const bass=track.events.filter(event=>event.instrument==='bass');
+      const looseKicks=track.events.filter(event=>event.instrument==='kick'&&!bass.some(note=>Math.abs(note.beat-event.beat)<0.015));
+      expect(looseKicks.slice(0,3),'Kick accents should land with the bass, not create a competing pulse.').toEqual([]);
+    }
+  });
   it.each(['rain','meadow','snow','coast'] as Mood[])('keeps %s editions playable and finite, with extended voiced chords', (mood) => {
     for (let seed = 0; seed < 20; seed++) {
       const t = composeTrack(seed, mood, seed % 5);

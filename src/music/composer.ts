@@ -80,19 +80,25 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
   }
   // The same eight-bar phrase returns in A and A'. Two bars speak, then one leaves air.
   const motifs = [
-    [[0.5,2],[1.65,3],[2.5,1]], [[0.1,2],[1.5,1],[2.65,0]],
-    [[0.5,1],[1.1,2],[2.5,3]], [[0.1,2],[2,1]],
+    [[0.5,2],[1.5,3],[2.5,1]], [[0,2],[1.5,1],[2.5,0]],
+    [[0.5,1],[1,2],[2.5,3]], [[0,2],[2,1]],
   ];
   const motif = choose(motifs);
   const phrase = Array.from({length:8},(_,bar) => {
-    if (bar===3 || bar===7) return [[0.15,0]];
-    if (bar===2 || bar===6) return [[1.5,2],[2.65,1]];
+    if (bar===3 || bar===7) return [[0,0]];
+    if (bar===2 || bar===6) return [[1.5,2],[2.5,1]];
     return motif.map(([beat,n]) => [beat, (n + (bar%2 ? 1 : 0))%4]);
   });
   const events: ScoreEvent[] = [];
-  function add(instrument: Instrument, beat:number, note:number, duration:number, velocity:number, pan=0) {
-    const jitter = instrument === 'kick' ? 0 : (random()-0.5)*0.025;
-    events.push({instrument,beat:Math.max(0,Math.min(255.99,beat+jitter)),note,duration,velocity:velocity*(0.91+random()*0.16),pan});
+  function add(instrument: Instrument, beat:number, note:number, duration:number, velocity:number, pan=0,roll=0) {
+    // One performed grid for the whole band: swing once, then shared microtiming.
+    // Chord rolls happen after the common attack; backbeats sit only slightly behind it.
+    const eighth=Math.round(beat*2);
+    const pocket=[0,0.004,0.006,0.004,0,0.004,0.008,0.004][eighth%8];
+    const phraseDrift=Math.sin(Math.floor(beat/4)%8*0.85+songSeed)*0.003;
+    const backbeat=instrument==='snare'||instrument==='rim'?0.008:0;
+    const performed=beat+(eighth%2?swing:0)+pocket+phraseDrift+backbeat+roll;
+    events.push({instrument,beat:Math.max(0,Math.min(255.99,performed)),note,duration,velocity:velocity*(0.94+random()*0.12),pan});
   }
   const drumVariant = Math.floor(random()*3);
   for (let bar=0;bar<64;bar++) {
@@ -101,18 +107,18 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
     const lift=bar>=40 && bar<56;
     const volume=opening ? 0.66 : breath ? 0.72 : ending ? 0.8-(bar-56)*0.05 : 1;
     // Piano comping: rolled, voice-led extensions, with a restrained offbeat answer.
-    chord.notes.forEach((note,i) => add('piano',at+i*0.015,note,breath?3.5:2.0,0.30*volume,i*0.09-0.18));
+    chord.notes.forEach((note,i) => add('piano',at,note,breath?3.5:2.0,0.30*volume,i*0.09-0.18,i*0.009));
     if (!opening && !breath && bar%4!==3 && bar<60) {
-      chord.notes.slice(1).forEach((note,i) => add('piano',at+2.5+swing+i*0.012,note,1.0,0.18*volume,i*0.08-0.12));
+      chord.notes.slice(1).forEach((note,i) => add('piano',at+2.5,note,1.0,0.18*volume,i*0.08-0.12,i*0.009));
     }
     if ((!opening || bar>=4) && bar<62) {
       let bass=chord.root-12; if(bass>45)bass-=12;
-      add('bass',at+0.01,bass,1.45,0.63*volume);
+      add('bass',at,bass,1.45,0.63*volume);
       if (!breath) {
-        add('bass',at+2.5+swing,bar%2===0?bass+7:bass,0.8,0.46*volume);
+        add('bass',at+2.5,bar%2===0?bass+7:bass,0.8,0.46*volume);
         if (bar%4===3) {
           let target=harmony[Math.min(63,bar+1)].root-12; if(target>45)target-=12;
-          add('bass',at+3.5+swing,target+(target>bass?-1:1),0.33,0.34*volume);
+          add('bass',at+3.5,target+(target>bass?-1:1),0.33,0.34*volume);
         }
       }
     }
@@ -127,7 +133,7 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
         add('melody',at+beat,tone,pattern.length===1?2.3:n===pattern.length-1?1.05:0.58,0.43*volume,0.14);
       }
       // A high, short answer only at the end of alternate phrases.
-      if(lift && bar>=48 && bar%8===5) add('melody',at+3.4,tones[0]+octave,0.5,0.26, -0.18);
+      if(lift && bar>=48 && bar%8===5) add('melody',at+3.5,tones[0]+octave,0.5,0.26, -0.18);
     } else if ((opening || breath) && bar%4===2) {
       const note=chord.notes[chord.notes.length-1];
       add('melody',at+1.5,note,1.4,0.28,0.1);
@@ -136,15 +142,17 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
     const drums=bar>=4 && bar<60 && !breath;
     if (drums) {
       const dv=(opening?0.65:1)*volume;
-      add('kick',at,36,0.35,0.78*dv);
-      add('kick',at+(drumVariant===1?2.5+swing:2.0),36,0.3,0.60*dv);
-      if (bar%4===2 && !opening) add('kick',at+3.5+swing,36,0.25,0.36*dv);
-      add('snare',at+1.035,38,0.2,0.52*dv,-0.04);
-      add('snare',at+3.045,38,0.2,0.57*dv,-0.04);
-      if(bar%4===3 && !opening) add('rim',at+2.65,40,0.08,0.25*dv,0.12);
-      for(let eighth=0;eighth<8;eighth++) {
-        if ((bar+eighth)%11===0 || (opening && eighth%2))continue;
-        add('hat',at+eighth*0.5+(eighth%2?swing:0),42,eighth===7&&bar%4===3?0.22:0.06,(eighth%2?0.16:0.25)*dv,0.25);
+      // The kick follows the bass and the piano's offbeat answer in every edition.
+      add('kick',at,36,0.2,0.62*dv);
+      add('kick',at+2.5,36,0.18,0.43*dv);
+      if (drumVariant===2 && bar%8===7 && !opening) add('kick',at+3.5,36,0.15,0.24*dv);
+      add('snare',at+1,38,0.16,0.40*dv,-0.04);
+      add('snare',at+3,38,0.16,0.43*dv,-0.04);
+      if(drumVariant===1 && bar%8===7 && !opening) add('rim',at+3.5,40,0.06,0.14*dv,0.08);
+      const hats=opening?[0,1,2,3]:[[0,1,1.5,2,2.5,3],[0,0.5,1,2,2.5,3,3.5],[0,1,1.5,2,3,3.5]][drumVariant];
+      for(const beat of hats) {
+        if(bar%4===3 && beat===3.5)continue;
+        add('hat',at+beat,42,0.055,(beat%1?0.12:0.19)*dv,0.12);
       }
     }
   }
