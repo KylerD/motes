@@ -137,11 +137,12 @@ Controls have gently rounded corners; panels use the larger panel radius. Date f
 
 ## Components
 
-- **Radio:** Listen changes to Tuning in…, Pause and Resume as appropriate. Its icon and label remain visible through each state. Next track, Mix and a quiet 2px progress strip support playback. Track names use serif type; supporting copy stays small. Disabled controls use .35 opacity.
-- **Mix:** separate Music and Atmosphere sliders, Warm lofi beats/Piano, no drums choices, and Scene motion On/Still. Slider rows use 79px / flexible / 35px columns with 13px gaps. Sound preferences persist locally.
+- **Radio:** Listen changes to Tuning in…, Pause and Resume as appropriate. Its icon and label remain visible through each state. Next track, Mix and a quiet 2px strip showing the hour's progression support playback. Track names use serif type; supporting copy names the instrument and chapter. Both lines truncate on small screens. Before playback, “An hour, unfolding here” introduces the session. Disabled controls use .35 opacity.
+- **Mix:** separate Music and Atmosphere sliders, Warm lofi beats/Without drums choices, and Scene motion On/Still. Slider rows use 79px / flexible / 35px columns with 13px gaps. Sound preferences persist locally.
 - **Place browser:** four thumbnail rows, brief weather descriptions and a gold check for the selected place. Desktop thumbnails are 91×62px; phone thumbnails are 85×55px. “Take me to today’s place” restores the daily selection.
 - **Editions:** a native date input revisits a local calendar day. A quiet new-day invitation appears without interrupting the current session. The current song finishes when changing edition; the next belongs to the new place/date.
 - **Motion:** 1600ms scene crossfades, subtle water displacement, slow lighting variation, weather, steam and occasional birds/butterflies remain subordinate to the painting. Water taps create ripples only inside painted shorelines. Motion is independent of audio; Still and reduced-motion preference freeze the scene. Reduced motion also removes CSS transitions. Background tabs stop visual rendering while ordinary audio playback continues.
+- **An hour unfolding:** six musical chapters lead gradual, restrained evening grading, changing weather and warm lamps. A small train visits the station during a lull; a boat crosses the distant bay; butterflies and birds pass through the meadow before fireflies emerge; a passing shower deepens the rain. Events are sparse and seeded, with quiet intervals between them. Pause holds this timeline; ordinary water, weather and steam continue. Still freezes both. After hours keeps the evening state and continues softer music. Atmosphere copy follows the chapter, with no new panel or numerical clock.
 - **Access and recovery:** 2px gold keyboard outlines with 5px offset; labelled native controls; visible retry feedback. Escape closes panels or restores hidden chrome. Hide controls leaves a small Show controls action. Space toggles playback outside interactive controls. Panels return focus to their trigger when closed normally.
 
 ## Do's and Don'ts
@@ -150,5 +151,5 @@ Controls have gently rounded corners; panels use the larger panel radius. Date f
 - **Do** keep controls around the painting, protect legibility with the existing scrims and retain visible keyboard focus.
 - **Do** distinguish the four authored paintings from daily atmospheric and musical editions.
 - **Don't** reintroduce organisms, names and stats, experiments or an Explore interface.
-- **Don't** make motion depend on music or start audio without a listening action.
+- **Don't** require music for ambient motion or start audio without a listening action; the hour's progression follows listening.
 - **Don't** add dashboard density, realistic rendering or toy-like procedural scenery.

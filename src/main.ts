@@ -2,6 +2,7 @@ import './style.css';
 import { DEFAULT_MIX, RadioAudio } from './music/audio';
 import { edition,dayLabel,localDay,validDay,isScene,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
 import { SceneRenderer } from './scenes/renderer';
+import {createSession,sessionAt} from './session/session';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
@@ -32,6 +33,7 @@ $('music-level').textContent=`${Math.round(preferences.volume*100)}%`;$('ambienc
 $<HTMLSelectElement>('music-mode').value=preferences.mode;
 
 let visualTime=0,last=performance.now(),frame=0,starting=false,listened=false,quiet=false,disposed=false;
+let previewSeconds:number|undefined;
 let statusTimer:ReturnType<typeof setTimeout>|undefined;
 const panelIds=['mix','scenes','edition'] as const;
 type PanelId=typeof panelIds[number];
@@ -76,7 +78,7 @@ function updateEdition() {
   updateUrl();updatePlayer();
 }
 function visit(day:string,scene?:SceneId) {
-  scenePinned=scene!==undefined;current=edition(day,scene);renderer.setEdition(current);audio.setEdition(current.seed,current.scene);visualTime=0;
+  scenePinned=scene!==undefined;current=edition(day,scene);renderer.setEdition(current);audio.setEdition(current.seed,current.scene);visualTime=0;previewSeconds=undefined;
   $('new-day').hidden=true;closePanels();updateEdition();
 }
 for(const id of SCENE_IDS) {
@@ -107,14 +109,17 @@ async function toggleListening() {
   finally { starting=false;updatePlayer(); }
 }
 function updatePlayer() {
-  const playing=audio.playing,track=audio.current;
+  const playing=audio.playing,track=audio.current,session=audio.session;
+  const voice={upright:'Upright piano',felt:'Felt piano',electric:'Electric keys',vibes:'Soft mallets'}[track.voice];
   $<HTMLButtonElement>('listen').disabled=starting;
   attribute('listen','aria-pressed',String(playing));attribute('listen','aria-label',playing?'Pause music':'Listen to music');
   attribute('listen-path','d',playing?'M8 5v14M16 5v14':'m9 5 11 7-11 7Z');
   text('listen-label',starting?'Tuning in…':playing?'Pause':listened?'Resume':'Listen');
   text('track-title',track.title);
-  text('track-detail',starting?'Preparing the piano…':!listened?'Original music, unfolding here':`${preferences.mode==='beats'?'Warm jazzy lofi':'Piano & atmosphere'} · ${track.bpm} BPM`);
-  $('track-progress').style.width=`${track.progress*100}%`;
+  text('track-detail',starting?'Preparing the piano…':!listened?'An hour, unfolding here':`${voice} · ${session.chapter}`);
+  attribute('track-detail','title',`${voice} · ${session.chapter}${preferences.mode==='ambient'?' · Without drums':''}`);
+  text('atmosphere-description',session.caption);
+  $('track-progress').style.width=`${session.progress*100}%`;
   $<HTMLButtonElement>('next-track').disabled=!listened||starting;
   if('mediaSession' in navigator) {
     navigator.mediaSession.playbackState=playing?'playing':'paused';
@@ -151,7 +156,7 @@ if('mediaSession' in navigator) {
 function paint(now:number) {
   if(disposed)return;
   if(renderer.motion)visualTime+=Math.min(.07,Math.max(0,(now-last)/1000));last=now;
-  renderer.draw(visualTime,now);
+  renderer.draw(visualTime,now,previewSeconds===undefined?audio.session:sessionAt(createSession(current.seed,current.scene),previewSeconds));
   $('art-status').hidden=renderer.ready;$('retry-art').hidden=!renderer.failed;
   $('art-message').textContent=renderer.failed?'The painting couldn’t load. The music is still here.':'Finding a quiet place…';
   if(!document.hidden)frame=requestAnimationFrame(paint);
@@ -172,5 +177,7 @@ window.addEventListener('pagehide',e=>{
 window.addEventListener('pageshow',e=>{
   if(e.persisted){last=performance.now();frame=requestAnimationFrame(paint);if(cachedPlayback)void toggleListening();}
 });
-if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},visit,advance:(seconds:number)=>{visualTime+=seconds;renderer.draw(visualTime);},point:(u:number,v:number)=>renderer.point(u,v)}});
+if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},get session(){return audio.session;},get sessionPlan(){return createSession(current.seed,current.scene);},visit,
+  previewSession:(seconds:number)=>{previewSeconds=Math.max(0,seconds);visualTime=seconds;renderer.draw(visualTime,performance.now(),sessionAt(createSession(current.seed,current.scene),previewSeconds));},
+  advance:(seconds:number)=>{visualTime+=seconds;renderer.draw(visualTime);},point:(u:number,v:number)=>renderer.point(u,v)}});
 updateEdition();frame=requestAnimationFrame(paint);

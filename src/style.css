@@ -27,7 +27,7 @@ h1 { font:400 47px/.95 var(--serif); letter-spacing:-.035em; margin:0; } h1 span
 .listen-button[aria-pressed=true] svg { fill:none; stroke-width:2.5; }
 .now-playing { display:flex; flex-direction:column; gap:3px; min-width:165px; max-width:290px; }
 #track-title { font:400 21px/1.25 var(--serif); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#track-detail { color:#c6d5d8; font-size:11px; letter-spacing:.02em; white-space:nowrap; }
+#track-detail { color:#c6d5d8; font-size:11px; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #next-track { margin-left:-12px; } #mix-toggle { font-size:13px; margin-left:-7px; } #mix-toggle svg { width:17px; height:17px; }
 .place-controls { display:flex; align-items:center; gap:26px; } #atmosphere-description { color:#d4dee1; font:italic 18px/1.2 var(--serif); white-space:nowrap; }
 .scenes-button { display:flex; align-items:center; gap:19px; min-height:46px; padding:0 16px 0 19px; border:1px solid #a8b9c072; border-radius:6px; background:#112c3cad; white-space:nowrap; }

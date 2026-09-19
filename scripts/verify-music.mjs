@@ -29,14 +29,18 @@ try {
   const playing=await page.evaluate(()=>({current:window.radio.current,diagnostics:window.radio.diagnostics}));
   assert.ok(playing.current.progress>0);assert.ok(playing.diagnostics.voices>0&&playing.diagnostics.voices<200);
   const title=playing.current.title;
+  assert.ok(await page.evaluate(()=>window.radio.session.elapsed>0));
   await page.evaluate(()=>window.radio.setEdition(71,'snow'));
   assert.equal(await page.evaluate(()=>window.radio.current.title),title);
+  assert.equal(await page.evaluate(()=>window.radio.session.elapsed),0,'A newly visited place waits for its own first arrangement.');
   results.push({name:'scene edition preserves current track',playing});
   await page.evaluate(()=>window.radio.pause());await page.waitForTimeout(300);
   const paused=await page.evaluate(()=>({current:window.radio.current,diagnostics:window.radio.diagnostics}));
   assert.equal(paused.diagnostics.playing,false);assert.equal(paused.diagnostics.contextState,'suspended');assert.equal(paused.diagnostics.voices,0);
   await page.waitForTimeout(300);
   assert.equal(await page.evaluate(()=>window.radio.current.progress),paused.current.progress);
+  const sessionPaused=await page.evaluate(()=>window.radio.session.elapsed);
+  await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.radio.session.elapsed),sessionPaused);
   await page.click('#play');assert.equal((await page.evaluate(()=>window.activation)).ok,true);
   await page.waitForTimeout(350);
   assert.ok(await page.evaluate(progress=>window.radio.current.progress>progress,paused.current.progress));
@@ -75,6 +79,75 @@ try {
   });
   assert.equal(transition.length,2);assert.equal(transition[1].start,transition[0].start+transition[0].duration);
   results.push({name:'next arrangement is scheduled at the exact end of the current track',transition});
+  await page.evaluate(()=>window.radio.pause());await page.waitForTimeout(200);
+  await page.click('#play');assert.equal((await page.evaluate(()=>window.activation)).ok,true);
+  assert.equal(await page.evaluate(()=>window.radio.segments[1]?.track.index),1,'Resuming near a song boundary must restore the prepared successor.');
+  results.push({name:'pause near a boundary preserves the session sequence'});
+  await page.evaluate(()=>window.radio.next());
+  const skipped=await page.evaluate(()=>({index:window.radio.segments[0].track.index,elapsed:window.radio.session.elapsed}));
+  assert.equal(skipped.index,1,'Next must choose the prepared successor instead of skipping two songs.');
+  await page.waitForTimeout(250);
+  assert.ok(await page.evaluate(()=>window.radio.session.elapsed>200));
+  // Exercise the whole score sequence quickly; each switch releases the prior scheduled voices.
+  for(let index=2;index<=18;index++){
+    await page.evaluate(()=>window.radio.next());await page.waitForTimeout(230);
+    assert.equal(await page.evaluate(()=>window.radio.segments[0].track.index),index);
+    assert.ok(await page.evaluate(()=>window.radio.diagnostics.voices<200));
+  }
+  assert.ok(await page.evaluate(()=>window.radio.session.elapsed>=3600));
+  assert.equal(await page.evaluate(()=>window.radio.session.chapter),'After hours');
+  results.push({name:'pause, exact-one-song skips, eighteen arrangements and after-hours continuity'});
+  // Revisiting A while its old song is audible must not revive the old session, even with A0 queued.
+  const handovers=[];
+  for(const action of ['natural','next','pause-resume']){
+    await page.evaluate(()=>{
+      const radio=window.radio;
+      radio.pause();radio.setEdition(71,'snow');radio.setEdition(20260917,'rain');
+      for(let index=0;index<8;index++)radio.next();
+    });
+    await page.click('#play');assert.equal((await page.evaluate(()=>window.activation)).ok,true);
+    const revisited=await page.evaluate(()=>{
+      const radio=window.radio,active=radio.segments[0];
+      active.start=radio.context.currentTime-active.track.bars*4*60/active.track.bpm+2;
+      active.cursor=active.track.events.length;radio.tick();
+      const before={index:active.track.index,elapsed:radio.session.elapsed,successor:radio.segments[1]?.track.index};
+      radio.setEdition(71,'snow');radio.tick();
+      const away={elapsed:radio.session.elapsed,successor:radio.segments[1]?.track.index};
+      radio.setEdition(20260917,'rain');radio.tick();
+      return {before,away,returned:{elapsed:radio.session.elapsed,sameTrack:radio.position().track===active.track,
+        successor:radio.segments[1]?.track.index,successorSeed:radio.segments[1]?.track.session.seed}};
+    });
+    assert.equal(revisited.before.index,8);assert.ok(revisited.before.elapsed>1500);assert.equal(revisited.before.successor,9);
+    assert.deepEqual(revisited.away,{elapsed:0,successor:0});
+    assert.equal(revisited.returned.sameTrack,true,'Edition visits must let the audible song finish.');
+    assert.equal(revisited.returned.successor,0);assert.equal(revisited.returned.successorSeed,20260917);
+    const handover={action,revisited};
+    if(action==='next')await page.evaluate(()=>window.radio.next());
+    if(action==='pause-resume'){
+      await page.evaluate(()=>window.radio.pause());await page.waitForTimeout(200);
+      handover.paused=await page.evaluate(()=>({elapsed:window.radio.session.elapsed,progress:window.radio.current.progress}));
+      assert.equal(await page.evaluate(()=>window.radio.diagnostics.contextState),'suspended');
+      await page.waitForTimeout(100);
+      assert.equal(await page.evaluate(()=>window.radio.current.progress),handover.paused.progress);
+      await page.click('#play');assert.equal((await page.evaluate(()=>window.activation)).ok,true);
+      await page.waitForTimeout(150);
+      handover.resumed=await page.evaluate(()=>({elapsed:window.radio.session.elapsed,index:window.radio.position().track.index,
+        progress:window.radio.current.progress,successor:window.radio.segments[1]?.track.index}));
+      assert.equal(handover.resumed.index,8);assert.ok(handover.resumed.progress>=handover.paused.progress);
+    }
+    await page.waitForFunction(()=>window.radio.position().track.index!==8&&window.radio.session.elapsed>0);
+    handover.after=await page.evaluate(()=>({index:window.radio.position().track.index,elapsed:window.radio.session.elapsed}));
+    handovers.push(handover);
+  }
+  console.log(JSON.stringify({name:'A to B to A handover regression',handovers},null,2));
+  assert.deepEqual(handovers.map(({action,revisited,paused,resumed,after})=>({action,returnedElapsed:revisited.returned.elapsed,
+    pausedElapsed:paused?.elapsed??0,resumedElapsed:resumed?.elapsed??0,resumedSuccessor:resumed?.successor??0,
+    nextIndex:after.index,startsAtBeginning:after.elapsed<2})),[
+    {action:'natural',returnedElapsed:0,pausedElapsed:0,resumedElapsed:0,resumedSuccessor:0,nextIndex:0,startsAtBeginning:true},
+    {action:'next',returnedElapsed:0,pausedElapsed:0,resumedElapsed:0,resumedSuccessor:0,nextIndex:0,startsAtBeginning:true},
+    {action:'pause-resume',returnedElapsed:0,pausedElapsed:0,resumedElapsed:0,resumedSuccessor:0,nextIndex:0,startsAtBeginning:true},
+  ],'Each edition visit starts a fresh session, including a return to the seed of the still-audible song.');
+  results.push({name:'A to B to A resets the session through natural, Next and pause/resume handovers',handovers});
   await page.evaluate(()=>window.radio.dispose());await page.waitForTimeout(200);
   assert.deepEqual(errors,[]);
   mkdirSync('captures-music',{recursive:true});writeFileSync('captures-music/lifecycle-results.json',JSON.stringify(results,null,2));

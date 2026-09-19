@@ -1,12 +1,15 @@
 export type Mood = 'rain' | 'meadow' | 'snow' | 'coast';
 export type Instrument = 'piano' | 'melody' | 'bass' | 'kick' | 'snare' | 'hat' | 'rim';
 export type MusicMode = 'beats' | 'ambient';
-export interface ScoreEvent { beat: number; duration: number; note: number; velocity: number; pan: number; instrument: Instrument }
+export type KeyVoice = 'upright' | 'felt' | 'electric' | 'vibes';
+export interface Arrangement {bpm:number;tonic:number;voice:KeyVoice;energy:number;swing:number;motif:number;progression:number}
+export interface ScoreEvent { beat: number; duration: number; note: number; velocity: number; pan: number; instrument: Instrument; voice?:KeyVoice }
 export interface Chord { root: number; notes: number[]; quality: HarmonySpec[1] }
 export interface Section { name: string; startBar: number; endBar: number }
 export interface Track {
   seed: number; index: number; title: string; bpm: number; key: string; bars: number;
   swing: number; events: ScoreEvent[]; harmony: Chord[]; sections: Section[];
+  voice:KeyVoice; session?:{seed:number;offset:number};
 }
 
 /** Small deterministic generator: score choices never depend on wall time or rendering. */
@@ -55,15 +58,16 @@ function voiceChord(root: number, quality: HarmonySpec[1], previous: number[]): 
 }
 
 /** A song has a written 64-bar form. Randomness chooses an edition, never each new note in real time. */
-export function composeTrack(seed: number, mood: Mood, index = 0): Track {
+export function composeTrack(seed: number, mood: Mood, index = 0,arrangement?:Arrangement): Track {
   const songSeed = (seed ^ Math.imul(index+1,0x9e3779b1) ^ Math.imul(['rain','meadow','snow','coast'].indexOf(mood)+1,0x45d9f3b)) >>> 0;
   const random = randomSource(songSeed);
   const choose = <T>(values: T[]): T => values[Math.floor(random()*values.length)];
-  const tonic = choose([0,2,3,5,7,8,10]);
-  const bpm = (mood === 'snow' ? 69 : mood === 'meadow' ? 76 : 72) + Math.floor(random()*10);
-  const main = choose(progressions);
+  const tonic = arrangement?.tonic??choose([0,2,3,5,7,8,10]);
+  const bpm = arrangement?.bpm??((mood === 'snow' ? 69 : mood === 'meadow' ? 76 : 72) + Math.floor(random()*10));
+  const main = arrangement?progressions[arrangement.progression]:choose(progressions);
+  const voice=arrangement?.voice??'upright',energy=arrangement?.energy??1;
   const bridge: HarmonySpec[] = [[5,'maj9'],[5,'six9'],[4,'min9'],[9,'min9'],[2,'min9'],[2,'min9'],[7,'dom9'],[7,'dom9']];
-  const swing = 0.075 + random()*0.045;
+  const swing = arrangement?.swing??(0.075 + random()*0.045);
   const sections: Section[] = [
     {name:'Opening',startBar:0,endBar:8}, {name:'First light',startBar:8,endBar:24},
     {name:'Wandering',startBar:24,endBar:32}, {name:'Room to breathe',startBar:32,endBar:40},
@@ -83,7 +87,7 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
     [[0.5,2],[1.5,3],[2.5,1]], [[0,2],[1.5,1],[2.5,0]],
     [[0.5,1],[1,2],[2.5,3]], [[0,2],[2,1]],
   ];
-  const motif = choose(motifs);
+  const motif = arrangement?motifs[arrangement.motif]:choose(motifs);
   const phrase = Array.from({length:8},(_,bar) => {
     if (bar===3 || bar===7) return [[0,0]];
     if (bar===2 || bar===6) return [[1.5,2],[2.5,1]];
@@ -98,7 +102,8 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
     const phraseDrift=Math.sin(Math.floor(beat/4)%8*0.85+songSeed)*0.003;
     const backbeat=instrument==='snare'||instrument==='rim'?0.008:0;
     const performed=beat+(eighth%2?swing:0)+pocket+phraseDrift+backbeat+roll;
-    events.push({instrument,beat:Math.max(0,Math.min(255.99,performed)),note,duration,velocity:velocity*(0.94+random()*0.12),pan});
+    const keyVoice=voice==='vibes'&&instrument==='piano'?'felt':voice;
+    events.push({instrument,beat:Math.max(0,Math.min(255.99,performed)),note,duration,velocity:velocity*(0.94+random()*0.12),pan,...(instrument==='piano'||instrument==='melody'?{voice:keyVoice}:{})});
   }
   const drumVariant = Math.floor(random()*3);
   for (let bar=0;bar<64;bar++) {
@@ -108,7 +113,7 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
     const volume=opening ? 0.66 : breath ? 0.72 : ending ? 0.8-(bar-56)*0.05 : 1;
     // Piano comping: rolled, voice-led extensions, with a restrained offbeat answer.
     chord.notes.forEach((note,i) => add('piano',at,note,breath?3.5:2.0,0.30*volume,i*0.09-0.18,i*0.009));
-    if (!opening && !breath && bar%4!==3 && bar<60) {
+    if (!opening && !breath && bar%4!==3 && bar<60 && (energy>.65||bar%2===0)) {
       chord.notes.slice(1).forEach((note,i) => add('piano',at+2.5,note,1.0,0.18*volume,i*0.08-0.12,i*0.009));
     }
     if ((!opening || bar>=4) && bar<62) {
@@ -139,9 +144,9 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
       add('melody',at+1.5,note,1.4,0.28,0.1);
       add('melody',at+3,note-2,0.75,0.23,-0.06);
     }
-    const drums=bar>=4 && bar<60 && !breath;
+    const drums=bar>=(energy<.65?8:4) && bar<60 && !breath;
     if (drums) {
-      const dv=(opening?0.65:1)*volume;
+      const dv=(opening?0.65:1)*volume*energy;
       // The kick follows the bass and the piano's offbeat answer in every edition.
       add('kick',at,36,0.2,0.62*dv);
       add('kick',at+2.5,36,0.18,0.43*dv);
@@ -149,7 +154,7 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
       add('snare',at+1,38,0.16,0.40*dv,-0.04);
       add('snare',at+3,38,0.16,0.43*dv,-0.04);
       if(drumVariant===1 && bar%8===7 && !opening) add('rim',at+3.5,40,0.06,0.14*dv,0.08);
-      const hats=opening?[0,1,2,3]:[[0,1,1.5,2,2.5,3],[0,0.5,1,2,2.5,3,3.5],[0,1,1.5,2,3,3.5]][drumVariant];
+      const hats=opening||energy<.65?[0,1,2,3]:[[0,1,1.5,2,2.5,3],[0,0.5,1,2,2.5,3,3.5],[0,1,1.5,2,3,3.5]][drumVariant];
       for(const beat of hats) {
         if(bar%4===3 && beat===3.5)continue;
         add('hat',at+beat,42,0.055,(beat%1?0.12:0.19)*dv,0.12);
@@ -157,5 +162,5 @@ export function composeTrack(seed: number, mood: Mood, index = 0): Track {
     }
   }
   events.sort((a,b)=>a.beat-b.beat);
-  return {seed:songSeed,index,title:`${choose(words[mood])} · ${choose(subtitles)}`,bpm,key:keyNames[tonic],bars:64,swing,events,harmony,sections};
+  return {seed:songSeed,index,title:`${choose(words[mood])} · ${choose(subtitles)}`,bpm,key:keyNames[tonic],bars:64,swing,events,harmony,sections,voice};
 }

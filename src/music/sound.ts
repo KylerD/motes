@@ -4,7 +4,7 @@ const sampleNotes = [47,51,54,57,60,63,66,69,72,75,78,81];
 export const DEFAULT_MIX = { music:0.65, ambience:0.38 } as const;
 // Match continuous textures as a quiet bed beneath the sparse piano opening.
 // The user slider scales this calibrated level, including previously saved settings.
-const ambienceTrim:Record<Mood,number> = {rain:0.14,meadow:0.25,snow:0.45,coast:0.16};
+const ambienceTrim:Record<Mood,number> = {rain:0.14,meadow:0.24,snow:0.45,coast:0.14};
 export type PianoBank = Map<number, AudioBuffer>;
 /** Firefox has no cancelAndHoldAtTime. Capture the current value before cancelling its automation. */
 export function holdParameter(parameter:AudioParam,time:number):void {
@@ -85,9 +85,9 @@ export function setSoundMode(graph:SoundGraph,mode:MusicMode) {
   graph.piano.frequency.setTargetAtTime(mode==='ambient'?2300:2800,t,0.2);
 }
 
-function trackVoice(graph:SoundGraph, source:AudioScheduledSourceNode, gain:GainNode, nodes:AudioNode[], start:number,end:number) {
+function trackVoice(graph:SoundGraph, source:AudioScheduledSourceNode, gain:GainNode, nodes:AudioNode[], start:number,end:number,auxiliary:AudioScheduledSourceNode[]=[] ) {
   const voice={source,gain,nodes,start,end};graph.voices.add(voice);
-  source.onended=()=>{for(const node of nodes)node.disconnect();graph.voices.delete(voice);};
+  source.onended=()=>{for(const extra of auxiliary){try{extra.stop();}catch{/* Already ended. */}}for(const node of nodes)node.disconnect();graph.voices.delete(voice);};
   source.start(start);source.stop(end);
 }
 
@@ -102,14 +102,31 @@ export function scheduleNote(graph:SoundGraph,event:ScoreEvent,time:number,secon
       // A quarter-note repeat preserves the source note's swing phase at every tempo.
       graph.echoDelay.delayTime.setValueAtTime(secondsPerBeat,time);graph.echoBeat=secondsPerBeat;
     }
+    if(event.voice==='electric'||event.voice==='vibes') {
+      const carrier=context.createOscillator(),tine=context.createOscillator(),modulation=context.createGain();
+      const frequency=440*Math.pow(2,(event.note-69)/12),vibes=event.voice==='vibes';
+      carrier.type=tine.type='sine';carrier.frequency.value=frequency;tine.frequency.value=frequency*(vibes?4:1);
+      modulation.gain.setValueAtTime(frequency*(vibes?.22:.65),time);
+      modulation.gain.exponentialRampToValueAtTime(frequency*.015,time+Math.max(.12,duration*.65));
+      tine.connect(modulation);modulation.connect(carrier.frequency);carrier.connect(gain);
+      pan.connect(event.instrument==='melody'?graph.melody:graph.piano);nodes.push(carrier,tine,modulation);
+      // Match the electric tine's decaying body to the recorded piano, including sparse openings.
+      const amplitude=event.velocity*(event.instrument==='melody'?.15:.13)*(vibes?1:2.25),end=time+duration+(vibes?.9:.65);
+      gain.gain.setValueAtTime(0,time);gain.gain.linearRampToValueAtTime(amplitude,time+.008);
+      gain.gain.exponentialRampToValueAtTime(amplitude*.32,time+Math.max(.04,duration*.65));
+      gain.gain.exponentialRampToValueAtTime(.0001,end);
+      tine.start(time);tine.stop(end+.01);trackVoice(graph,carrier,gain,nodes,time,end+.02,[tine]);return;
+    }
     const sample=sampleNotes.reduce((best,n)=>Math.abs(n-event.note)<Math.abs(best-event.note)?n:best,sampleNotes[0]);
     const source=context.createBufferSource();source.buffer=graph.bank.get(sample)!;
     source.playbackRate.value=Math.pow(2,(event.note-sample)/12);
     // Slow, tiny detuning across the performance gives the piano a tape-like softness.
     source.detune.value=Math.sin(event.beat*0.19+graph.seed)*2.3;
-    source.connect(gain);pan.connect(event.instrument==='melody'?graph.melody:graph.piano);nodes.push(source);
-    const amplitude=event.velocity*(event.instrument==='melody'?0.86:0.63);
-    gain.gain.setValueAtTime(0,time);gain.gain.linearRampToValueAtTime(amplitude,time+0.008);
+    const felt=event.voice==='felt';
+    if(felt){const softness=context.createBiquadFilter();softness.type='lowpass';softness.frequency.value=1700;softness.Q.value=.35;source.connect(softness);softness.connect(gain);nodes.push(softness);}else source.connect(gain);
+    pan.connect(event.instrument==='melody'?graph.melody:graph.piano);nodes.push(source);
+    const amplitude=event.velocity*(event.instrument==='melody'?0.86:0.63)*(felt?.94:1);
+    gain.gain.setValueAtTime(0,time);gain.gain.linearRampToValueAtTime(amplitude,time+(felt?.022:.008));
     gain.gain.setValueAtTime(amplitude,time+Math.max(0.02,duration));
     gain.gain.exponentialRampToValueAtTime(0.0001,time+duration+0.4);
     trackVoice(graph,source,gain,nodes,time,time+duration+0.45);

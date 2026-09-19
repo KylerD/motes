@@ -1,4 +1,6 @@
 import { SCENES, type Edition, type Point, type SceneId } from './edition';
+import type {SessionState} from '../session/session';
+import {drawSessionEffects} from './session-effects';
 
 const TAU = Math.PI*2;
 const noise = (n: number) => { const f = Math.sin(n*127.1+311.7)*43758.5453; return f-Math.floor(f); };
@@ -15,6 +17,7 @@ export class SceneRenderer {
   private width = 1; private height = 1; private ratio = 1;
   private iw = 1; private ih = 1; private ox = 0; private oy = 0;
   private ripples: Ripple[] = [];
+  private journey?:SessionState;
   motion = true;
   constructor(private canvas: HTMLCanvasElement, public edition: Edition) {
     const ctx = canvas.getContext('2d',{alpha:false});
@@ -23,14 +26,14 @@ export class SceneRenderer {
   }
   get ready() { return !!this.images.get(this.edition.scene)?.naturalWidth; }
   get failed() { return this.failures.has(this.edition.scene); }
-  get diagnostics() { return { images:this.images.size, glows:this.glows.size, ripples:this.ripples.length }; }
+  get diagnostics() { return { images:this.images.size, glows:this.glows.size, ripples:this.ripples.length,session:this.journey }; }
   setEdition(next: Edition): void {
     if(this.ready && this.motion) {
       this.previous = document.createElement('canvas');
       this.previous.width = this.canvas.width; this.previous.height = this.canvas.height;
       this.previous.getContext('2d')!.drawImage(this.canvas,0,0);
     }
-    this.changedAt = 0; this.edition = next; this.ripples = []; this.load(next.scene); this.layout();
+    this.changedAt = 0; this.edition = next; this.ripples = []; this.journey=undefined;this.load(next.scene); this.layout();
   }
   retry(): void { this.images.delete(this.edition.scene); this.failures.delete(this.edition.scene); this.load(this.edition.scene); }
   private load(id: SceneId): void {
@@ -76,8 +79,10 @@ export class SceneRenderer {
     g.addColorStop(0,color+'b0');g.addColorStop(.25,color+'40');g.addColorStop(1,color+'00');
     ctx.fillStyle=g;ctx.fillRect(0,0,80,80);this.glows.set(color,canvas);return canvas;
   }
-  draw(time:number,now=performance.now()):void {
-    const ctx=this.ctx,{scene,intensity,warmth,seed}=this.edition,image=this.images.get(scene);
+  draw(time:number,now=performance.now(),session?:SessionState):void {
+    if(session&&(!this.journey||this.motion))this.journey=session;
+    const ctx=this.ctx,{scene,warmth,seed}=this.edition,image=this.images.get(scene);
+    const intensity=this.edition.intensity*(this.journey?.weather??1);
     ctx.setTransform(this.ratio,0,0,this.ratio,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
     ctx.fillStyle=SCENES[scene].color;ctx.fillRect(0,0,this.width,this.height);
     if(image?.naturalWidth) {
@@ -90,18 +95,19 @@ export class SceneRenderer {
           const shift=(Math.sin(v*92+time*.58)*1.2+Math.sin(v*149-time*.37)*.7)*(scene==='coast'?1.5:1);
           ctx.drawImage(image,0,y,image.naturalWidth,h,this.ox+shift,this.oy+v*this.ih,this.iw,h/image.naturalHeight*this.ih+.6);
         }
-        this.water(time);ctx.restore();
+        this.water(time,intensity);ctx.restore();
       }
       // Very slow cloud shadow and warm/cool variation, always subordinate to the painting.
       ctx.fillStyle=warmth>.5?'#ffb575':'#557cb3';ctx.globalCompositeOperation='soft-light';
       ctx.globalAlpha=.035+warmth*.035+Math.sin(time*.012+seed%13)*.018;ctx.fillRect(0,0,this.width,this.height);
       ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+      if(this.journey)drawSessionEffects(ctx,scene,this.journey,time,{width:this.width,height:this.height,iw:this.iw,point:(u,v)=>this.point(u,v)});
       this.lights(time);
     }
     if(scene==='rain')this.rain(time,intensity);
     if(scene==='snow')this.snow(time,intensity);
     if(scene==='meadow')this.meadow(time);
-    if(scene==='coast'||scene==='meadow')this.birds(time);
+    if(!this.journey&&(scene==='coast'||scene==='meadow'))this.birds(time);
     if(scene==='coast'||scene==='snow')this.steam(time);
     if(this.previous) {
       if(!this.motion) this.previous=null;
@@ -113,8 +119,8 @@ export class SceneRenderer {
       }
     }
   }
-  private water(time:number):void {
-    const ctx=this.ctx,{scene,seed,intensity}=this.edition;
+  private water(time:number,intensity:number):void {
+    const ctx=this.ctx,{scene,seed}=this.edition;
     ctx.lineWidth=.6;ctx.strokeStyle=scene==='rain'?'#bcecff':'#ffe3ae';
     if(scene==='rain')for(let i=0;i<30*intensity;i++) {
       const p=this.point(.2+noise(seed+i)*.57,.66+noise(i+82)*.34),age=(time*.39+noise(i+21))%1;
@@ -152,7 +158,7 @@ export class SceneRenderer {
       ctx.drawImage(this.glow('#ffe7a0'),x-size,y-size,size*2,size*2);
     }
     ctx.globalCompositeOperation='source-over';
-    for(let i=0;i<4;i++) {
+    for(let i=0;i<(this.journey?0:4);i++) {
       const p=this.point(.27+noise(i+seed)*.46+Math.sin(time*.055+i)*.035,.51+noise(i+84)*.25+Math.cos(time*.08+i)*.025),wing=.2+Math.abs(Math.sin(time*3+i))*.8;
       ctx.globalAlpha=.7;ctx.fillStyle=i%2?'#fff1ac':'#ffd788';
       for(const side of [-1,1]){ctx.beginPath();ctx.ellipse(p.x+side*2*wing,p.y,2.5*wing,2.2,-side*.4,0,TAU);ctx.fill();}

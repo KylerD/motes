@@ -10,6 +10,8 @@ The user supplied saturated rainy anime-city and golden fantasy-meadow reference
 
 A painting fills the page immediately. Press Listen once. Small environmental changes reward occasional attention without demanding it. Four settings offer distinct moods. Daily editions vary place, music, light and weather; each session continues without a fixed endpoint. Music should have harmony, memorable recurring phrases, breathing room and a warm recorded character.
 
+The first hour has an arc: eighteen connected arrangements move through six chapters, related keys and upright, felt, electric and mallet sounds. Light and weather develop with the music; occasional distant events reward looking up. The opening theme returns toward the end, then the music continues gently into after hours. Pause holds the session; Still holds only the picture. A new place begins its musical hour after the current song finishes.
+
 Only useful listening controls remain: playback, next track, independent sound levels, no-drums mode, scene selection, date revisiting, motion and hide controls. No onboarding, account, dashboard, progress goals, scores, organisms, experiments or daily repository routine.
 
 ## Truth and constraints

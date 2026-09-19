@@ -17,7 +17,7 @@ npm run dev -- --host 127.0.0.1 --port 5175
 
 **Listen** starts the radio. **Next track** moves to another arrangement. **Mix** controls music and atmosphere separately, offers a version without drums, and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. Hide controls leaves the scene; Escape restores them.
 
-The music is composed locally into 64-bar tracks with an opening, theme, variation, quieter passage, return and ending. Voice-led seventh/ninth chords, repeating melodic phrases, soft swung percussion and round bass accompany recordings of a real Kawai upright piano. New songs vary harmony, key, tempo, motif, performance and arrangement details deterministically from the edition and track number. The instrument samples are local CC0 assets; see [audio provenance](public/audio/README.md).
+Each Listen session unfolds over an hour: eighteen connected 64-bar arrangements, six chapters, related keys and a return to the opening theme. Upright and softened felt piano give way to mellow electric keys and occasional mallet melodies. Seventh/ninth chords, recurring phrases, soft swung percussion and round bass leave room for quieter passages. After the hour, gentler new arrangements continue without a hard stop. The piano uses local CC0 Kawai upright recordings; electric keys and mallets are synthesized. See [audio provenance](public/audio/README.md).
 
 Piano, melody, bass and drums share one swung performance grid. Kick accents follow the bass, backbeats sit slightly behind the shared pulse, and restrained hat patterns leave space for the piano. The short kick and filtered percussion stay soft; piano echoes follow the track tempo.
 
@@ -29,6 +29,8 @@ The four paintings are authored assets, not new AI images generated each day. Ea
 
 The same date and place reproduce the same starting edition. An open session receives a quiet invitation at midnight instead of an abrupt change. Visiting today's edition resets to the daily place; an explicit scene URL pins a chosen place. Examples: `/?day=2026-09-17`, `/?day=2026-09-17&scene=snow`.
 
+Listening gradually deepens the light, changes the weather and warms windows. A train briefly visits the snowy station, a small boat crosses the bay, birds and butterflies pass through the meadow, and a shower passes over the city. These moments belong to the hour rather than repeating every few seconds. The music position drives this progression: Pause holds it, Next advances it, and Still freezes only the picture. After the hour, the scene remains in its evening state. The paintings themselves are unchanged; the evening is a restrained lighting treatment, not a full day/night replacement.
+
 Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. If an image fails, sound and controls remain available with a retry action.
 
 ## Code
@@ -37,8 +39,10 @@ Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWO
 | --- | --- |
 | `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
+| `src/scenes/session-effects.ts` | Gradual evening light, train, boat, birds, butterflies and fireflies |
+| `src/session/session.ts` | Deterministic hour-long arrangement, chapters and environmental timeline |
 | `src/music/composer.ts` | Pure, deterministic musical form, harmony, motifs and performance |
-| `src/music/sound.ts` | Sampled piano, bass, drums, reverb and atmosphere |
+| `src/music/sound.ts` | Upright/felt piano, electric keys, mallets, bass, drums, reverb and atmosphere |
 | `src/music/audio.ts` | Playback clock, track continuity, loading, volume and lifecycle |
 | `src/main.ts`, `src/style.css` | Listening interface, daily navigation, preferences and accessibility |
 
@@ -52,13 +56,14 @@ npm run build
 node scripts/verify-scenes.mjs
 node scripts/verify-music.mjs
 node scripts/verify-mix.mjs
+node scripts/verify-sessions.mjs
 node scripts/render-music-preview.mjs
 ```
 
-Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, daily revisiting, control panels, pause, retry, preferences, visibility events, music scheduling and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it can take duration, output path, seed and scene arguments.
+Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, daily revisiting, control panels, pause (including song boundaries), retry, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
 
 Technical audio checks establish playback and signal health, not a claim that every generated track meets someone's musical taste. The listening experience remains the quality bar.
 
-The mix check renders isolated music and atmosphere stems for all four scenes, with and without drums. At default levels, atmosphere must stay at least 18 dB below both the quiet opening and the theme in these fixtures. Scene-specific attenuation applies beneath the slider, so saved preferences receive the same calibration. Player and offline previews share the same defaults.
+The mix check renders isolated music and atmosphere stems for all four scenes, with and without drums, across all four instrumental colours and the quietest late-session arrangements. At default levels and maximum weather gain, atmosphere must stay at least 18 dB below both the quiet opening and the theme in these fixtures. Scene-specific attenuation applies beneath the slider, so saved preferences receive the same calibration. Player and offline previews share the same defaults.
 
 Original application code: CC0 / public domain. Illustration prompts and piano provenance accompany their assets.

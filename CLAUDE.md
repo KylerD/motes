@@ -1,10 +1,12 @@
 # Motes development
 
-Read README.md, PRODUCT.md and DESIGN.md. The entry is index.html; implementation is src/main.ts, src/scenes/ and src/music/.
+Read README.md, PRODUCT.md and DESIGN.md. The entry is index.html; implementation is src/main.ts, src/scenes/, src/session/ and src/music/.
 
 Motes is living scenery and warm jazzy lofi radio. Do not reintroduce organisms, names/stats, simulation tools, development journals or daily repository automation. The four original illustrations and music are the product.
 
 Keep the pure composer deterministic and musical: repeated themes, voice-led harmony, arranged sections and restrained performance variation. Piano recordings are local CC0 assets. Never consume scenery randomness from the audio clock. Audio scheduling must continue independently of requestAnimationFrame. Keep samples, scheduled voices and decoded assets bounded. Preserve sample failures/retry and smooth pause/resume.
+
+The session planner writes eighteen arrangements spanning exactly 3,600 seconds. Derive progression from the audible score position, including pause, skip and edition handovers. Evening light and sparse scene events are stateless samples of that position. Keep ambient motion available before Listen and let Still freeze visuals independently. After hours must not rewind the evening or replay its events. Instrument changes must preserve the shared groove and calibrated quiet atmosphere; verify every timbre, including sparse passages.
 
 Daily editions use validated local dates; no surprise scene or song interruption at midnight. Keep ordinary daily URLs unpinned and explicit scene choices shareable. Reduced motion affects scenery independently of listening. All controls need visible focus, useful labels and readable contrast over the art.
 

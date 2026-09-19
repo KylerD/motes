@@ -27,6 +27,11 @@
         "purpose": "Linear canvas blend between paintings while motion is on."
       },
       {
+        "name": "listening-session",
+        "value": "3600s",
+        "purpose": "Six musical chapters lead restrained evening light, weather and sparse events. Pause holds progression; Still freezes the picture; after hours preserves the evening."
+      },
+      {
         "name": "reduced-motion",
         "value": "prefers-reduced-motion: reduce",
         "purpose": "Start still, react to preference changes, remove CSS transitions; music remains independent."
@@ -62,7 +67,7 @@
     ],
     "donts": [
       "Don't reintroduce organisms, names and stats, experiments or an Explore interface.",
-      "Don't make motion depend on music or start audio without a listening action.",
+      "Don't require music for ambient motion or start audio without a listening action; the hour's progression follows listening.",
       "Don't add dashboard density, realistic rendering or toy-like procedural scenery."
     ]
   }
