@@ -11,11 +11,13 @@ npm ci
 npm run dev -- --host 127.0.0.1 --port 5175
 ```
 
-`npm run build` produces a static `dist/` site. There is no backend, account, runtime npm dependency, API key or daily content-generation job. Web fonts come from Google Fonts with local fallbacks.
+`npm run build` produces a static `dist/` site. There is no backend, account, runtime npm dependency, API key or daily content-generation job. Fonts, illustrations and piano samples are bundled locally; the page makes no font-service requests.
 
 ## Listen
 
-**Listen** starts the radio. **Next track** moves to another arrangement. **Mix** controls music and atmosphere separately, offers a version without drums, and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. Hide controls leaves the scene; Escape restores them.
+**Listen** starts the radio. **Next track** moves to another arrangement. **Sound & motion** controls music and scene sounds separately, offers a version without drums, and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. **Just the scene** hides the controls; Escape restores them.
+
+The shelter-and-mote logo, warm brown radio, amber playback button and cream settings panels give every place the same welcoming interface. Original SVG brand masters live in [public/brand](public/brand/README.md); the self-hosted Nunito Sans and EB Garamond fonts retain their [licenses and sources](public/fonts/README.md). Desktop, phone and short landscape layouts keep the listening controls within reach.
 
 Each Listen session unfolds over an hour: eighteen connected 64-bar arrangements, six chapters, related keys and a return to the opening theme. Upright and softened felt piano give way to mellow electric keys and occasional mallet melodies. Seventh/ninth chords, recurring phrases, soft swung percussion and round bass leave room for quieter passages. After the hour, gentler new arrangements continue without a hard stop. The piano uses local CC0 Kawai upright recordings; electric keys and mallets are synthesized. See [audio provenance](public/audio/README.md).
 

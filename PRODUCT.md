@@ -6,6 +6,8 @@ Motes is an alternative to lofi YouTube channels: beautiful living scenes and wa
 
 The user supplied saturated rainy anime-city and golden fantasy-meadow references. Keep that illustrated, cosy videogame sensibility. Avoid realism and toy-like procedural geometry. On 17 September they clarified that "living" describes the scene, not organisms with names and stats. They explicitly chose **warm, jazzy lofi beats**. This supersedes all artificial-life and experiment concepts.
 
+The interface should feel warm, cosy and like a safe place. A distinct Motes logo and clear, welcoming controls support that identity while the illustrated scene remains the focus.
+
 ## Experience
 
 A painting fills the page immediately. Press Listen once. Small environmental changes reward occasional attention without demanding it. Four settings offer distinct moods. Daily editions vary place, music, light and weather; each session continues without a fixed endpoint. Music should have harmony, memorable recurring phrases, breathing room and a warm recorded character.

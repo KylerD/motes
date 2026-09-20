@@ -1,26 +1,76 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-18T10:57:19Z",
+  "generatedAt": "2026-09-19T21:28:18.179Z",
   "title": "Design System: Motes",
   "extensions": {
     "shadows": [
       {
-        "name": "identity",
-        "value": "0 2px 8px #081725",
-        "purpose": "Text shadow behind the wordmark and tagline."
+        "name": "radio",
+        "value": "0 12px 40px #110e0b40",
+        "purpose": "Box shadow grounding the brown listening surface."
       },
       {
-        "name": "actions",
-        "value": "0 1px 5px #061121",
-        "purpose": "Text shadow for text and icon actions."
+        "name": "panel",
+        "value": "0 18px 60px #110e0b59",
+        "purpose": "Box shadow lifting cream panels above the painting."
+      },
+      {
+        "name": "feedback",
+        "value": "0 8px 24px #110e0b40",
+        "purpose": "Box shadow for status feedback."
+      },
+      {
+        "name": "identity",
+        "value": "drop-shadow(0 2px 8px #17120f80)",
+        "purpose": "Filter shadow on the original SVG logo."
+      },
+      {
+        "name": "tagline",
+        "value": "0 1px 5px #17120f",
+        "purpose": "Text shadow protecting the tagline."
       },
       {
         "name": "caption",
-        "value": "0 2px 20px #05152ce6",
+        "value": "0 2px 20px #171712d9",
         "purpose": "Text shadow protecting scene captions."
+      },
+      {
+        "name": "range-thumb",
+        "value": "0 2px 5px #493b3033",
+        "purpose": "Box shadow defining the range thumb."
       }
     ],
     "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "Panel arrival and switch knob easing."
+      },
+      {
+        "name": "button-feedback",
+        "value": "background-color 160ms ease, color 160ms ease",
+        "purpose": "Button state feedback."
+      },
+      {
+        "name": "panel-arrival",
+        "value": "240ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Translate from 6px below and opacity .8 to the resting position and opacity 1."
+      },
+      {
+        "name": "switch-track",
+        "value": "background-color 180ms ease",
+        "purpose": "On/Still track colour."
+      },
+      {
+        "name": "switch-knob",
+        "value": "transform 200ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Move the paper knob 14px for On."
+      },
+      {
+        "name": "hour-progress",
+        "value": "transform 650ms linear",
+        "purpose": "Left-origin scaleX updates hour progression without changing layout width."
+      },
       {
         "name": "scene-crossfade",
         "value": "1600ms",
@@ -29,22 +79,30 @@
       {
         "name": "listening-session",
         "value": "3600s",
-        "purpose": "Six musical chapters lead restrained evening light, weather and sparse events. Pause holds progression; Still freezes the picture; after hours preserves the evening."
+        "purpose": "Six musical chapters lead evening light, weather and sparse events. Pause holds progression; Still freezes the picture; after hours preserves the evening."
       },
       {
         "name": "reduced-motion",
         "value": "prefers-reduced-motion: reduce",
-        "purpose": "Start still, react to preference changes, remove CSS transitions; music remains independent."
+        "purpose": "Start still, react to preference changes, remove CSS transitions and animations; audio remains independent."
       }
     ],
     "breakpoints": [
       {
-        "name": "compact-desktop",
-        "value": "1120px"
+        "name": "hide-atmosphere",
+        "value": "1250px"
+      },
+      {
+        "name": "compact-radio",
+        "value": "850px"
       },
       {
         "name": "phone",
         "value": "700px"
+      },
+      {
+        "name": "narrow-phone",
+        "value": "360px"
       },
       {
         "name": "short-desktop",
@@ -52,23 +110,43 @@
       }
     ]
   },
+  "components": [
+    {
+      "name": "Listen",
+      "kind": "button",
+      "refersTo": "button-listen",
+      "description": "Amber playback with a persistent icon and label.",
+      "html": "<button class=\"ds-listen\" aria-pressed=\"false\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m9 5 11 7-11 7Z\"/></svg><span>Listen</span></button>",
+      "css": ".ds-listen{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-width:116px;height:54px;padding:0 20px 0 17px;border:0;border-radius:10px;background:var(--amber,#eab574);color:var(--ink,#302721);font:700 15px/1.5 var(--sans,'Nunito Sans',Arial,sans-serif);cursor:pointer;transition:background-color 160ms ease,color 160ms ease}.ds-listen:hover:not(:disabled){background:var(--amber-hover,#f3c991)}.ds-listen:focus-visible{outline:2px solid var(--cream,#fff1da);outline-offset:4px}.ds-listen:disabled{opacity:.4;cursor:default}.ds-listen svg{width:22px;height:22px;fill:currentColor;stroke:currentColor;stroke-width:1}.ds-listen[aria-pressed=true] svg{fill:none;stroke-width:2.5}@media(prefers-reduced-motion:reduce){.ds-listen{transition:none}}"
+    },
+    {
+      "name": "Visit a day",
+      "kind": "input",
+      "refersTo": "date-input",
+      "description": "A native date field with warm paper, readable labels and a copper focus outline.",
+      "html": "<label class=\"ds-date-label\">Visit a day<input class=\"ds-date\" type=\"date\" min=\"2000-01-01\" max=\"2100-12-31\" value=\"2026-09-19\"></label>",
+      "css": ".ds-date-label{display:block;max-width:312px;color:var(--paper-text,#40332a);font:600 13px/1.5 var(--sans,'Nunito Sans',Arial,sans-serif)}.ds-date{display:block;width:100%;min-height:48px;margin-top:9px;background:#fff9ef;color:var(--paper-text,#40332a);color-scheme:light;border:1px solid var(--paper-line,#d8c9b5);border-radius:8px;padding:10px 12px;font:500 14px/1.5 var(--sans,'Nunito Sans',Arial,sans-serif);caret-color:#8b623e}.ds-date:focus-visible{outline:2px solid #956038;outline-offset:3px}"
+    }
+  ],
   "narrative": {
-    "northStar": "The Living Painting",
-    "overview": "Motes is an illustrated place to settle into with warm, jazzy lofi. Saturated scenery, soft environmental movement and a small radio player share the screen. Cream serif captions feel conversational; the surrounding controls stay quiet and useful.\n\nFour authored paintings establish the world: Neon rain, Golden hour, Last light station and The last chapter. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.",
+    "northStar": "A Quiet Place",
+    "overview": "Motes is an illustrated place to settle into with warm, jazzy lofi. A shelter holding an amber mote welcomes the listener; a toasted-brown radio and cream settings make the interface feel familiar and comfortable. The paintings remain the focus.\n\nFour authored paintings establish the world: Neon rain, Golden hour, Last light station and The last chapter. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.",
     "keyCharacteristics": [
       "Full-viewport paintings with moving water, weather, light and small distant events.",
-      "Warm cream typography and restrained navy/teal controls across all four places.",
-      "Opt-in music, independent scene motion and a view with controls hidden."
+      "An original shelter-and-mote logo, warm brown radio, amber playback and cream settings.",
+      "Clear labelled controls on desktop and phone, opt-in music and independent scene motion."
     ],
+    "rules": [],
     "dos": [
-      "Do preserve the illustrated, cosy videogame character and keep every scene beautiful when still.",
-      "Do keep controls around the painting, protect legibility with the existing scrims and retain visible keyboard focus.",
-      "Do distinguish the four authored paintings from daily atmospheric and musical editions."
+      "Do keep the illustrated, cosy videogame character and make every scene beautiful when still.",
+      "Do preserve the original shelter-and-mote identity, warm brown radio, amber listening action and cream settings.",
+      "Do retain visible action labels on phones, readable contrast and useful keyboard focus.",
+      "Do distinguish the four authored paintings from their daily atmospheric and musical editions."
     ],
     "donts": [
-      "Don't reintroduce organisms, names and stats, experiments or an Explore interface.",
-      "Don't require music for ambient motion or start audio without a listening action; the hour's progression follows listening.",
-      "Don't add dashboard density, realistic rendering or toy-like procedural scenery."
+      "Don't reintroduce organisms, names/stats, experiments, an Explore interface or dashboard density.",
+      "Don't start sound without a listening action or make ambient scene motion depend on music.",
+      "Don't replace the paintings with realistic rendering or toy-like procedural scenery."
     ]
   }
 }

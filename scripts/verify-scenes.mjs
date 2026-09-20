@@ -5,13 +5,19 @@ import { mkdirSync,writeFileSync } from 'node:fs';
 const base=process.env.MOTES_URL||'http://127.0.0.1:5175';
 const browser=await chromium.launch(),errors=[],report={};
 mkdirSync('captures-scenes',{recursive:true});
-const ready=page=>page.waitForFunction(()=>window.__motes?.ready);
+const ready=async page=>{
+  await page.waitForFunction(()=>window.__motes?.ready);
+  await page.evaluate(async()=>{await document.fonts.ready;await document.querySelector('.brand-logo').decode();});
+};
 const settle=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
 const thumbnails=page=>page.locator('#scene-list img').evaluateAll(images=>Promise.all(images.map(image=>image.decode())));
 try {
   const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(`${base}/?debug&day=2026-09-17&scene=rain&seed=2766115161&habitat=reef`);await ready(page);
+  assert.deepEqual(await page.evaluate(()=>Array.from(document.fonts,face=>({family:face.family,status:face.status}))),[
+    {family:'Nunito Sans',status:'loaded'},{family:'EB Garamond',status:'loaded'},
+  ]);report.brandAssets=true;
   assert.equal(await page.evaluate(()=>window.__motes.radio.contextState),'uninitialized');
   await page.evaluate(()=>{window.__listenMutations=0;new MutationObserver(records=>{window.__listenMutations+=records.length;}).observe(document.querySelector('#listen'),{subtree:true,childList:true,characterData:true});});
   await page.waitForTimeout(850);
@@ -69,7 +75,21 @@ try {
     if(panel==='scenes'){await thumbnails(phone);await settle(phone);}
     assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=391&&box.y+box.height<=845);
     await phone.screenshot({path:`captures-scenes/${panel}-mobile.png`});await phone.keyboard.press('Escape');
+    assert.equal(await phone.locator(`#${panel}-toggle`).evaluate(el=>el===document.activeElement),true);
   }report.mobile=true;
+
+  for(const viewport of [{width:320,height:568},{width:844,height:390}]) {
+    await phone.setViewportSize(viewport);await settle(phone);
+    assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    for(const panel of ['mix','scenes','edition']) {
+      await phone.click(`#${panel}-toggle`);
+      const box=await phone.locator(`#${panel}-panel`).boundingBox();
+      assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=viewport.width+1&&box.y+box.height<=viewport.height+1);
+      await phone.screenshot({path:`captures-scenes/${panel}-${viewport.width}.png`});
+      await phone.keyboard.press('Escape');
+    }
+    await phone.screenshot({path:`captures-scenes/scene-${viewport.width}.png`});
+  }report.smallAndLandscape=true;
 
   const fallback=await browser.newPage({reducedMotion:'reduce'});
   fallback.on('pageerror',error=>errors.push(error.message));

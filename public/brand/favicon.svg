@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <title>Motes</title>
+  <rect width="128" height="128" rx="28" fill="#302721"/>
+  <g transform="translate(6 8)">
+    <g fill="#FFF1DA">
+      <path d="M8 91V59C8 27 28 6 58 6C88 6 108 27 108 59V91C108 97 104 101 99 101C94 101 90 97 90 91V59C90 38 78 23 58 23C38 23 26 38 26 59V91C26 97 22 101 17 101C12 101 8 97 8 91Z"/>
+      <path d="M34 83C48 90 68 90 82 83C86 81 90 84 89 88C86 100 72 105 58 105C44 105 30 100 27 88C26 84 30 81 34 83Z"/>
+    </g>
+    <circle cx="58" cy="64" r="16" fill="#EAB574"/>
+  </g>
+</svg>

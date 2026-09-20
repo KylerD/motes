@@ -10,4 +10,6 @@ The session planner writes eighteen arrangements spanning exactly 3,600 seconds.
 
 Daily editions use validated local dates; no surprise scene or song interruption at midnight. Keep ordinary daily URLs unpinned and explicit scene choices shareable. Reduced motion affects scenery independently of listening. All controls need visible focus, useful labels and readable contrast over the art.
 
+Use the original SVG identity in public/brand/ and local licensed fonts in public/fonts/. Preserve the warm brown player, amber listening action and cream panels described in DESIGN.md. Sound & motion and Find a place remain labelled on phones; keep short-screen panels scrollable and return keyboard focus to their trigger on close.
+
 Run npm test, npm run build and relevant browser scripts. Check desktop and phone together. Audio work also needs a rendered PCM preview and lifecycle checks. Original art prompts and audio provenance live alongside local assets.
