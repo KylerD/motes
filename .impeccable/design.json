@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-19T21:28:18.179Z",
+  "generatedAt": "2026-09-21T13:03:38.8272645Z",
   "title": "Design System: Motes",
   "extensions": {
     "shadows": [
@@ -79,7 +79,22 @@
       {
         "name": "listening-session",
         "value": "3600s",
-        "purpose": "Six musical chapters lead evening light, weather and sparse events. Pause holds progression; Still freezes the picture; after hours preserves the evening."
+        "purpose": "Eighteen arrangements and six chapters shape the score. Next changes the score without advancing the independent environment clock; Pause holds both clocks."
+      },
+      {
+        "name": "environment-time",
+        "value": "listening audio time",
+        "purpose": "Independent environment time controls light, weather and events. Still freezes the rendered picture while audio and environment time continue; arrival in a new place/date resets the environment while the old song finishes."
+      },
+      {
+        "name": "meadow-evening",
+        "value": "approximately 3000s",
+        "purpose": "Matched daytime and dusk paintings blend sky, distance, clearing and water at separate rates, with later lantern light and fireflies. Other places retain subtler lighting. A failed dusk load preserves the daytime painting with retry."
+      },
+      {
+        "name": "meadow-composite",
+        "value": "2s",
+        "purpose": "Cache interval for painted meadow relighting; water reflections sample the same composite."
       },
       {
         "name": "reduced-motion",
@@ -130,7 +145,7 @@
   ],
   "narrative": {
     "northStar": "A Quiet Place",
-    "overview": "Motes is an illustrated place to settle into with warm, jazzy lofi. A shelter holding an amber mote welcomes the listener; a toasted-brown radio and cream settings make the interface feel familiar and comfortable. The paintings remain the focus.\n\nFour authored paintings establish the world: Neon rain, Golden hour, Last light station and The last chapter. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.",
+    "overview": "Motes is an illustrated place to settle into with warm, jazzy lofi. A shelter holding an amber mote welcomes the listener; a toasted-brown radio and cream settings make the interface feel familiar and comfortable. The paintings remain the focus.\n\nFour authored places establish the world: Neon rain, Golden hour, Last light station and The last chapter. Golden hour has matched daytime and dusk paintings; the other three places retain their subtler lighting treatment. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.",
     "keyCharacteristics": [
       "Full-viewport paintings with moving water, weather, light and small distant events.",
       "An original shelter-and-mote logo, warm brown radio, amber playback and cream settings.",
@@ -141,7 +156,7 @@
       "Do keep the illustrated, cosy videogame character and make every scene beautiful when still.",
       "Do preserve the original shelter-and-mote identity, warm brown radio, amber listening action and cream settings.",
       "Do retain visible action labels on phones, readable contrast and useful keyboard focus.",
-      "Do distinguish the four authored paintings from their daily atmospheric and musical editions."
+      "Do distinguish the four authored places, including the meadow's matched day/dusk paintings, from their daily atmospheric and musical editions."
     ],
     "donts": [
       "Don't reintroduce organisms, names/stats, experiments, an Explore interface or dashboard density.",

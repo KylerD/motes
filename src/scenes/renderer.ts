@@ -1,6 +1,7 @@
 import { SCENES, type Edition, type Point, type SceneId } from './edition';
 import type {SessionState} from '../session/session';
 import {drawSessionEffects} from './session-effects';
+import {MeadowLight,meadowLightAt} from './meadow-light';
 
 const TAU = Math.PI*2;
 const noise = (n: number) => { const f = Math.sin(n*127.1+311.7)*43758.5453; return f-Math.floor(f); };
@@ -18,6 +19,9 @@ export class SceneRenderer {
   private iw = 1; private ih = 1; private ox = 0; private oy = 0;
   private ripples: Ripple[] = [];
   private journey?:SessionState;
+  private dusk?:HTMLImageElement;
+  private duskFailed=false;
+  private meadowLight?:MeadowLight;
   motion = true;
   constructor(private canvas: HTMLCanvasElement, public edition: Edition) {
     const ctx = canvas.getContext('2d',{alpha:false});
@@ -25,8 +29,9 @@ export class SceneRenderer {
     this.ctx = ctx; this.load(edition.scene); this.resize();
   }
   get ready() { return !!this.images.get(this.edition.scene)?.naturalWidth; }
-  get failed() { return this.failures.has(this.edition.scene); }
-  get diagnostics() { return { images:this.images.size, glows:this.glows.size, ripples:this.ripples.length,session:this.journey }; }
+  get lightingFailed() {return this.edition.scene==='meadow'&&this.duskFailed;}
+  get failed() { return this.failures.has(this.edition.scene)||this.lightingFailed; }
+  get diagnostics() { return { images:this.images.size, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.meadowLight,lightingFailed:this.lightingFailed }; }
   setEdition(next: Edition): void {
     if(this.ready && this.motion) {
       this.previous = document.createElement('canvas');
@@ -35,13 +40,27 @@ export class SceneRenderer {
     }
     this.changedAt = 0; this.edition = next; this.ripples = []; this.journey=undefined;this.load(next.scene); this.layout();
   }
-  retry(): void { this.images.delete(this.edition.scene); this.failures.delete(this.edition.scene); this.load(this.edition.scene); }
+  retry(): void {
+    if(this.lightingFailed){this.dusk=undefined;this.duskFailed=false;this.loadDusk();}
+    if(!this.ready){this.images.delete(this.edition.scene);this.failures.delete(this.edition.scene);this.load(this.edition.scene);}
+  }
+  private prepareLight():void {
+    const day=this.images.get('meadow');
+    if(!this.meadowLight&&day?.naturalWidth&&this.dusk?.naturalWidth)this.meadowLight=new MeadowLight(day,this.dusk);
+  }
+  private loadDusk():void {
+    if(this.dusk)return;
+    const image=new Image();image.decoding='async';
+    image.onload=()=>this.prepareLight();image.onerror=()=>{this.duskFailed=true;};
+    this.dusk=image;image.src='/scenes/golden-hour-dusk.png';
+  }
   private load(id: SceneId): void {
     if (this.images.has(id)) return;
     const image = new Image(); image.decoding = 'async';
-    image.onload = () => { if(id===this.edition.scene) this.layout(); };
+    image.onload = () => { if(id===this.edition.scene) this.layout();if(id==='meadow')this.prepareLight(); };
     image.onerror = () => this.failures.add(id);
     this.images.set(id,image); image.src = SCENES[id].image;
+    if(id==='meadow')this.loadDusk();
   }
   resize(): void {
     const box = this.canvas.getBoundingClientRect(); this.width = Math.max(1,box.width); this.height = Math.max(1,box.height);
@@ -86,20 +105,23 @@ export class SceneRenderer {
     ctx.setTransform(this.ratio,0,0,this.ratio,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
     ctx.fillStyle=SCENES[scene].color;ctx.fillRect(0,0,this.width,this.height);
     if(image?.naturalWidth) {
-      ctx.drawImage(image,this.ox,this.oy,this.iw,this.ih);
+      const painting=scene==='meadow'&&this.meadowLight&&this.journey?this.meadowLight.frame(this.journey.elapsed):image;
+      ctx.drawImage(painting,this.ox,this.oy,this.iw,this.ih);
       if(SCENES[scene].water.length) {
         ctx.save();this.waterPath();ctx.clip();
         const strip=Math.ceil(image.naturalHeight/135),start=scene==='coast'?.38:.60;
         for(let y=Math.floor(image.naturalHeight*start);y<image.naturalHeight;y+=strip) {
           const h=Math.min(strip,image.naturalHeight-y),v=y/image.naturalHeight;
           const shift=(Math.sin(v*92+time*.58)*1.2+Math.sin(v*149-time*.37)*.7)*(scene==='coast'?1.5:1);
-          ctx.drawImage(image,0,y,image.naturalWidth,h,this.ox+shift,this.oy+v*this.ih,this.iw,h/image.naturalHeight*this.ih+.6);
+          ctx.drawImage(painting,0,y,image.naturalWidth,h,this.ox+shift,this.oy+v*this.ih,this.iw,h/image.naturalHeight*this.ih+.6);
         }
         this.water(time,intensity);ctx.restore();
       }
       // Very slow cloud shadow and warm/cool variation, always subordinate to the painting.
-      ctx.fillStyle=warmth>.5?'#ffb575':'#557cb3';ctx.globalCompositeOperation='soft-light';
-      ctx.globalAlpha=.035+warmth*.035+Math.sin(time*.012+seed%13)*.018;ctx.fillRect(0,0,this.width,this.height);
+      if(scene!=='meadow') {
+        ctx.fillStyle=warmth>.5?'#ffb575':'#557cb3';ctx.globalCompositeOperation='soft-light';
+        ctx.globalAlpha=.035+warmth*.035+Math.sin(time*.012+seed%13)*.018;ctx.fillRect(0,0,this.width,this.height);
+      }
       ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
       if(this.journey)drawSessionEffects(ctx,scene,this.journey,time,{width:this.width,height:this.height,iw:this.iw,point:(u,v)=>this.point(u,v)});
       this.lights(time);
@@ -152,9 +174,10 @@ export class SceneRenderer {
   }
   private meadow(time:number):void {
     const ctx=this.ctx,{seed,intensity}=this.edition;ctx.save();ctx.globalCompositeOperation='screen';
+    const daylight=1-meadowLightAt(this.journey?.elapsed??0).clearing;
     for(let i=0;i<32*intensity;i++) {
       const x=((noise(seed+i)+time*.002)%1)*this.width+Math.sin(time*.21+i)*15,y=noise(i+80)*this.height+Math.sin(time*.16+i)*12;
-      const size=1+noise(i+170)*3;ctx.globalAlpha=.18+Math.pow(Math.max(0,Math.sin(time*.3+i)),2)*.4;
+      const size=1+noise(i+170)*3;ctx.globalAlpha=(.18+Math.pow(Math.max(0,Math.sin(time*.3+i)),2)*.4)*daylight;
       ctx.drawImage(this.glow('#ffe7a0'),x-size,y-size,size*2,size*2);
     }
     ctx.globalCompositeOperation='source-over';
@@ -198,5 +221,9 @@ export class SceneRenderer {
       ctx.globalAlpha=Math.sin(age*Math.PI)*.10;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.bezierCurveTo(p.x-7,p.y-8,p.x+9,p.y-15,p.x+Math.sin(time*.5+i)*7,p.y-25);ctx.stroke();
     }ctx.restore();
   }
-  dispose():void { this.images.forEach(i=>{i.onload=null;i.onerror=null;});this.images.clear();this.glows.clear();this.previous=null; }
+  dispose():void {
+    this.images.forEach(i=>{i.onload=null;i.onerror=null;});this.images.clear();this.glows.clear();this.previous=null;
+    if(this.dusk){this.dusk.onload=null;this.dusk.onerror=null;this.dusk=undefined;}
+    this.meadowLight?.dispose();this.meadowLight=undefined;
+  }
 }

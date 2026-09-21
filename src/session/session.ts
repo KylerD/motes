@@ -31,7 +31,7 @@ export function createSession(seed:number,mood:Mood):SessionPlan {
   const event=(kind:EventKind,index:number,duration:number):SessionEvent=>({kind,start:slots[index].start+(kind==='train'?96*60/slots[index].arrangement.bpm:35)+random()*(kind==='train'?5:25),duration});
   const events:SessionEvent[]=mood==='snow'?[event('train',8,110),event('windows',13,100)]
     :mood==='coast'?[event('birds',2,38),event('boat',7,150),event('birds',14,35)]
-    :mood==='meadow'?[event('butterflies',1,65),event('birds',6,38),event('butterflies',12,65)]
+    :mood==='meadow'?[event('butterflies',1,65),event('butterflies',4,65),event('birds',6,38)]
     :[event('shower',5,280),event('windows',12,120)];
   return {seed,mood,duration:3600,slots,events};
 }

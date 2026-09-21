@@ -1,5 +1,6 @@
 import type { ActiveEvent, SessionState } from '../session/session';
 import type { SceneId } from './edition';
+import {meadowLightAt} from './meadow-light';
 
 interface Position { x:number; y:number }
 interface SceneSpace { width:number; height:number; iw:number; point:(u:number,v:number)=>Position }
@@ -146,17 +147,34 @@ function butterflies(ctx:CanvasRenderingContext2D,event:ActiveEvent,time:number,
 }
 
 function fireflies(ctx:CanvasRenderingContext2D,state:SessionState,time:number,space:SceneSpace):void {
-  const dusk=smooth((state.dusk-.32)/.5);
+  const dusk=meadowLightAt(state.elapsed).fireflies;
   if(dusk<=0)return;
-  const places=[[.39,.60],[.43,.58],[.57,.59],[.62,.60],[.71,.64],[.78,.60],[.75,.70]];
+  const places=[[.39,.60],[.43,.58],[.57,.59],[.62,.60],[.71,.64],[.78,.60],[.75,.70],[.35,.75],[.48,.66],[.73,.83],[.82,.74],[.28,.66],[.57,.82]];
   ctx.save();ctx.globalCompositeOperation='screen';
   places.forEach(([u,v],i)=>{
     const p=space.point(u+Math.sin(time*.12+i*2)*.007,v+Math.cos(time*.15+i)*.005);
     const pulse=.35+.65*Math.pow(Math.sin(time*.29+i*1.7),2);
-    glow(ctx,p,space.iw*.0035,dusk*pulse*.55);
-    ctx.globalAlpha=dusk*pulse*.4;ctx.fillStyle='#ffe1a0';
+    glow(ctx,p,space.iw*.0035,dusk*pulse*.7);
+    ctx.globalAlpha=dusk*pulse*.62;ctx.fillStyle='#ffe1a0';
     ctx.beginPath();ctx.arc(p.x,p.y,space.iw*.00055,0,TAU);ctx.fill();
   });
+  ctx.restore();
+}
+
+function meadowLantern(ctx:CanvasRenderingContext2D,state:SessionState,time:number,space:SceneSpace):void {
+  const amount=meadowLightAt(state.elapsed).lamps;
+  if(!amount)return;
+  ctx.save();ctx.globalCompositeOperation='screen';
+  const breathe=.94+Math.sin(time*.7)*.035+Math.sin(time*1.13)*.025;
+  glow(ctx,space.point(.817,.587),space.iw*.029,amount*breathe*.3);
+  // A broken reflection remains below the painted lantern, never over the bank.
+  ctx.strokeStyle='#edbd76';ctx.lineWidth=space.iw*.00065;
+  for(let i=0;i<8;i++) {
+    const p=space.point(.808+Math.sin(time*.43+i)*.0014,.739+i*.0043);
+    const half=space.iw*(.0007+i*.00019);
+    ctx.globalAlpha=amount*(.15-i*.013)*( .7+Math.sin(time*.45+i)*.2);
+    ctx.beginPath();ctx.moveTo(p.x-half,p.y);ctx.lineTo(p.x+half,p.y);ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -187,8 +205,9 @@ export function drawSessionEffects(
   ctx:CanvasRenderingContext2D,scene:SceneId,state:SessionState,time:number,space:SceneSpace,
 ):void {
   ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-  evening(ctx,scene,state,space);windows(ctx,scene,state,space);
-  if(scene==='meadow')fireflies(ctx,state,time,space);
+  if(scene!=='meadow')evening(ctx,scene,state,space);
+  windows(ctx,scene,state,space);
+  if(scene==='meadow'){meadowLantern(ctx,state,time,space);fireflies(ctx,state,time,space);}
   // The written hour uses at most two simultaneous events. Keep the upper bound
   // explicit so drawing work remains bounded even for an externally supplied state.
   for(let i=0;i<Math.min(6,state.events.length);i++) {

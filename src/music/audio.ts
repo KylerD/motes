@@ -1,5 +1,6 @@
 import { composeTrack, type Mood, type MusicMode, type Track } from './composer';
 import {createSession,composeSessionTrack,sessionAt,type SessionPlan} from '../session/session';
+import {EnvironmentClock} from '../session/environment';
 import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, loadPiano, scheduleNote, setSoundMode, startAmbience, stopVoices, type SoundGraph } from './sound';
 export { composeTrack } from './composer';
 export { DEFAULT_MIX } from './sound';
@@ -32,10 +33,12 @@ export class RadioAudio {
   private segments:Segment[]=[];
   private ticks=0;
   private compositions=0;
+  private environmentClock=new EnvironmentClock();
 
   constructor(private seed:number,private mood:Mood) {this.plan=createSession(seed,mood);this.track=this.makeTrack();}
 
   get playing() {return this.running;}
+  get environment() {return sessionAt(this.plan,this.environmentClock.seconds(this.context?.currentTime??0));}
   get session() {
     const {track,beat}=this.position();
     return sessionAt(this.plan,track.sessionPlan===this.plan&&track.session?track.session.offset+beat*60/track.bpm:0);
@@ -80,12 +83,13 @@ export class RadioAudio {
         const now=context.currentTime;
         stopVoices(graph,now,0.025);
         this.segments=[this.segment(this.track,now+0.09-this.beat*60/this.track.bpm,this.beat)];
-        this.running=true;
+        this.running=true;this.environmentClock.start(now);
         startAmbience(graph,this.mood,now+0.02);
         holdParameter(graph.output.gain,now);graph.output.gain.linearRampToValueAtTime(1,now+0.35);
         this.tick();
         this.timer=setInterval(()=>this.tick(),250);
       }catch(error){
+        this.environmentClock.pause(context.currentTime);
         this.running=false;this.wanted=false;this.abort?.abort();
         if(this.graph){disposeGraph(this.graph);this.graph=undefined;}
         if(context.state!=='closed')await context.close().catch(()=>undefined);
@@ -100,6 +104,7 @@ export class RadioAudio {
     this.wanted=false;
     if(!this.running)return;
     const position=this.position();this.track=position.track;this.beat=position.beat;
+    this.environmentClock.pause(this.context?.currentTime??0);
     // Pausing discards look-ahead segments; recreate the immediate successor on resume.
     this.index=this.track.sessionPlan===this.plan?this.track.index+1:0;
     this.running=false;
@@ -123,6 +128,7 @@ export class RadioAudio {
   setEdition(seed:number,mood:Mood):void {
     if(seed===this.seed&&mood===this.mood)return;
     this.seed=seed;this.mood=mood;this.index=0;this.plan=createSession(seed,mood);
+    this.environmentClock.reset(this.context?.currentTime??0);
     if(this.running&&this.context&&this.graph) {
       const active=this.activeSegment();
       if(active){
@@ -176,7 +182,7 @@ export class RadioAudio {
     if(!this.running||!context||!graph)return;
     this.ticks++;
     const now=context.currentTime;
-    const weatherLevel=Math.max(.75,Math.min(1.12,this.session.weather));
+    const weatherLevel=Math.max(.75,Math.min(1.12,this.environment.weather));
     if(Math.abs(weatherLevel-this.weatherLevel)>.005){this.weatherLevel=weatherLevel;graph.ambience.gain.setTargetAtTime(this.ambienceVolume*weatherLevel,now,3);}
     // Audio remains scheduled through normal background timer throttling. There is exactly one timer.
     const horizon=now+6;

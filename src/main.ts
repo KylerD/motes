@@ -3,6 +3,7 @@ import { DEFAULT_MIX, RadioAudio } from './music/audio';
 import { edition,dayLabel,localDay,validDay,isScene,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
 import { SceneRenderer } from './scenes/renderer';
 import {createSession,sessionAt} from './session/session';
+import {meadowLightAt} from './scenes/meadow-light';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
@@ -124,7 +125,11 @@ function updatePlayer() {
   text('track-title',track.title);
   text('track-detail',starting?'Preparing the piano…':!listened?'An hour, unfolding here':`${voice} · ${session.chapter}`);
   attribute('track-detail','title',`${voice} · ${session.chapter}${preferences.mode==='ambient'?' · Without drums':''}`);
-  text('atmosphere-description',session.caption);
+  const environment=previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds);
+  const shownEnvironment=renderer.motion?environment:renderer.diagnostics.session??environment;
+  const meadow=current.scene==='meadow'?meadowLightAt(shownEnvironment.elapsed):undefined;
+  text('atmosphere-description',meadow?.caption??shownEnvironment.caption);
+  text('scene-subtitle',meadow?.subtitle??SCENES[current.scene].subtitle);
   $('track-progress').style.transform=`scaleX(${session.progress})`;
   $<HTMLButtonElement>('next-track').disabled=!listened||starting;
   if('mediaSession' in navigator) {
@@ -162,9 +167,9 @@ if('mediaSession' in navigator) {
 function paint(now:number) {
   if(disposed)return;
   if(renderer.motion)visualTime+=Math.min(.07,Math.max(0,(now-last)/1000));last=now;
-  renderer.draw(visualTime,now,previewSeconds===undefined?audio.session:sessionAt(createSession(current.seed,current.scene),previewSeconds));
-  $('art-status').hidden=renderer.ready;$('retry-art').hidden=!renderer.failed;
-  $('art-message').textContent=renderer.failed?'The painting couldn’t load. The music is still here.':'Finding a quiet place…';
+  renderer.draw(visualTime,now,previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds));
+  $('art-status').hidden=renderer.ready&&!renderer.failed;$('retry-art').hidden=!renderer.failed;
+  $('art-message').textContent=renderer.ready&&renderer.lightingFailed?'The evening light couldn’t load. You can still stay here.':renderer.failed?'The painting couldn’t load. The music is still here.':'Finding a quiet place…';
   if(!document.hidden)frame=requestAnimationFrame(paint);
 }
 const uiTimer=setInterval(()=>{updatePlayer();checkDay();},700);
@@ -183,7 +188,7 @@ window.addEventListener('pagehide',e=>{
 window.addEventListener('pageshow',e=>{
   if(e.persisted){last=performance.now();frame=requestAnimationFrame(paint);if(cachedPlayback)void toggleListening();}
 });
-if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},get session(){return audio.session;},get sessionPlan(){return createSession(current.seed,current.scene);},visit,
-  previewSession:(seconds:number)=>{previewSeconds=Math.max(0,seconds);visualTime=seconds;renderer.draw(visualTime,performance.now(),sessionAt(createSession(current.seed,current.scene),previewSeconds));},
+if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},get session(){return audio.session;},get environment(){return audio.environment;},get sessionPlan(){return createSession(current.seed,current.scene);},visit,
+  previewSession:(seconds:number,preserveMotion=false)=>{previewSeconds=Math.max(0,seconds);if(!preserveMotion)visualTime=seconds;renderer.draw(visualTime,performance.now(),sessionAt(createSession(current.seed,current.scene),previewSeconds));updatePlayer();},
   advance:(seconds:number)=>{visualTime+=seconds;renderer.draw(visualTime);},point:(u:number,v:number)=>renderer.point(u,v)}});
 updateEdition();frame=requestAnimationFrame(paint);

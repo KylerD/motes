@@ -1,0 +1,18 @@
+{
+  "prompt": "Use case: lighting-weather.\nAsset type: a precisely composition-matched dusk lighting layer for an existing ambient video-game scene. It will be slowly composited directly over the original, so geometric registration is critical.\nInput image: the supplied golden-hour.png is the EDIT TARGET, not a loose reference. Original canvas is 1672 by 941 pixels, approximately 16:9 landscape. Keep the same full image framing, aspect ratio, view, perspective, object scale and positions.\nPrimary request: edit ONLY the time of day and illumination into luminous late dusk just after the sun has dropped below the mountain ridge. Preserve the original illustration, composition and every landmark contour as closely as possible. Keep the ivy-covered stone arch at left, the bench below it, the exact cloak folds, pack, sword, mug, right-side tree trunk and canopy, small stone lantern at the far-right pond shore, the entire pond outline, all shoreline stones and flower clumps, the forest silhouettes and distant mountain ridgelines in their original positions. Do not redraw or reinterpret their shapes.\nLighting and palette: all visible golden sun shafts and direct golden sunlight are gone. A luminous dusky blue and lavender sky retains a last narrow pale peach glow near the horizon. Mountains and forest layers become cool teal, muted violet and blue; the pond reflects the blue twilight sky. Foreground foliage, stones, arch, flowers and bench are subdued but clearly readable in soft ambient dusk. The EXISTING small stone lantern on the right glows softly from within with warm amber, making it the sole concentrated warm light, with only a subtle local reflection. Create believable material-specific relighting, retaining nuanced greens and flower hues, rather than a uniform blue filter.\nStyle: retain the original painterly, richly textured, lush, cosy video-game illustration. Peaceful, luminous twilight, not black night.\nStrict constraints: lighting-weather edit only; identical camera and composition; do not crop, zoom, move edges, add or remove scenery, change pond geometry, change silhouettes, add a moon, stars, fireflies, particles, characters, text, graphics, watermark or new objects. Preserve all fine spatial detail, stone edges and leaf shapes wherever possible. Deliver one complete landscape image.",
+  "tool": "image_gen.imagegen",
+  "mode": "built-in lighting-weather edit",
+  "sourceAsset": "public/scenes/golden-hour.png",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "generationDate": "2026-09-21",
+  "generatedSource": "C:/Users/kyled/.codex/generated_images/01a0c3fe-7d36-76f3-b7a4-7d64037cca59/exec-df6b2509-e4ab-45b2-ab83-08c312f528f5.png",
+  "outputFile": "public/scenes/golden-hour-dusk.png",
+  "assessment": "Major landmark geometry remains closely aligned by visual inspection, including the arch, bench, pack, sword, pond outline and shoreline stones, foreground flowers, right-side tree and lantern. Twilight relighting removes the sun shafts and keeps a luminous blue/lavender sky, readable cool foliage and water, and local amber lantern glow. Some fine painterly textures and water reflections vary, as expected for generative relighting; no major composition drift observed.",
+  "outputDimensions": {
+    "width": 1672,
+    "height": 941
+  }
+}

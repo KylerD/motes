@@ -31,7 +31,9 @@ The four paintings are authored assets, not new AI images generated each day. Ea
 
 The same date and place reproduce the same starting edition. An open session receives a quiet invitation at midnight instead of an abrupt change. Visiting today's edition resets to the daily place; an explicit scene URL pins a chosen place. Examples: `/?day=2026-09-17`, `/?day=2026-09-17&scene=snow`.
 
-Listening gradually deepens the light, changes the weather and warms windows. A train briefly visits the snowy station, a small boat crosses the bay, birds and butterflies pass through the meadow, and a shower passes over the city. These moments belong to the hour rather than repeating every few seconds. The music position drives this progression: Pause holds it, Next advances it, and Still freezes only the picture. After the hour, the scene remains in its evening state. The paintings themselves are unchanged; the evening is a restrained lighting treatment, not a full day/night replacement.
+Listening gradually deepens the light, changes the weather and warms windows. A train briefly visits the snowy station, a small boat crosses the bay, birds and butterflies pass through the meadow, and a shower passes over the city. These moments belong to the hour rather than repeating every few seconds. A separate clock counts actual listening time: Pause holds it, Next changes only the music, and Still freezes only the picture. The clock continues during normal background listening and starts fresh on arrival in another edition, while the current song finishes naturally. After the hour, the scene stays in its evening state.
+
+In **Golden hour**, a matched dusk painting turns the sunlit clearing into a blue, lantern-lit evening. The clearing, mountains, sky and pond change at different rates over roughly fifty minutes. The water animation samples that changing painting, so its reflections cool with the sky. Sunlit pollen fades, daytime butterflies settle, the stone lantern warms and fireflies appear. The other three places retain their subtler lighting treatments. The original four compositions remain; the dusk artwork adds a lighting state to the meadow.
 
 Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. If an image fails, sound and controls remain available with a retry action.
 
@@ -42,6 +44,8 @@ Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWO
 | `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
 | `src/scenes/session-effects.ts` | Gradual evening light, train, boat, birds, butterflies and fireflies |
+| `src/scenes/meadow-light.ts` | Matched afternoon/dusk artwork, staggered regional lighting and cached compositing |
+| `src/session/environment.ts` | Listening-time clock independent of track skips and rendering |
 | `src/session/session.ts` | Deterministic hour-long arrangement, chapters and environmental timeline |
 | `src/music/composer.ts` | Pure, deterministic musical form, harmony, motifs and performance |
 | `src/music/sound.ts` | Upright/felt piano, electric keys, mallets, bass, drums, reverb and atmosphere |

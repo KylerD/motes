@@ -118,7 +118,7 @@ components:
 
 Motes is an illustrated place to settle into with warm, jazzy lofi. A shelter holding an amber mote welcomes the listener; a toasted-brown radio and cream settings make the interface feel familiar and comfortable. The paintings remain the focus.
 
-Four authored paintings establish the world: Neon rain, Golden hour, Last light station and The last chapter. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.
+Four authored places establish the world: Neon rain, Golden hour, Last light station and The last chapter. Golden hour has matched daytime and dusk paintings; the other three places retain their subtler lighting treatment. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.
 
 **Key Characteristics:**
 
@@ -181,18 +181,19 @@ Most line icons are 21px with 1.65px rounded strokes. The playback icon is fille
 - **Radio:** the amber Listen action becomes Tuning in…, Pause or Resume as appropriate. Next track remains beside the title and instrument/chapter detail. A small amber dot signals playback. The quiet progress strip represents the hour and uses `scaleX` with a left transform origin, avoiding layout animation. Reduced motion removes its transition. Disabled controls use .4 opacity.
 - **Sound & motion:** “Make yourself at home.” introduces independent Music and Scene sounds sliders, Warm lofi beats / Without drums, and Scene motion On / Still. Slider fill tracks the saved values immediately. The motion switch has a visible text state and `aria-pressed`. Preferences persist locally. The panel note explains that music continues when switching tabs.
 - **Place browser:** “Find your quiet.” leads four thumbnail rows and a quiet daily-place action. Desktop thumbnails are 94×67px; phone thumbnails are 84×60px. Names stay prominent, secondary descriptions remain readable and the selected row has both a background and a check.
-- **Editions:** a labelled native date input revisits a local calendar day. The date action uses a short display on phones without losing its accessible full date. A new-day invitation does not interrupt the current scene or song. The current song finishes when changing editions; the next belongs to the new place/date.
+- **Editions:** a labelled native date input revisits a local calendar day. The date action uses a short display on phones without losing its accessible full date. A new-day invitation does not interrupt the current scene or song. Arriving in a new place/date resets its environment immediately; the current song finishes before the next belongs to the new place/date.
 - **Focus and recovery:** 2px amber keyboard outlines with 4px offset; inside cream panels, brown outlines with 3px offset. Native date/select fields use a light colour scheme. Selection, caret and scrollbars follow the palette. Escape closes panels and restores trigger focus, or restores hidden controls. Space toggles playback outside interactive controls. Just the scene leaves a small Show controls action. Asset and audio failures remain visible and retryable.
 - **UI motion:** panels arrive from a 6px offset while already partly visible, over 240ms with `cubic-bezier(.16,1,.3,1)`. Button colour transitions are restrained. Reduced motion removes CSS animations and transitions.
 - **Living scene:** 1600ms scene crossfades, subtle water displacement, slow lighting changes, weather and steam remain subordinate to the painting. Water taps create ripples only inside painted shorelines. Still and reduced-motion preference freeze the scene independently of music. Background tabs stop visual rendering while ordinary audio playback continues.
-- **An hour unfolding:** eighteen arrangements and six musical chapters lead restrained evening grading, changing weather and warm lamps. A train visits the station, a boat crosses the distant bay, butterflies and birds pass through the meadow before fireflies emerge, and a passing shower deepens the rain. Events are sparse and seeded. Pause holds the session timeline while ordinary ambient motion continues; Still freezes the picture. After hours preserves the evening and continues softer music without restarting the events.
+- **An hour unfolding:** eighteen arrangements and six musical chapters shape the score. An independent environment clock advances with listening time, controlling evening light, weather and sparse seeded events. Next changes the score without advancing the environment. Pause holds both clocks while ordinary ambient motion continues; Still freezes the picture while audio and environment time continue. A train visits the station, a boat crosses the distant bay, butterflies and birds pass through the meadow before fireflies emerge, and a passing shower deepens the rain. After hours preserves the evening and continues softer music without restarting the events.
+- **Meadow evening:** `golden-hour.png` and the composition-matched `golden-hour-dusk.png` move from afternoon to dusk over about 50 minutes of environment time. Painted sky, distance, clearing and water transition at separate rates, with lantern light and fireflies arriving later. A cached composite updates every two seconds; water reflections sample that same composite. If the dusk painting fails to load, the daytime painting remains visible with a retry action. Preserve both paintings' provenance in `public/scenes/ARTWORK.md`.
 
 ## Do's and Don'ts
 
 - **Do** keep the illustrated, cosy videogame character and make every scene beautiful when still.
 - **Do** preserve the original shelter-and-mote identity, warm brown radio, amber listening action and cream settings.
 - **Do** retain visible action labels on phones, readable contrast and useful keyboard focus.
-- **Do** distinguish the four authored paintings from their daily atmospheric and musical editions.
+- **Do** distinguish the four authored places, including the meadow's matched day/dusk paintings, from their daily atmospheric and musical editions.
 - **Don't** reintroduce organisms, names/stats, experiments, an Explore interface or dashboard density.
 - **Don't** start sound without a listening action or make ambient scene motion depend on music.
 - **Don't** replace the paintings with realistic rendering or toy-like procedural scenery.

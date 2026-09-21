@@ -12,12 +12,14 @@ The interface should feel warm, cosy and like a safe place. A distinct Motes log
 
 A painting fills the page immediately. Press Listen once. Small environmental changes reward occasional attention without demanding it. Four settings offer distinct moods. Daily editions vary place, music, light and weather; each session continues without a fixed endpoint. Music should have harmony, memorable recurring phrases, breathing room and a warm recorded character.
 
-The first hour has an arc: eighteen connected arrangements move through six chapters, related keys and upright, felt, electric and mallet sounds. Light and weather develop with the music; occasional distant events reward looking up. The opening theme returns toward the end, then the music continues gently into after hours. Pause holds the session; Still holds only the picture. A new place begins its musical hour after the current song finishes.
+The first hour has an arc: eighteen connected arrangements move through six chapters, related keys and upright, felt, electric and mallet sounds. Light and weather develop during listening; occasional distant events reward looking up. The opening theme returns toward the end, then the music continues gently into after hours. Pause holds both clocks; Still holds only the picture. Track skips never advance the environment. A new place begins its environmental hour on arrival and its musical hour after the current song finishes.
+
+The meadow visibly moves from golden afternoon into luminous blue dusk through matched artwork and independently paced sky, mountain, clearing and water transitions. Sunlight and pollen fade, the existing lantern warms and fireflies appear. The aim is calm moment to moment but unmistakably different after twenty minutes. Other places keep their subtler evening treatments until they receive the same authored attention.
 
 Only useful listening controls remain: playback, next track, independent sound levels, no-drums mode, scene selection, date revisiting, motion and hide controls. No onboarding, account, dashboard, progress goals, scores, organisms, experiments or daily repository routine.
 
 ## Truth and constraints
 
-The app is static and runs locally in the browser. Four original paintings are animated by code; it does not generate new paintings every day. A seeded composer creates different musical arrangements using local licensed piano recordings and synthesis. The daily date is local to the viewer. Today's place rotates without consecutive repeats; explicit scene choices remain revisitable. An active session is not interrupted at midnight.
+The app is static and runs locally in the browser. Four original compositions, with an additional matched dusk painting for the meadow, are animated by code; it does not generate new paintings every day. A seeded composer creates different musical arrangements using local licensed piano recordings and synthesis. The daily date is local to the viewer. Today's place rotates without consecutive repeats; explicit scene choices remain revisitable. An active session is not interrupted at midnight.
 
 The scene should remain beautiful when motion is reduced. Audio is opt-in; it continues during ordinary background-tab use, independently of visual rendering. Reliability, accessible controls and smooth song transitions are part of the listening experience.
