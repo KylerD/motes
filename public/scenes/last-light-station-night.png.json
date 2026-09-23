@@ -1,0 +1,18 @@
+{
+  "prompt": "Use case: lighting-weather.\nAsset type: precisely composition-matched late-evening lighting layer for an existing living lofi painting. It will be slowly composited directly over the original, so geometric registration is critical.\nInput image is the EDIT TARGET, not a loose reference. Original canvas is 1672 by 941 pixels, approximately 16:9 landscape. Return the same full image framing, aspect ratio, camera, perspective and object positions. Edit ONLY time of day and material-specific illumination. Preserve every landmark contour and fine spatial detail as closely as possible; do not redraw the scene.\nPrimary request: transform this snowbound mountain station from pink winter dusk into a luminous blue winter night. Remove the pink sunset and alpenglow from the mountain ridges; sky is now rich ink-blue with subtle slate cloud texture. Distant mountains and the valley become cool layered cobalt, silver-blue and blue-violet, with mist above the lake. Snow retains luminous, softly moonlit blue detail rather than turning grey or black. The EXISTING station cafe, platform lamps, village windows and lights along the lake glow honey-amber, with believable amber pools on snow and wet platform stones. Local warm lighting brings out the cup, luggage, wood grain and blanket inside the sheltered left foreground, while the open rails cool towards the valley.\nPreserve all geometry exactly: cafe window mullions and contents, roof and beams, clock face and hands, lamps, cup, bench and blanket, suitcase, pillars, rails and sleepers, bridge and village buildings, fences, snowbanks, tree branches, mountain ridgelines and lake. No train, aurora, moon, new stars or other objects.\nStyle: retain the original richly textured, painterly cosy videogame / anime background illustration. A luminous and readable evening, no black crush, no uniform colour filter.\nStrict constraints: identical composition; no cropping, zooming, moving or resizing objects, altered contours or new scenery. No people, new objects, rain streaks, snowflakes, particles, bright floating dots, extra text, graphics or watermark. Deliver one complete landscape image.",
+  "tool": "image_gen.imagegen",
+  "mode": "built-in lighting-weather edit",
+  "sourceAsset": "public/scenes/last-light-station.png",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "generationDate": "2026-09-22",
+  "generatedSource": "C:/Users/kyled/.codex/generated_images/01a0ca5b-d33b-7e51-a092-568102043110/exec-8104903f-0717-4a74-a16a-b9c4cf05cd36.png",
+  "outputFile": "public/scenes/last-light-station-night.png",
+  "outputDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "assessment": "Composition and major landmarks remain closely aligned by visual inspection. Fine painterly textures, cloud detail and reflections vary between the authored lighting states."
+}

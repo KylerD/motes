@@ -3,7 +3,7 @@ import { DEFAULT_MIX, RadioAudio } from './music/audio';
 import { edition,dayLabel,localDay,validDay,isScene,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
 import { SceneRenderer } from './scenes/renderer';
 import {createSession,sessionAt} from './session/session';
-import {meadowLightAt} from './scenes/meadow-light';
+import {sceneLightAt} from './scenes/scene-light';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
@@ -127,9 +127,9 @@ function updatePlayer() {
   attribute('track-detail','title',`${voice} · ${session.chapter}${preferences.mode==='ambient'?' · Without drums':''}`);
   const environment=previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds);
   const shownEnvironment=renderer.motion?environment:renderer.diagnostics.session??environment;
-  const meadow=current.scene==='meadow'?meadowLightAt(shownEnvironment.elapsed):undefined;
-  text('atmosphere-description',meadow?.caption??shownEnvironment.caption);
-  text('scene-subtitle',meadow?.subtitle??SCENES[current.scene].subtitle);
+  const light=sceneLightAt(current.scene,shownEnvironment.elapsed);
+  text('atmosphere-description',light.caption);
+  text('scene-subtitle',light.subtitle);
   $('track-progress').style.transform=`scaleX(${session.progress})`;
   $<HTMLButtonElement>('next-track').disabled=!listened||starting;
   if('mediaSession' in navigator) {

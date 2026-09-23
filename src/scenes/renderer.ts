@@ -1,7 +1,8 @@
 import { SCENES, type Edition, type Point, type SceneId } from './edition';
 import type {SessionState} from '../session/session';
 import {drawSessionEffects} from './session-effects';
-import {MeadowLight,meadowLightAt} from './meadow-light';
+import {meadowLightAt} from './meadow-light';
+import {SceneLight,sceneLightAt} from './scene-light';
 
 const TAU = Math.PI*2;
 const noise = (n: number) => { const f = Math.sin(n*127.1+311.7)*43758.5453; return f-Math.floor(f); };
@@ -19,9 +20,9 @@ export class SceneRenderer {
   private iw = 1; private ih = 1; private ox = 0; private oy = 0;
   private ripples: Ripple[] = [];
   private journey?:SessionState;
-  private dusk?:HTMLImageElement;
-  private duskFailed=false;
-  private meadowLight?:MeadowLight;
+  private evenings=new Map<SceneId,HTMLImageElement>();
+  private eveningFailures=new Set<SceneId>();
+  private sceneLight?:SceneLight;
   motion = true;
   constructor(private canvas: HTMLCanvasElement, public edition: Edition) {
     const ctx = canvas.getContext('2d',{alpha:false});
@@ -29,38 +30,39 @@ export class SceneRenderer {
     this.ctx = ctx; this.load(edition.scene); this.resize();
   }
   get ready() { return !!this.images.get(this.edition.scene)?.naturalWidth; }
-  get lightingFailed() {return this.edition.scene==='meadow'&&this.duskFailed;}
+  get lightingFailed() {return this.eveningFailures.has(this.edition.scene);}
   get failed() { return this.failures.has(this.edition.scene)||this.lightingFailed; }
-  get diagnostics() { return { images:this.images.size, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.meadowLight,lightingFailed:this.lightingFailed }; }
+  get diagnostics() { return { images:this.images.size,eveningImages:this.evenings.size,composites:this.sceneLight?1:0, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.sceneLight,lightingFailed:this.lightingFailed }; }
   setEdition(next: Edition): void {
     if(this.ready && this.motion) {
       this.previous = document.createElement('canvas');
       this.previous.width = this.canvas.width; this.previous.height = this.canvas.height;
       this.previous.getContext('2d')!.drawImage(this.canvas,0,0);
     }
+    this.sceneLight?.dispose();this.sceneLight=undefined;
     this.changedAt = 0; this.edition = next; this.ripples = []; this.journey=undefined;this.load(next.scene); this.layout();
   }
   retry(): void {
-    if(this.lightingFailed){this.dusk=undefined;this.duskFailed=false;this.loadDusk();}
+    if(this.lightingFailed){this.evenings.delete(this.edition.scene);this.eveningFailures.delete(this.edition.scene);this.loadEvening(this.edition.scene);}
     if(!this.ready){this.images.delete(this.edition.scene);this.failures.delete(this.edition.scene);this.load(this.edition.scene);}
   }
   private prepareLight():void {
-    const day=this.images.get('meadow');
-    if(!this.meadowLight&&day?.naturalWidth&&this.dusk?.naturalWidth)this.meadowLight=new MeadowLight(day,this.dusk);
+    const id=this.edition.scene,arrival=this.images.get(id),evening=this.evenings.get(id);
+    if(!this.sceneLight&&arrival?.naturalWidth&&evening?.naturalWidth)this.sceneLight=new SceneLight(id,arrival,evening);
   }
-  private loadDusk():void {
-    if(this.dusk)return;
+  private loadEvening(id:SceneId):void {
+    if(this.evenings.has(id))return;
     const image=new Image();image.decoding='async';
-    image.onload=()=>this.prepareLight();image.onerror=()=>{this.duskFailed=true;};
-    this.dusk=image;image.src='/scenes/golden-hour-dusk.png';
+    image.onload=()=>this.prepareLight();image.onerror=()=>{this.eveningFailures.add(id);};
+    this.evenings.set(id,image);image.src=SCENES[id].eveningImage;
   }
   private load(id: SceneId): void {
-    if (this.images.has(id)) return;
+    this.loadEvening(id);
+    if (this.images.has(id)) {this.prepareLight();return;}
     const image = new Image(); image.decoding = 'async';
-    image.onload = () => { if(id===this.edition.scene) this.layout();if(id==='meadow')this.prepareLight(); };
+    image.onload = () => { if(id===this.edition.scene) this.layout();this.prepareLight(); };
     image.onerror = () => this.failures.add(id);
     this.images.set(id,image); image.src = SCENES[id].image;
-    if(id==='meadow')this.loadDusk();
   }
   resize(): void {
     const box = this.canvas.getBoundingClientRect(); this.width = Math.max(1,box.width); this.height = Math.max(1,box.height);
@@ -105,7 +107,7 @@ export class SceneRenderer {
     ctx.setTransform(this.ratio,0,0,this.ratio,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
     ctx.fillStyle=SCENES[scene].color;ctx.fillRect(0,0,this.width,this.height);
     if(image?.naturalWidth) {
-      const painting=scene==='meadow'&&this.meadowLight&&this.journey?this.meadowLight.frame(this.journey.elapsed):image;
+      const painting=this.sceneLight&&this.journey?this.sceneLight.frame(this.journey.elapsed):image;
       ctx.drawImage(painting,this.ox,this.oy,this.iw,this.ih);
       if(SCENES[scene].water.length) {
         ctx.save();this.waterPath();ctx.clip();
@@ -118,12 +120,12 @@ export class SceneRenderer {
         this.water(time,intensity);ctx.restore();
       }
       // Very slow cloud shadow and warm/cool variation, always subordinate to the painting.
-      if(scene!=='meadow') {
+      if(!this.sceneLight&&scene!=='meadow') {
         ctx.fillStyle=warmth>.5?'#ffb575':'#557cb3';ctx.globalCompositeOperation='soft-light';
         ctx.globalAlpha=.035+warmth*.035+Math.sin(time*.012+seed%13)*.018;ctx.fillRect(0,0,this.width,this.height);
       }
       ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-      if(this.journey)drawSessionEffects(ctx,scene,this.journey,time,{width:this.width,height:this.height,iw:this.iw,point:(u,v)=>this.point(u,v)});
+      if(this.journey)drawSessionEffects(ctx,scene,this.journey,time,{width:this.width,height:this.height,iw:this.iw,point:(u,v)=>this.point(u,v)},!!this.sceneLight);
       this.lights(time);
     }
     if(scene==='rain')this.rain(time,intensity);
@@ -143,7 +145,8 @@ export class SceneRenderer {
   }
   private water(time:number,intensity:number):void {
     const ctx=this.ctx,{scene,seed}=this.edition;
-    ctx.lineWidth=.6;ctx.strokeStyle=scene==='rain'?'#bcecff':'#ffe3ae';
+    const evening=sceneLightAt(scene,this.journey?.elapsed??0).water;
+    ctx.lineWidth=.6;ctx.strokeStyle=scene==='rain'?'#bcecff':`rgb(${Math.round(255-54*evening)},${Math.round(227-4*evening)},${Math.round(174+72*evening)})`;
     if(scene==='rain')for(let i=0;i<30*intensity;i++) {
       const p=this.point(.2+noise(seed+i)*.57,.66+noise(i+82)*.34),age=(time*.39+noise(i+21))%1;
       ctx.globalAlpha=(1-age)*.22;ctx.beginPath();ctx.ellipse(p.x,p.y,2+age*17,1+age*4,0,0,TAU);ctx.stroke();
@@ -199,19 +202,14 @@ export class SceneRenderer {
   }
   private lights(time:number):void {
     const ctx=this.ctx,scene=this.edition.scene;ctx.save();ctx.globalCompositeOperation='screen';
-    const spots:Record<SceneId,readonly Point[]>={rain:[[.221,.326]],meadow:[],snow:[[.208,.326],[.341,.375]],coast:[[.061,.452],[.451,.72]]};
+    const lamps=sceneLightAt(scene,this.journey?.elapsed??0).lamps;
+    const spots:Record<SceneId,readonly Point[]>={rain:[[.312,.321]],meadow:[],snow:[[.208,.326],[.341,.375]],coast:[[.061,.452],[.451,.72]]};
     for(const [u,v] of spots[scene]) {
       const p=this.point(u,v),size=this.iw*(scene==='meadow'?.014:.033);
-      ctx.globalAlpha=.12+(Math.sin(time*.63+u*10)+Math.sin(time*.21))* .025;
+      ctx.globalAlpha=.12+lamps*.12+(Math.sin(time*.63+u*10)+Math.sin(time*.21))* .025;
       ctx.drawImage(this.glow('#ffd0a0'),p.x-size,p.y-size,size*2,size*2);
     }
-    if(scene==='rain') {
-      // Distant windows brighten and settle on independent, slow rhythms.
-      for(let i=0;i<22;i++) {
-        const p=this.point(.50+noise(i+31)*.47,.29+noise(i+79)*.25),level=Math.max(0,Math.sin(time*(.015+noise(i)*.025)+i));
-        ctx.globalAlpha=level*.23;ctx.fillStyle=i%3?'#ffdca0':'#edabe7';ctx.fillRect(p.x,p.y,1.6,2.1);
-      }
-    }ctx.restore();
+    ctx.restore();
   }
   private steam(time:number):void {
     const ctx=this.ctx,spot=this.edition.scene==='coast'?[.084,.587]:[.13,.525];
@@ -223,7 +221,7 @@ export class SceneRenderer {
   }
   dispose():void {
     this.images.forEach(i=>{i.onload=null;i.onerror=null;});this.images.clear();this.glows.clear();this.previous=null;
-    if(this.dusk){this.dusk.onload=null;this.dusk.onerror=null;this.dusk=undefined;}
-    this.meadowLight?.dispose();this.meadowLight=undefined;
+    this.evenings.forEach(i=>{i.onload=null;i.onerror=null;});this.evenings.clear();
+    this.sceneLight?.dispose();this.sceneLight=undefined;
   }
 }

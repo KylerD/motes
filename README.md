@@ -33,7 +33,14 @@ The same date and place reproduce the same starting edition. An open session rec
 
 Listening gradually deepens the light, changes the weather and warms windows. A train briefly visits the snowy station, a small boat crosses the bay, birds and butterflies pass through the meadow, and a shower passes over the city. These moments belong to the hour rather than repeating every few seconds. A separate clock counts actual listening time: Pause holds it, Next changes only the music, and Still freezes only the picture. The clock continues during normal background listening and starts fresh on arrival in another edition, while the current song finishes naturally. After the hour, the scene stays in its evening state.
 
-In **Golden hour**, a matched dusk painting turns the sunlit clearing into a blue, lantern-lit evening. The clearing, mountains, sky and pond change at different rates over roughly fifty minutes. The water animation samples that changing painting, so its reflections cool with the sky. Sunlit pollen fades, daytime butterflies settle, the stone lantern warms and fireflies appear. The other three places retain their subtler lighting treatments. The original four compositions remain; the dusk artwork adds a lighting state to the meadow.
+Every place has a matched evening painting. Over roughly fifty minutes, the sky, distance, sheltered foreground and water change at their own pace:
+
+- **Neon rain:** bright blue clouds give way to indigo, with neon and lantern reflections across the darkening rooftop pond.
+- **Golden hour:** the sunlit clearing becomes a blue, lantern-lit evening. Pollen fades, butterflies settle and fireflies appear.
+- **Last light station:** the last pink leaves the mountains; snow and valley settle into winter blue around amber cafe windows and platform lamps.
+- **The last chapter:** the sunset and its reflection fade together into a silver-blue bay, leaving warm reading light and harbour windows.
+
+Water animation samples the changing painting, so reflections follow the sky. Local lamps and scene captions follow each place's lighting arc. These are four original compositions with four additional lighting states, not eight separate places. Paintings load when their place is visited; revisits reuse the decoded images, and only the active place keeps a full-size composite. If evening artwork fails, the original remains visible with a retry action.
 
 Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. If an image fails, sound and controls remain available with a retry action.
 
@@ -44,7 +51,8 @@ Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWO
 | `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
 | `src/scenes/session-effects.ts` | Gradual evening light, train, boat, birds, butterflies and fireflies |
-| `src/scenes/meadow-light.ts` | Matched afternoon/dusk artwork, staggered regional lighting and cached compositing |
+| `src/scenes/scene-light.ts` | Lighting arcs and spatial masks for all four places; cached painting compositing |
+| `src/scenes/meadow-light.ts` | Meadow timing for sunlight, lantern light and fireflies |
 | `src/session/environment.ts` | Listening-time clock independent of track skips and rendering |
 | `src/session/session.ts` | Deterministic hour-long arrangement, chapters and environmental timeline |
 | `src/music/composer.ts` | Pure, deterministic musical form, harmony, motifs and performance |
@@ -66,7 +74,7 @@ node scripts/verify-sessions.mjs
 node scripts/render-music-preview.mjs
 ```
 
-Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, daily revisiting, control panels, pause (including song boundaries), retry, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
+Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
 
 Technical audio checks establish playback and signal health, not a claim that every generated track meets someone's musical taste. The listening experience remains the quality bar.
 

@@ -1,0 +1,18 @@
+{
+  "prompt": "Use case: lighting-weather.\nAsset type: precisely composition-matched late-evening lighting layer for an existing living lofi painting. It will be slowly composited directly over the original, so geometric registration is critical.\nInput image is the EDIT TARGET, not a loose reference. Original canvas is 1672 by 941 pixels, approximately 16:9 landscape. Return the same full image framing, aspect ratio, camera, perspective and object positions. Edit ONLY time of day and material-specific illumination. Preserve every landmark contour and fine spatial detail as closely as possible; do not redraw the scene.\nPrimary request: transform this coastal bookshop balcony from vivid sunset into a luminous moonlit late evening. Remove the visible sun disk completely and its bright orange path on the bay. Keep the sky's existing cloud shapes but relight them in soft periwinkle and indigo with only a very thin muted lavender glow at the horizon. Cool off the far mountains, island and cliffs. The open bay becomes luminous deep sapphire and teal with a subtle broad silvery sheen from moonlight outside the frame, plus warm narrow reflected trails below EXISTING village windows and harbour lamps. Keep the reading nook cosy: the existing brass desk lamp and small candle lantern now provide soft concentrated pools of honey light across books, cup, chair, stone sill and nearby fabric, while the formerly sunlit curtain and exposed terrace fall into soft cool blue shadow. Flowers keep their beautiful fuchsia hues, greens and stone textures remain legible. The village windows glow welcoming amber against cool roofs and walls.\nPreserve every shape and position: shelves and books, desk lamp, table, cup and open book, chair and blanket, curtain folds, all plants and flower clumps, balcony stones, lantern, right-hand frame, harbour, boat and mast, houses, mountains and island, cloud contours, shoreline. No visible moon, new stars, boats, objects or characters.\nStyle: retain the original richly textured, painterly cosy videogame / anime background illustration. A luminous and readable evening, no black crush, no uniform colour filter.\nStrict constraints: identical composition; no cropping, zooming, moving or resizing objects, altered contours or new scenery. No people, new objects, rain streaks, snowflakes, particles, bright floating dots, extra text, graphics or watermark. Deliver one complete landscape image.",
+  "tool": "image_gen.imagegen",
+  "mode": "built-in lighting-weather edit",
+  "sourceAsset": "public/scenes/the-last-chapter.png",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "generationDate": "2026-09-22",
+  "generatedSource": "C:/Users/kyled/.codex/generated_images/01a0ca5b-d33b-7e51-a092-568102043110/exec-7a2da580-2843-44a6-8dfb-426725b5d236.png",
+  "outputFile": "public/scenes/the-last-chapter-night.png",
+  "outputDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "assessment": "Composition and major landmarks remain closely aligned by visual inspection. Fine painterly textures, cloud detail and reflections vary between the authored lighting states."
+}

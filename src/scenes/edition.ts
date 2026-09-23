@@ -2,16 +2,16 @@ export const SCENE_IDS = ['rain', 'meadow', 'snow', 'coast'] as const;
 export type SceneId = typeof SCENE_IDS[number];
 export type Point = readonly [number, number];
 export interface Scene {
-  name: string; title: string; subtitle: string; image: string; anchor: number;
+  name: string; title: string; subtitle: string; image: string; eveningImage: string; anchor: number;
   color: string; water: readonly Point[]; weather: string;
 }
 export const SCENES: Record<SceneId, Scene> = {
-  rain: { name: 'Neon rain', title: 'Rain, above the city.', subtitle: 'The rest of the world can wait.', image: '/scenes/neon-rain.png', anchor: .43, color: '#071b38', weather: 'Rain on the rooftops',
+  rain: { name: 'Neon rain', title: 'Rain, above the city.', subtitle: 'The rest of the world can wait.', image: '/scenes/neon-rain.png', eveningImage: '/scenes/neon-rain-night.png', anchor: .43, color: '#071b38', weather: 'Rain on the rooftops',
     water: [[.16,.82],[.23,.745],[.41,.657],[.52,.625],[.66,.667],[.774,.706],[.717,.813],[.651,.944],[.45,.98],[.253,.915]] },
-  meadow: { name: 'Golden hour', title: 'Nowhere else to be.', subtitle: 'A little longer in the afternoon.', image: '/scenes/golden-hour.png', anchor: .60, color: '#173d3d', weather: 'A breeze through the meadow',
+  meadow: { name: 'Golden hour', title: 'Nowhere else to be.', subtitle: 'A little longer in the afternoon.', image: '/scenes/golden-hour.png', eveningImage: '/scenes/golden-hour-dusk.png', anchor: .60, color: '#173d3d', weather: 'A breeze through the meadow',
     water: [[.29,.81],[.40,.74],[.48,.71],[.51,.67],[.61,.65],[.77,.71],[.88,.73],[.84,.87],[.70,1],[.48,.98],[.39,.94]] },
-  snow: { name: 'Last light station', title: 'Let the snow fall.', subtitle: 'Somewhere warm, along the way.', image: '/scenes/last-light-station.png', anchor: .43, color: '#151c37', weather: 'Snow in the mountains', water: [] },
-  coast: { name: 'The last chapter', title: 'One more chapter.', subtitle: 'An evening with nowhere to go.', image: '/scenes/the-last-chapter.png', anchor: .56, color: '#152d40', weather: 'Waves below the window',
+  snow: { name: 'Last light station', title: 'Let the snow fall.', subtitle: 'Somewhere warm, along the way.', image: '/scenes/last-light-station.png', eveningImage: '/scenes/last-light-station-night.png', anchor: .43, color: '#151c37', weather: 'Snow in the mountains', water: [] },
+  coast: { name: 'The last chapter', title: 'One more chapter.', subtitle: 'An evening with nowhere to go.', image: '/scenes/the-last-chapter.png', eveningImage: '/scenes/the-last-chapter-night.png', anchor: .56, color: '#152d40', weather: 'Waves below the window',
     water: [[.39,.353],[.728,.343],[.683,.428],[.749,.454],[.772,.49],[.884,.544],[.87,.725],[.758,.83],[.73,.763],[.683,.71],[.625,.687],[.59,.636],[.541,.612],[.495,.566],[.469,.498],[.44,.44]] },
 };
 export function hash(value: string): number {

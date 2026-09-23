@@ -118,7 +118,7 @@ components:
 
 Motes is an illustrated place to settle into with warm, jazzy lofi. A shelter holding an amber mote welcomes the listener; a toasted-brown radio and cream settings make the interface feel familiar and comfortable. The paintings remain the focus.
 
-Four authored places establish the world: Neon rain, Golden hour, Last light station and The last chapter. Golden hour has matched daytime and dusk paintings; the other three places retain their subtler lighting treatment. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.
+Four authored places establish the world: Neon rain, Golden hour, Last light station and The last chapter. Each has matched arrival and evening paintings. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.
 
 **Key Characteristics:**
 
@@ -187,13 +187,15 @@ Most line icons are 21px with 1.65px rounded strokes. The playback icon is fille
 - **Living scene:** 1600ms scene crossfades, subtle water displacement, slow lighting changes, weather and steam remain subordinate to the painting. Water taps create ripples only inside painted shorelines. Still and reduced-motion preference freeze the scene independently of music. Background tabs stop visual rendering while ordinary audio playback continues.
 - **An hour unfolding:** eighteen arrangements and six musical chapters shape the score. An independent environment clock advances with listening time, controlling evening light, weather and sparse seeded events. Next changes the score without advancing the environment. Pause holds both clocks while ordinary ambient motion continues; Still freezes the picture while audio and environment time continue. A train visits the station, a boat crosses the distant bay, butterflies and birds pass through the meadow before fireflies emerge, and a passing shower deepens the rain. After hours preserves the evening and continues softer music without restarting the events.
 - **Meadow evening:** `golden-hour.png` and the composition-matched `golden-hour-dusk.png` move from afternoon to dusk over about 50 minutes of environment time. Painted sky, distance, clearing and water transition at separate rates, with lantern light and fireflies arriving later. A cached composite updates every two seconds; water reflections sample that same composite. If the dusk painting fails to load, the daytime painting remains visible with a retry action. Preserve both paintings' provenance in `public/scenes/ARTWORK.md`.
+- **Evenings across places:** Neon rain moves from cyan blue hour to indigo clouds and neon pond reflections; Last light station loses its pink alpenglow as snow and mountains turn blue around amber lamps; The last chapter moves from sunset to a silver-blue bay with warm reading and harbour light. Each scene has its own sky, distance, sheltered foreground and water timing, settled by about 50 minutes. The coastal sun and its reflection fade together. Local lamps and captions follow that scene's arc. Preserve the original framing and image coordinates through desktop and phone crops.
+- **Painting lifecycle:** Load the two paintings for a place when it is visited, cache at most four arrival and four evening images, and retain only one full-size lighting composite for the active place. Rebuild it at most once every two scene-seconds. Still holds lighting, water, weather and captions together; after hours holds the final lighting. A failed evening image leaves the original available with a scene-specific retry state. Procedural evening grades apply only as a fallback. All eight paintings and exact prompts remain in `public/scenes/`.
 
 ## Do's and Don'ts
 
 - **Do** keep the illustrated, cosy videogame character and make every scene beautiful when still.
 - **Do** preserve the original shelter-and-mote identity, warm brown radio, amber listening action and cream settings.
 - **Do** retain visible action labels on phones, readable contrast and useful keyboard focus.
-- **Do** distinguish the four authored places, including the meadow's matched day/dusk paintings, from their daily atmospheric and musical editions.
+- **Do** distinguish the four authored places and their paired lighting states from their daily atmospheric and musical editions.
 - **Don't** reintroduce organisms, names/stats, experiments, an Explore interface or dashboard density.
 - **Don't** start sound without a listening action or make ambient scene motion depend on music.
 - **Don't** replace the paintings with realistic rendering or toy-like procedural scenery.

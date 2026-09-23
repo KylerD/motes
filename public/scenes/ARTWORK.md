@@ -29,3 +29,15 @@ An original snowbound mountain station, with warm cafe windows, a cup on the sil
 ## The last chapter
 
 An original coastal bookshop balcony, with a reading nook and a sunset over the bay. Water, steam, warm lamps and occasional distant birds animate the setting. Exact generation prompt: [the-last-chapter.png.json](the-last-chapter.png.json).
+
+## Evening coverage — city, station and coast
+
+Three composition-matched lighting edits were generated with the built-in image-generation tool on 22 September 2026. All original and edited images are 1672×941. The original paintings were the edit targets, with camera, landmarks, shorelines and sheltered foregrounds held in place. Fine painterly texture, clouds and reflections vary slightly between states.
+
+| Place | Evening painting | Lighting direction and exact prompt |
+| --- | --- | --- |
+| Neon rain | [neon-rain-night.png](neon-rain-night.png) | Indigo clouds, a quieter violet city, local peach shelter light and deeper neon reflections. [Prompt and provenance](neon-rain-night.png.json). |
+| Last light station | [last-light-station-night.png](last-light-station-night.png) | Pink alpenglow gives way to blue winter mountains and snow, with amber cafe, platform and village light. [Prompt and provenance](last-light-station-night.png.json). |
+| The last chapter | [the-last-chapter-night.png](the-last-chapter-night.png) | Sunset gives way to a silver-blue bay, cool curtain and terrace, warm reading lamps and harbour windows. [Prompt and provenance](the-last-chapter-night.png.json). |
+
+Runtime lighting uses separate sky, distance, foreground and water masks over about fifty minutes. The coastal sun and its reflection fade at the same rate. Rain, snow, steam, moving reflections and occasional events remain code-driven. Only the visited place loads its evening image; no artwork is generated during a visit. Each prompt is retained in its sidecar and embedded in the PNG.

@@ -1,6 +1,7 @@
 import type { ActiveEvent, SessionState } from '../session/session';
 import type { SceneId } from './edition';
 import {meadowLightAt} from './meadow-light';
+import {sceneLightAt} from './scene-light';
 
 interface Position { x:number; y:number }
 interface SceneSpace { width:number; height:number; iw:number; point:(u:number,v:number)=>Position }
@@ -182,7 +183,8 @@ function windows(ctx:CanvasRenderingContext2D,scene:SceneId,state:SessionState,s
   if(scene!=='rain'&&scene!=='snow')return;
   let event=0;
   for(let i=0;i<Math.min(6,state.events.length);i++)if(state.events[i].kind==='windows')event=Math.max(event,state.events[i].strength);
-  const amount=clamp(state.lamps)*.32+clamp(event)*.22;
+  const lamps=sceneLightAt(scene,state.elapsed).lamps;
+  const amount=lamps*.32+clamp(event)*.22;
   if(amount<=0)return;
   // These centres are painted windows, not random points over roofs or trees.
   const spots=scene==='rain'
@@ -190,22 +192,22 @@ function windows(ctx:CanvasRenderingContext2D,scene:SceneId,state:SessionState,s
     :[[.440,.474],[.447,.474],[.516,.492],[.528,.491],[.646,.650],[.654,.65],[.687,.665],[.694,.665]];
   ctx.save();ctx.globalCompositeOperation='screen';
   spots.forEach(([u,v],i)=>{
-    const level=amount*smooth((state.lamps+event*.4-i*.024)/.35),p=space.point(u,v);
+    const level=amount*smooth((lamps+event*.4-i*.024)/.35),p=space.point(u,v);
     glow(ctx,p,space.iw*.004,level);
     ctx.globalAlpha=level*.31;ctx.fillStyle='#ffda9b';
     ctx.fillRect(p.x-space.iw*.0007,p.y-space.iw*.0012,space.iw*.0014,space.iw*.0024);
   });
-  const lamps=scene==='rain'?[[.312,.321]]:[[.208,.326],[.341,.384],[.285,.448]];
-  for(const [u,v] of lamps)glow(ctx,space.point(u,v),space.iw*.016,amount*.45);
+  const fixtures=scene==='rain'?[[.312,.321]]:[[.208,.326],[.341,.384],[.285,.448]];
+  for(const [u,v] of fixtures)glow(ctx,space.point(u,v),space.iw*.016,amount*.45);
   ctx.restore();
 }
 
 /** A deterministic layer over the painting; the caller owns its clock and Still state. */
 export function drawSessionEffects(
-  ctx:CanvasRenderingContext2D,scene:SceneId,state:SessionState,time:number,space:SceneSpace,
+  ctx:CanvasRenderingContext2D,scene:SceneId,state:SessionState,time:number,space:SceneSpace,authoredLight=false,
 ):void {
   ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-  if(scene!=='meadow')evening(ctx,scene,state,space);
+  if(!authoredLight&&scene!=='meadow')evening(ctx,scene,state,space);
   windows(ctx,scene,state,space);
   if(scene==='meadow'){meadowLantern(ctx,state,time,space);fireflies(ctx,state,time,space);}
   // The written hour uses at most two simultaneous events. Keep the upper bound
