@@ -3,7 +3,7 @@ import { MELODY_CELLS } from './cells';
 import { formBars, sectionsFor } from './form';
 import { B_LOOPS, LOOPS, TURNAROUNDS, buildHarmony, loopById } from './harmony';
 import { anchorFor, makeContour } from './melody';
-import { chooser, randomSource } from './random';
+import { chooser, partSeed, randomSource } from './random';
 import type { Arrangement, Chord, CompCell, FormName, GrooveCell, KeyVoice, Mode, Mood, Section, Theme } from './types';
 
 /** Everything a song is, before a single note is written. */
@@ -40,8 +40,10 @@ export function planSong(arrangement: Arrangement, songSeed: number): SongPlan {
   const tonic = mode === 'minor' ? (arrangement.tonic + 9) % 12 : arrangement.tonic;
   const sections = sectionsFor(form, arrangement.stretch);
   const bLoop = choose(B_LOOPS.filter(l => l.mode === mode));
+  // The turnaround belongs to the song's identity (loop, key, theme), so a returning theme returns whole.
+  const identity = randomSource(partSeed(arrangement.theme.cell * 12 + arrangement.tonic, loop.id));
   const harmony = buildHarmony(sections, {
-    loop, bLoop, turnaround: choose(TURNAROUNDS[mode]), mode, tonic,
+    loop, bLoop, turnaround: chooser(identity)(TURNAROUNDS[mode]), mode, tonic,
     nocturne: form === 'nocturne', hookEnding: form === 'hook' && random() < 0.5,
   });
   const bars = formBars(form), phraseEnds: PhraseEnd[] = [];
@@ -54,7 +56,7 @@ export function planSong(arrangement: Arrangement, songSeed: number): SongPlan {
   }
   return {
     seed: songSeed, bars, form, mode, tonic, sections, harmony, loop: loop.id,
-    theme: arrangement.theme, anchor: anchorFor(tonic, mode, arrangement.theme.degree),
+    theme: arrangement.theme, anchor: anchorFor(tonic, mode, arrangement.theme.degree, arrangement.theme.contour),
     comp: arrangement.comp, groove: arrangement.groove, energy, swing: arrangement.swing, voice: arrangement.voice,
     drumVariant: Math.floor(random() * 3), ghost: energy >= 0.7 && random() < 0.4, phraseEnds,
   };

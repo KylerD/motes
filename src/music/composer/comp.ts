@@ -32,7 +32,7 @@ export function realiseComp(plan: SongPlan, add: Add) {
       for (let bar = pair; bar < pair + 2; bar++) {
         const within = hits.filter(h => Math.floor(h.at / 4) === bar - pair).map(h => ({ ...h, at: h.at % 4 }));
         // A two-chord bar always sounds its second chord.
-        if (plan.harmony[bar].length > 1 && !within.some(h => h.at >= 2)) within.push({ at: 2, duration: 1.9, velocity: 0.24, roll: true });
+        if (plan.harmony[bar].length > 1 && !within.some(h => h.at >= 2 && !h.tie)) within.push({ at: 2, duration: 1.9, velocity: 0.24, roll: true });
         const level = roleDynamics(section.role, bar - section.startBar) * PHRASE_CONTOUR[(bar - section.startBar) % 8];
         for (const hit of within) {
           if (hit.at === 0 && tied.has(bar)) continue;
@@ -40,8 +40,12 @@ export function realiseComp(plan: SongPlan, add: Add) {
           const beat = bar * 4 + hit.at;
           const chord = chordAt(plan.harmony, beat, !!hit.tie);
           if (hit.tie) tied.add(bar + 1);
+          // Lift before the next chord change so voicings never ring against each other.
+          const next = hit.tie ? plan.harmony[bar + 1].find(c => c.beat > 0) : plan.harmony[bar].find(c => c.beat > hit.at);
+          const room = next ? (hit.tie ? 4 - hit.at + next.beat : next.beat - hit.at) - 0.05 : Infinity;
+          const duration = Math.min(hit.duration, room);
           const notes = hit.upper ? chord.notes.slice(1) : chord.notes;
-          notes.forEach((note, i) => add('piano', beat, note, hit.duration, hit.velocity * level,
+          notes.forEach((note, i) => add('piano', beat, note, duration, hit.velocity * level,
             hit.upper ? i * 0.08 - 0.12 : i * 0.09 - 0.18, hit.roll ? i * 0.009 : 0));
         }
       }

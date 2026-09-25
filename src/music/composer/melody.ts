@@ -12,24 +12,33 @@ export const isStrong = (beat: number, duration: number) => { const within = bea
 export const chordTones = (chord: Chord) => new Set([chord.root % 12, ...MELODY_TONES[chord.quality].map(n => (chord.root + n) % 12)]);
 export const registerFloor = (chord: Chord) => Math.max(LOW, Math.max(...chord.notes) - 2);
 
-function nearest(target: number, pcs: Iterable<number>, lo: number): number {
+/** Nearest permitted pitch; a note a semitone (or minor ninth) above a sounding piano note is avoided when possible. */
+function nearest(target: number, pcs: Iterable<number>, lo: number, voicing: number[]): number {
   const allowed = new Set(pcs);
+  const cost = (p: number) => Math.abs(p - target) + (voicing.some(v => p > v && (p - v) % 12 === 1) ? 3 : 0);
   let best = -1;
-  for (let p = lo; p <= HIGH; p++) if (allowed.has(p % 12) && (best < 0 || Math.abs(p - target) < Math.abs(best - target))) best = p;
+  for (let p = lo; p <= HIGH; p++) if (allowed.has(p % 12) && (best < 0 || cost(p) < cost(best))) best = p;
   return best;
 }
 
-/** Scale-step contour to pitch, around an anchor chosen near the top of the comp. */
-function stepPitch(context: MelodyContext, step: number): number {
-  const scale = KEY_SCALES[context.mode], index = context.anchor + step;
-  const octave = Math.floor(index / 7), degree = ((index % 7) + 7) % 7;
-  return 60 + context.tonic + octave * 12 + scale[degree];
+/** Scale-step contour to pitch, around the theme's anchor degree. */
+function scalePitch(tonic: number, mode: Mode, index: number): number {
+  const scale = KEY_SCALES[mode], octave = Math.floor(index / 7), degree = ((index % 7) + 7) % 7;
+  return 60 + tonic + octave * 12 + scale[degree];
 }
+const stepPitch = (context: MelodyContext, step: number) => scalePitch(context.tonic, context.mode, context.anchor + step);
 
-/** The anchor degree (third or fifth of the key) in the octave that sits nearest the melody's home register. */
-export function anchorFor(tonic: number, mode: Mode, degree: 2 | 4): number {
-  const pitch = 60 + tonic + KEY_SCALES[mode][degree];
-  return degree + (pitch < 70 ? 7 : 0);
+/** Place the anchor (third or fifth of the key) in the octave where the whole contour, sequenced up to two steps, sings
+ *  inside the register instead of piling onto its ceiling. */
+export function anchorFor(tonic: number, mode: Mode, degree: 2 | 4, contour: number[]): number {
+  const steps = [0, 1, 2].flatMap(shift => contour.map(c => c + shift));
+  const cost = (anchor: number) => {
+    const pitches = steps.map(s => scalePitch(tonic, mode, anchor + s));
+    // The comp's top voice (≤ 72 in heads) sets the floor, so the contour lives between 68 and 80.
+    const outside = pitches.filter(p => p < 68 || p > 80).length;
+    return outside * 10 + Math.abs(pitches.reduce((a, b) => a + b, 0) / pitches.length - 74);
+  };
+  return [degree - 7, degree, degree + 7].reduce((best, anchor) => cost(anchor) < cost(best) ? anchor : best);
 }
 
 interface Placement { bar: number; notes: Cell; contour: number[]; shift?: number; velocity: number; instrument?: 'melody' | 'piano' }
@@ -39,21 +48,36 @@ function place(context: MelodyContext, placement: Placement, dynamics: (bar: num
   const { harmony } = context, last = placement.notes.length - 1;
   const notes = placement.notes.map(([at, duration], i) => {
     const beat = placement.bar * 4 + at, chord = chordAt(harmony, beat);
-    const target = stepPitch(context, placement.contour[i % placement.contour.length] + (placement.shift ?? 0));
+    const step = placement.contour[i % placement.contour.length] + (placement.shift ?? 0), target = stepPitch(context, step);
     const lo = registerFloor(chord);
-    const pcs = i === last ? CADENCE_TONES(chord.quality).map(n => (chord.root + n) % 12)
+    const pcs = new Set(i === last ? CADENCE_TONES(chord.quality).map(n => (chord.root + n) % 12)
       : isStrong(beat, duration) ? MELODY_TONES[chord.quality].map(n => (chord.root + n) % 12)
-      : allowedPitchClasses(chord, context.tonic, context.mode);
+      : allowedPitchClasses(chord, context.tonic, context.mode));
     const bar = Math.floor(beat / 4);
-    return { beat, duration, chord, lo, note: nearest(target, pcs, lo), velocity: (isStrong(beat, duration) ? 0.43 : 0.38) * placement.velocity * dynamics(bar) };
+    return { beat, duration, chord, lo, step, target, pcs, note: nearest(target, pcs, lo, chord.notes), velocity: (isStrong(beat, duration) ? 0.43 : 0.38) * placement.velocity * dynamics(bar) };
   });
-  // A passing or neighbour tone must step to a chord tone; otherwise it becomes one.
+  // Follow the contour: where it moves but snapping left the pitch still or sent it the other way,
+  // take the next permitted pitch in the contour's direction from the previous note.
+  for (let i = 1; i <= last; i++) {
+    const direction = Math.sign(notes[i].step - notes[i - 1].step), current = notes[i], from = notes[i - 1].note;
+    if (!direction || Math.sign(current.note - from) === direction) continue;
+    for (let p = from + direction; p >= current.lo && p <= HIGH && Math.abs(p - from) <= 7; p += direction)
+      if (current.pcs.has(p % 12)) { current.note = p; break; }
+  }
+  // A passing or neighbour tone must step to a chord tone; otherwise it becomes one, preferring a pitch its neighbours don't hold.
   // Walk backwards so each check sees its successor's final pitch.
   for (let i = last - 1; i >= 0; i--) {
-    const current = notes[i], next = notes[i + 1];
-    if (chordTones(current.chord).has(current.note % 12)) continue;
-    const resolves = chordTones(next.chord).has(next.note % 12) && Math.abs(next.note - current.note) <= 2;
-    if (!resolves) current.note = nearest(current.note, MELODY_TONES[current.chord.quality].map(n => (current.chord.root + n) % 12), current.lo);
+    const current = notes[i], next = notes[i + 1], previous = notes[i - 1];
+    const isChordTone = (p: number) => chordTones(current.chord).has(p % 12);
+    const resolves = (p: number) => chordTones(next.chord).has(next.note % 12) && Math.abs(next.note - p) <= 2;
+    if (isChordTone(current.note) || resolves(current.note)) continue;
+    let best = current.note, bestCost = Infinity;
+    for (let p = current.lo; p <= HIGH; p++) {
+      if (!current.pcs.has(p % 12) || !(isChordTone(p) || resolves(p))) continue;
+      const cost = Math.abs(p - current.target) + (p === next.note ? 4 : 0) + (previous && p === previous.note ? 4 : 0);
+      if (cost < bestCost) { best = p; bestCost = cost; }
+    }
+    current.note = best;
   }
   return notes.map(({ beat, duration, note, velocity }) => ({ beat, duration, note, velocity, instrument: placement.instrument ?? 'melody' }));
 }
@@ -111,15 +135,22 @@ export function realiseMelody(context: MelodyContext): Note[] {
   return out;
 }
 
-/** A contour of scale positions: mostly steps, one small leap at most, settling near where it began. */
+/** A contour of scale positions: mostly steps, one small leap at most, settling near where it began.
+ *  Its opening five notes always cover at least three pitches, so a theme is a tune rather than a drone. */
 export function makeContour(random: () => number): number[] {
-  const out = [0];
-  let leapt = false;
-  for (let i = 1; i < 8; i++) {
-    let step = [-2, -1, -1, 0, 1, 1, 2][Math.floor(random() * 7)];
-    if (!leapt && random() < 0.15) { step = random() < 0.5 ? 3 : -3; leapt = true; }
-    out.push(Math.max(-3, Math.min(5, out[i - 1] + step)));
-  }
-  out[7] = Math.max(-1, Math.min(2, out[7]));
-  return out;
+  const draw = () => {
+    const out = [0];
+    let leapt = false;
+    for (let i = 1; i < 8; i++) {
+      let step = [-2, -1, -1, 0, 1, 1, 2][Math.floor(random() * 7)];
+      if (!leapt && random() < 0.15) { step = random() < 0.5 ? 3 : -3; leapt = true; }
+      out.push(Math.max(-3, Math.min(4, out[i - 1] + step)));
+    }
+    out[7] = Math.max(-1, Math.min(2, out[7]));
+    return out;
+  };
+  let contour = draw();
+  for (let tries = 0; tries < 8 && new Set(contour.slice(0, 5)).size < 3; tries++) contour = draw();
+  if (new Set(contour.slice(0, 5)).size < 3) contour.splice(0, 5, 0, 1, 2, 1, 0);
+  return contour;
 }

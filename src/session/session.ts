@@ -1,6 +1,4 @@
-import {composeTrack,formBars,makeTheme,randomSource,type Arrangement,type CompCell,type FormName,type GrooveCell,type KeyVoice,type Mode,type Mood,type Theme,type Track} from '../music/composer';
-import {LOOPS} from '../music/composer/harmony';
-import {MELODY_CELLS} from '../music/composer/cells';
+import {LOOPS,MELODY_CELLS,composeTrack,formBars,makeTheme,randomSource,type Arrangement,type CompCell,type FormName,type GrooveCell,type KeyVoice,type Mode,type Mood,type Theme,type Track} from '../music/composer';
 
 export interface SessionSlot {index:number;start:number;duration:number;chapter:string;arrangement:Arrangement}
 export type EventKind='train'|'boat'|'birds'|'butterflies'|'shower'|'windows';
@@ -35,17 +33,19 @@ export function createSession(seed:number,mood:Mood):SessionPlan {
   const swing=.082+random()*.02,sequence=FORM_SEQUENCES[Math.floor(random()*FORM_SEQUENCES.length)];
   const raw=tempos.map(bpm=>bpm+(random()-.5)*1.2);
   const scale=raw.reduce((sum,bpm,i)=>sum+formBars(sequence[i])*4*60/bpm,0)/3600;
-  // Minor on both nocturnes and on one track in each of chapters 2, 3, 5 and 6 (never the opening or the final return).
+  // Minor on both nocturnes and on one track in each of chapters 2, 3 and 5 where a neighbour isn't already minor (never the opening or the final return).
   const minor=new Set(sequence.flatMap((f,i)=>f==='nocturne'?[i]:[]));
   for(const chapter of [1,2,4,5]){const choices=[0,1,2].map(k=>chapter*3+k).filter(i=>i!==17&&!minor.has(i)&&!minor.has(i-1)&&!minor.has(i+1));if(choices.length)minor.add(choices[Math.floor(random()*choices.length)]);}
   const hour=makeTheme(random);
   const otherCell=()=>{let cell=hour.cell;while(cell===hour.cell)cell=Math.floor(random()*MELODY_CELLS.length);return cell;};
-  const themes:Theme[]=sequence.map((_,i)=>i===0||i===17?hour:i===15||i===16?makeTheme(random,hour.cell):i%3===0?makeTheme(random,hour.cell):i%3===1?makeTheme(random,otherCell(),hour.contour):makeTheme(random));
+  // The hour's rhythm belongs to the opening, its approach (15, 16) and its return (17); other songs borrow its contour or go their own way.
+  const themes:Theme[]=sequence.map((_,i)=>i===0||i===17?hour:i===15||i===16?makeTheme(random,hour.cell):i%3===1?makeTheme(random,otherCell(),hour.contour):makeTheme(random,otherCell()));
   const stretch=new Set(sequence.flatMap((f,i)=>f==='long'&&energy[i]>=.8?[i]:[]).slice(0,2));
   const loops:string[]=[],comps:CompCell[]=[],grooveCells:GrooveCell[]=[];
   sequence.forEach((form,i)=>{
     const mode:Mode=minor.has(i)?'minor':'major';
-    const candidates=LOOPS.filter(l=>l.mode===mode&&(form!=='nocturne'||l.nocturne)).map(l=>l.id);
+    // The opening (and so the final return) starts on its tonic, so the hour's first bar says where home is.
+    const candidates=LOOPS.filter(l=>l.mode===mode&&(form!=='nocturne'||l.nocturne)&&(i!==0||l.bars[0][0][0]===0)).map(l=>l.id);
     // Spread the loop library across the hour: the least-heard loops come first.
     const uses=(id:string)=>loops.filter(l=>l===id).length,fewest=Math.min(...candidates.filter(id=>id!==loops[i-1]).map(uses));
     loops.push(i===17?loops[0]:pick(random,candidates.filter(id=>uses(id)===fewest),[loops[i-1]]));

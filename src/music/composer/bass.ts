@@ -16,7 +16,8 @@ export function realiseBass(plan: SongPlan, add: Add): BassOnsets {
     for (let bar = section.startBar; bar < section.endBar; bar++) {
       const inSection = bar - section.startBar, at = bar * 4;
       const level = roleDynamics(section.role, inSection) * PHRASE_CONTOUR[inSection % 8];
-      if (section.role === 'intro' && inSection < 4) continue;
+      // Before the groove starts, a soft root on each downbeat lets the loop be heard as written.
+      if (section.role === 'intro' && inSection < 4) { for (const chord of plan.harmony[bar]) add('bass', at + chord.beat, low(chord.root), chord.beat ? 1.9 : 3.5 - (plan.harmony[bar].length - 1) * 1.6, 0.4 * level); continue; }
       if (bar === plan.bars - 1) { add('bass', at, low(plan.harmony[bar][0].root), 3, 0.5 * level); continue; }
       if (bar === plan.bars - 2) { add('bass', at, low(plan.harmony[bar][0].root), 3.5, 0.5 * level); continue; }
       if (section.role === 'breath') {
@@ -26,7 +27,10 @@ export function realiseBass(plan: SongPlan, add: Add): BassOnsets {
       const loopEnd = inSection % 4 === 3 && bar + 1 < plan.bars;
       const next = loopEnd ? low(plan.harmony[bar + 1][0].root) : 0;
       const beats = [...cell];
+      // A two-chord bar always states its second root, even when the groove has no onset there.
+      if (plan.harmony[bar].length > 1 && !beats.some(t => t >= 2 && t < 3.5)) beats.push(2);
       if (loopEnd && !beats.includes(3.5)) beats.push(3.5);
+      beats.sort((a, b) => a - b);
       beats.forEach((t, i) => {
         const chord = chordAt(plan.harmony, at + t, false), downbeatChord = plan.harmony[bar][0];
         const root = low(chord.root);

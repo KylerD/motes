@@ -3,7 +3,8 @@ import {createSession,composeSessionTrack} from '../src/session/session';
 import type {Mood,Track} from '../src/music/composer';
 import {harmonyGrams,jaccard,median,melodyGrams,rhythmGrams,weightedJaccard} from './similarity';
 
-const hours=(['rain','meadow','snow','coast'] as Mood[]).flatMap(mood=>[20260917,4242].map(seed=>{
+// Session plans depend on the seed alone, so every fixture uses its own seed.
+const hours=(['rain','meadow','snow','coast'] as Mood[]).flatMap((mood,m)=>[20260917+m,4242+m*7].map(seed=>{
   const plan=createSession(seed,mood);return plan.slots.map((_,i)=>composeSessionTrack(plan,i));
 }));
 
@@ -47,7 +48,9 @@ describe('an hour of different songs',()=>{
 
   it('returns to the opening theme at the end of the hour without repeating whole songs',()=>{
     for(const hour of hours){
-      expect(jaccard(melodyGrams(hour[0]),melodyGrams(hour[17]))).toBeGreaterThanOrEqual(.6);
+      // The theme is stated in the head; the rest of each song (form, middle, turnaround) may differ.
+      const head=(t:Track)=>{const h=t.sections.find(s=>s.role==='head')!;return {...t,events:t.events.filter(e=>e.beat>=h.startBar*4-.05&&e.beat<h.endBar*4-.05)};};
+      expect(jaccard(melodyGrams(head(hour[0])),melodyGrams(head(hour[17])))).toBeGreaterThanOrEqual(.6);
       for(const [a,b] of [[15,16],[15,17],[16,17],[0,17]])expect(hour[a].events).not.toEqual(hour[b].events);
     }
   });
@@ -61,6 +64,46 @@ describe('an hour of different songs',()=>{
       total+=track.events.length;bars+=track.bars;
     }
     expect(total/bars).toBeLessThanOrEqual(19);
+  });
+
+  it('states a theme as a tune, not a drone',()=>{
+    let narrow=0,long=0;
+    for(const track of hours.flat()){
+      const head=track.sections.find(s=>s.role==='head')!;
+      const statement=track.events.filter(e=>e.instrument==='melody'&&e.beat>=head.startBar*4-.05&&e.beat<head.startBar*4+8-.05);
+      const distinct=new Set(statement.map(e=>e.note)).size;
+      expect(distinct,`${track.title}: ${statement.map(e=>e.note)}`).toBeGreaterThanOrEqual(2);
+      // A two-note figure is occasionally a real motif; it must not become the norm.
+      if(statement.length>=4){long++;if(distinct<3)narrow++;}
+      expect(statement.filter(e=>e.note>=80).length,`${track.title} crowds the ceiling`).toBeLessThanOrEqual(2);
+    }
+    expect(narrow/long,'share of two-pitch theme statements').toBeLessThan(.1);
+    const melody=hours.flat().flatMap(t=>t.events.filter(e=>e.instrument==='melody'));
+    expect(melody.filter(e=>e.note>=80).length/melody.length,'share of melody notes at the ceiling').toBeLessThan(.05);
+  });
+
+  it('sounds both chords of a two-chord bar, in bass and piano, without smearing them together',()=>{
+    for(const track of hours.flat())track.harmony.forEach((chords,bar)=>{
+      if(chords.length<2||bar===track.bars-1)return;
+      const second=chords[1],from=bar*4+2-.05,to=bar*4+4-.05,where=`${track.title} bar ${bar}`;
+      expect(track.events.some(e=>e.instrument==='piano'&&e.beat>=from&&e.beat<to&&second.notes.includes(e.note)),`piano: ${where}`).toBe(true);
+      expect(track.events.some(e=>e.instrument==='bass'&&e.beat>=from&&e.beat<bar*4+3.5-.05&&e.note%12===second.root%12),`bass: ${where}`).toBe(true);
+      const ringing=track.events.filter(e=>e.instrument==='piano'&&e.beat>=bar*4-.05&&e.beat<from&&e.beat+e.duration>bar*4+2+.15);
+      expect(ringing.map(e=>e.note),`ringing: ${where}`).toEqual([]);
+    });
+  });
+
+  it('voices every chord as a sorted shell in the warm register',()=>{
+    for(const track of hours.flat())for(const chord of track.harmony.flat()){
+      expect([...chord.notes].sort((a,b)=>a-b)).toEqual(chord.notes);
+      expect(chord.notes[0]).toBeGreaterThanOrEqual(55);
+      expect(chord.notes.at(-1)).toBeLessThanOrEqual(74);
+    }
+  });
+
+  it('lets the bass state the loop from the first bar',()=>{
+    for(const track of hours.flat())for(let bar=0;bar<4;bar++)
+      expect(track.events.some(e=>e.instrument==='bass'&&Math.round(e.beat*2)===bar*8&&e.note%12===track.harmony[bar][0].root%12),`${track.title} bar ${bar}`).toBe(true);
   });
 
   it('never leaves a bar without a chord sounding',()=>{

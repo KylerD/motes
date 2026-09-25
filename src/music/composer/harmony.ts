@@ -56,7 +56,7 @@ export const LOOPS: Loop[] = [
   L('hush', 'minor', false, true, [[0, 'min9']], [[0, 'min9']], [[5, 'min11']], [[10, 'dom9']]),
   L('rise', 'minor', true, false, [[8, 'maj7']], [[10, 'dom13']], [[0, 'min9']], [[0, 'min9']]),
   L('dorian', 'minor', true, true, [[0, 'min9']], [[5, 'dom9']], [[0, 'min9']], [[5, 'dom9']]),
-  L('tide', 'minor', false, true, [[5, 'min9']], [[7, 'min7']], [[3, 'maj9']], [[8, 'maj9']]),
+  L('tide', 'minor', false, true, [[0, 'min9']], [[8, 'maj9']], [[5, 'min9']], [[7, 'min7']]),
 ];
 /** Contrast loops lean toward IV or vi (major), iv or ♭VI (minor), and hand back to the A loop. */
 export const B_LOOPS: Loop[] = [
@@ -81,7 +81,7 @@ export function voice(root: number, quality: Quality, previous: number[], top: n
   let best: number[] = [], bestCost = Infinity;
   SHELLS[quality].forEach((shell, shellIndex) => {
     for (let r = 0; r < shell.length; r++) {
-      const rotated = shell.slice(r).concat(shell.slice(0, r).map(n => n + 12));
+      const rotated = shell.slice(r).concat(shell.slice(0, r).map(n => n + 12)).sort((a, b) => a - b);
       for (let octave = -2; octave <= 2; octave++) {
         const notes = rotated.map(n => root + n + octave * 12);
         if (notes[0] < 55 || notes[notes.length - 1] > top) continue;

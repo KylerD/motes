@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {createSession,sessionAt,composeSessionTrack,FORM_SEQUENCES} from '../src/session/session';
-import {formBars} from '../src/music/composer';
+import {LOOPS,formBars} from '../src/music/composer';
 import type {Mood} from '../src/music/composer';
 
 describe('an hour in a scene',()=>{
@@ -44,8 +44,9 @@ describe('an hour in a scene',()=>{
   it('preserves the shared groove and playable scores through every instrumental change',()=>{
     for(const mood of ['rain','meadow','snow','coast'] as Mood[]){
       const plan=createSession(913,mood);
-      for(const slot of plan.slots){
-        const track=composeSessionTrack(plan,slot.index),bass=track.events.filter(e=>e.instrument==='bass');
+      // After hours shares the grid: check a few songs past the first hour too.
+      for(const index of [...plan.slots.map(s=>s.index),18,19,27,35]){
+        const track=composeSessionTrack(plan,index),bass=track.events.filter(e=>e.instrument==='bass');
         expect(track.bpm).toBeGreaterThan(68);expect(track.bpm).toBeLessThan(88);
         expect(track.events.length).toBeLessThan(2600);
         for(const event of track.events){
@@ -85,6 +86,7 @@ describe('an hour in a scene',()=>{
       expect(Math.max(...counts.values()),'no loop dominates the hour').toBeLessThanOrEqual(2);
       expect(a[10].mode).toBe('minor');expect(a[16].mode).toBe('minor');expect(a[0].mode).toBe('major');
       expect(a[17].loop).toBe(a[0].loop);expect(a[17].theme).toEqual(a[0].theme);
+      expect(LOOPS.find(l=>l.id===a[0].loop)!.bars[0][0][0],'the hour opens on its tonic').toBe(0);
       expect(a[15].theme.cell).toBe(a[0].theme.cell);expect(a[16].theme.cell).toBe(a[0].theme.cell);
       for(const x of a){expect(x.bpm).toBeGreaterThan(68);expect(x.bpm).toBeLessThan(88);}
       expect(plan.slots.reduce((sum,s)=>sum+s.duration,0)).toBeCloseTo(3600,6);

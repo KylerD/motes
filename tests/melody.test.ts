@@ -6,7 +6,7 @@ import {chordTones,isStrong} from '../src/music/composer/melody';
 
 const keys=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
 const tracks:Track[]=[
-  ...(['rain','meadow','snow','coast'] as Mood[]).flatMap(mood=>[20260917,4242].flatMap(seed=>{const plan=createSession(seed,mood);return plan.slots.map((_,i)=>composeSessionTrack(plan,i));})),
+  ...(['rain','meadow','snow','coast'] as Mood[]).flatMap((mood,m)=>[20260917+m,4242+m*7].flatMap(seed=>{const plan=createSession(seed,mood);return [...plan.slots.map((_,i)=>composeSessionTrack(plan,i)),composeSessionTrack(plan,18),composeSessionTrack(plan,28)];})),
   ...Array.from({length:20},(_,seed)=>composeTrack(seed,'rain',seed%5)),
 ];
 
@@ -22,7 +22,9 @@ describe('melodic hygiene',()=>{
           expect(MELODY_TONES[chord.quality].map(n=>(chord.root+n)%12),where).toContain(pc);
         }else if(!chordTones(chord).has(pc)){
           expect(allowedPitchClasses(chord,tonic,track.mode).has(pc),where).toBe(true);
-          const next=melody[i+1],nextChord=chordAt(track.harmony,Math.round(next.beat*2)/2);
+          const next=melody[i+1];
+          expect(next,`${where}: a passing note cannot end the melody`).toBeDefined();
+          const nextChord=chordAt(track.harmony,Math.round(next.beat*2)/2);
           expect(chordTones(nextChord).has(next.note%12)&&Math.abs(next.note-e.note)<=2,where).toBe(true);
         }
       });
