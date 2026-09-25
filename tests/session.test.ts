@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
-import {createSession,sessionAt,composeSessionTrack} from '../src/session/session';
+import {createSession,sessionAt,composeSessionTrack,FORM_SEQUENCES} from '../src/session/session';
+import {formBars} from '../src/music/composer';
 import type {Mood} from '../src/music/composer';
 
 describe('an hour in a scene',()=>{
@@ -10,7 +11,7 @@ describe('an hour in a scene',()=>{
     let end=0;
     for(const slot of plan.slots){
       expect(slot.start).toBeCloseTo(end,8);
-      expect(slot.duration).toBeCloseTo(256*60/slot.arrangement.bpm,8);
+      expect(slot.duration).toBeCloseTo(formBars(slot.arrangement.form)*4*60/slot.arrangement.bpm,8);
       end+=slot.duration;
     }
     expect(end).toBeCloseTo(3600,8);
@@ -24,7 +25,7 @@ describe('an hour in a scene',()=>{
     expect(new Set(scores.map(s=>s.key)).size).toBeGreaterThan(1);
     expect(new Set(scores.map(s=>s.voice)).size).toBe(4);
     expect(scores.every(s=>s.session?.seed===42)).toBe(true);
-    expect(scores[17].session!.offset+256*60/scores[17].bpm).toBeCloseTo(3600,7);
+    expect(scores[17].session!.offset+scores[17].bars*4*60/scores[17].bpm).toBeCloseTo(3600,7);
     expect(composeSessionTrack(createSession(43,'coast'),0).events).not.toEqual(scores[0].events);
   });
   it('keeps the scene continuous across chapter edges and quiet between events',()=>{
@@ -49,7 +50,7 @@ describe('an hour in a scene',()=>{
         expect(track.events.length).toBeLessThan(2600);
         for(const event of track.events){
           expect(Number.isFinite(event.beat+event.duration+event.velocity+event.note)).toBe(true);
-          expect(event.beat).toBeGreaterThanOrEqual(0);expect(event.beat).toBeLessThan(256);
+          expect(event.beat).toBeGreaterThanOrEqual(0);expect(event.beat).toBeLessThan(track.bars*4);
           if(event.instrument==='piano')continue;
           const eighth=Math.round(event.beat*2),grid=eighth/2+(eighth%2?track.swing:0);
           expect(Math.abs(event.beat-grid)).toBeLessThanOrEqual(.025);
@@ -65,5 +66,28 @@ describe('an hour in a scene',()=>{
     expect(sessionAt(plan,7200).chapter).toBe('After hours');
     expect(composeSessionTrack(plan,18).session!.offset).toBeCloseTo(3600);
     expect(composeSessionTrack(plan,18).events).not.toEqual(composeSessionTrack(plan,0).events);
+  });
+  it('plans song shapes, loops and grooves so neighbours never match',()=>{
+    for(const sequence of FORM_SEQUENCES){
+      expect(sequence).toHaveLength(18);
+      expect(sequence.reduce((sum,f)=>sum+formBars(f),0)).toBe(1128);
+      sequence.slice(1).forEach((f,i)=>expect(f).not.toBe(sequence[i]));
+      expect(sequence[10]).toBe('nocturne');expect(sequence[16]).toBe('nocturne');expect(sequence[8]).not.toBe('nocturne');
+      expect(['beat-tape','hook']).toContain(sequence[0]);expect(['beat-tape','hook']).toContain(sequence[17]);
+    }
+    for(const mood of ['rain','meadow','snow','coast'] as Mood[])for(let seed=0;seed<200;seed++){
+      const plan=createSession(seed,mood),a=plan.slots.map(s=>s.arrangement);
+      a.slice(1).forEach((x,i)=>{
+        expect(x.loop).not.toBe(a[i].loop);expect(x.comp).not.toBe(a[i].comp);expect(x.groove).not.toBe(a[i].groove);
+      });
+      expect(a.filter(x=>x.stretch).length).toBeLessThanOrEqual(2);
+      const counts=new Map<string,number>();for(const x of a.slice(0,17))counts.set(x.loop,(counts.get(x.loop)??0)+1);
+      expect(Math.max(...counts.values()),'no loop dominates the hour').toBeLessThanOrEqual(2);
+      expect(a[10].mode).toBe('minor');expect(a[16].mode).toBe('minor');expect(a[0].mode).toBe('major');
+      expect(a[17].loop).toBe(a[0].loop);expect(a[17].theme).toEqual(a[0].theme);
+      expect(a[15].theme.cell).toBe(a[0].theme.cell);expect(a[16].theme.cell).toBe(a[0].theme.cell);
+      for(const x of a){expect(x.bpm).toBeGreaterThan(68);expect(x.bpm).toBeLessThan(88);}
+      expect(plan.slots.reduce((sum,s)=>sum+s.duration,0)).toBeCloseTo(3600,6);
+    }
   });
 });

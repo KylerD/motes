@@ -249,3 +249,18 @@ README's module table and the composer description are updated in the commit tha
 - **Mix drift in quiet passages.** Pad velocity floor; `verify-mix` includes the nocturne slot.
 - **Theme identity lost.** Cousins share rhythm or contour; return floor test.
 - **Library taste.** The curated loops and cells are the product; they are reviewed by ear, not only by test.
+
+## Build notes (2026-09-25)
+
+Decisions changed while building, each forced by a test or a check:
+
+- **Rhythm skeletons use weighted Jaccard.** Set-Jaccard rated "mostly roll, some halves" identical to "mostly halves, some roll". Comp and bass skeletons are compared as counted two-bar n-grams.
+- **Hook share counts occurrences:** ≥ 40% of a track's melody 4-gram occurrences belong to a figure heard at least twice.
+- **The theme owns its anchor degree** (third or fifth of the key), so track 17 restates track 0's theme at the same pitch.
+- **Cousins rotate by track, not by chapter:** same rhythm with a new contour, then same contour with a new rhythm, then a fresh theme. Chapter-wide sharing put the same rhythm cell next to itself.
+- **Charleston alternates phrase by phrase with halves** (never more than 8 bars running), and the planner keeps charleston and halves songs apart.
+- **Comp answers play from energy .5** (was .6): below it every cell collapsed to a lone downbeat, and quiet songs all sounded alike.
+- **The intro plays the comp's answers at level .76** (was .66, no answers). Rootless voicings carry less energy than the old root-position chords; this restores the opening's atmosphere margin (worst case −18.6 dB, previously −18.2 dB).
+- **Returns reuse the head's voicings**, not just its chords, so the verbatim melody sits exactly as it did.
+- **Loops are spread across the hour:** the planner picks among the least-used loops; no loop appears more than twice in tracks 0–16.
+- Plain `min7`, `dom7` and `halfdim` carry no non-diatonic ninth: `min7` and `halfdim` take the 11th, `dom7` its root.

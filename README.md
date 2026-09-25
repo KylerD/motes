@@ -19,7 +19,7 @@ npm run dev -- --host 127.0.0.1 --port 5175
 
 The shelter-and-mote logo, warm brown radio, amber playback button and cream settings panels give every place the same welcoming interface. Original SVG brand masters live in [public/brand](public/brand/README.md); the self-hosted Nunito Sans and EB Garamond fonts retain their [licenses and sources](public/fonts/README.md). Desktop, phone and short landscape layouts keep the listening controls within reach.
 
-Each Listen session unfolds over an hour: eighteen connected 64-bar arrangements, six chapters, related keys and a return to the opening theme. Upright and softened felt piano give way to mellow electric keys and occasional mallet melodies. Seventh/ninth chords, recurring phrases, soft swung percussion and round bass leave room for quieter passages. After the hour, gentler new arrangements continue without a hard stop. The piano uses local CC0 Kawai upright recordings; electric keys and mallets are synthesized. See [audio provenance](public/audio/README.md).
+Each Listen session unfolds over an hour: eighteen connected songs, six chapters, related keys and a return to the opening theme. Every song is planned before it is played: one of four shapes (a 64-bar beat tape, a 56-bar hook, a 72-bar long form, a sparse 48-bar nocturne), a hand-picked four-bar chord loop with a contrasting middle, a two-bar theme that is stated, answered, echoed and brought home note for note, and its own comping, kick-and-bass and drum feel. Neighbouring songs never share a shape, loop, comp pattern or groove; about a third of the hour is in minor keys, including both nocturnes. Upright and softened felt piano give way to mellow electric keys and occasional mallet melodies. After the hour, gentler new arrangements continue without a hard stop. The piano uses local CC0 Kawai upright recordings; electric keys and mallets are synthesized. See [audio provenance](public/audio/README.md).
 
 Piano, melody, bass and drums share one swung performance grid. Kick accents follow the bass, backbeats sit slightly behind the shared pulse, and restrained hat patterns leave space for the piano. The short kick and filtered percussion stay soft; piano echoes follow the track tempo.
 
@@ -55,7 +55,7 @@ Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWO
 | `src/scenes/meadow-light.ts` | Meadow timing for sunlight, lantern light and fireflies |
 | `src/session/environment.ts` | Listening-time clock independent of track skips and rendering |
 | `src/session/session.ts` | Deterministic hour-long arrangement, chapters and environmental timeline |
-| `src/music/composer.ts` | Pure, deterministic musical form, harmony, motifs and performance |
+| `src/music/composer/` | Pure, deterministic song planning (forms, loops, rootless voicings, themes) and realisation of piano, bass, melody and drums on one swung grid |
 | `src/music/sound.ts` | Upright/felt piano, electric keys, mallets, bass, drums, reverb and atmosphere |
 | `src/music/audio.ts` | Playback clock, track continuity, loading, volume and lifecycle |
 | `src/main.ts`, `src/style.css` | Listening interface, daily navigation, preferences and accessibility |

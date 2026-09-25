@@ -15,17 +15,29 @@ describe('daily radio composition', () => {
     expect(new Set(tracks.map(t => t.key)).size).toBeGreaterThan(3);
     expect(composeTrack(12346, 'meadow', 0).events).not.toEqual(tracks[0].events);
   });
-  it('has an introduction, recurring themes, a quieter break, and a resolved ending', () => {
-    const track = composeTrack(71, 'coast', 0);
-    expect(track.bars).toBe(64);
-    expect(track.sections.map(s => s.name)).toEqual(['Opening', 'First light', 'Wandering', 'Room to breathe', 'Home again', 'Last page']);
-    expect(track.sections[0].startBar).toBe(0);
-    expect(track.sections.at(-1)!.endBar).toBe(64);
-    const between = (from:number, to:number, instrument:string) => track.events.filter(e => e.beat >= from*4 && e.beat < to*4 && e.instrument === instrument);
-    expect(between(32,40,'kick').length).toBe(0);
-    expect(between(8,16,'kick').length).toBeGreaterThan(12);
-    expect(between(8,16,'melody').map(e => e.note)).toEqual(between(40,48,'melody').map(e => e.note));
-    expect(between(60,64,'melody').length).toBeLessThan(between(8,12,'melody').length);
+  it('has an introduction, recurring themes, a quieter break, and a resolved ending in every form', () => {
+    const forms = new Set<string>();
+    for (let seed = 0; seed < 40; seed++) {
+      const track = composeTrack(seed, 'coast', 0);
+      forms.add(track.form);
+      expect([48, 56, 64, 72]).toContain(track.bars);
+      expect(track.harmony).toHaveLength(track.bars);
+      expect(track.sections[0].startBar).toBe(0);
+      expect(track.sections[0].role).toBe('intro');
+      expect(track.sections.at(-1)!.role).toBe('tag');
+      expect(track.sections.at(-1)!.endBar).toBe(track.bars);
+      track.sections.slice(1).forEach((s, i) => expect(s.startBar).toBe(track.sections[i].endBar));
+      // Performance drift may pull a downbeat a hair early; it still belongs to its bar.
+      const between = (from:number, to:number, instrument:string) => track.events.filter(e => e.beat >= from*4 - 0.05 && e.beat < to*4 - 0.05 && e.instrument === instrument);
+      for (const s of track.sections.filter(s => s.role === 'breath')) expect(between(s.startBar, s.endBar, 'kick')).toHaveLength(0);
+      const head = track.sections.find(s => s.role === 'head')!, back = track.sections.find(s => s.role === 'return')!;
+      const length = back.endBar - back.startBar;
+      expect(between(back.startBar, back.endBar, 'melody').map(e => e.note)).toEqual(between(head.startBar, head.startBar + length, 'melody').map(e => e.note));
+      expect(between(track.bars - 4, track.bars, 'melody').length).toBeLessThan(between(head.startBar, head.startBar + 4, 'melody').length);
+      const final = track.harmony.at(-1)![0];
+      expect(final.root % 12 === ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'].indexOf(track.key.replace('m','')) || final.quality === 'min6').toBe(true);
+    }
+    expect(forms.size).toBe(4);
   });
   it.each(['rain','meadow','snow','coast'] as Mood[])('keeps the %s rhythm section and melody in one swung pocket', (mood) => {
     for(let seed=0;seed<8;seed++) {
@@ -47,15 +59,15 @@ describe('daily radio composition', () => {
       expect(t.bpm).toBeGreaterThanOrEqual(68);
       expect(t.bpm).toBeLessThanOrEqual(88);
       expect(t.events.length).toBeLessThan(2600);
-      expect(t.harmony).toHaveLength(64);
-      for (const chord of t.harmony) {
+      expect(t.harmony).toHaveLength(t.bars);
+      for (const chord of t.harmony.flat()) {
         expect(chord.notes.length).toBeGreaterThanOrEqual(4);
         expect(new Set(chord.notes.map(n => n % 12)).size).toBe(chord.notes.length);
       }
       for (const e of t.events) {
         expect(Number.isFinite(e.beat + e.duration + e.velocity + e.note)).toBe(true);
         expect(e.beat).toBeGreaterThanOrEqual(0);
-        expect(e.beat).toBeLessThan(256);
+        expect(e.beat).toBeLessThan(t.bars * 4);
         expect(e.duration).toBeGreaterThan(0);
         expect(e.velocity).toBeGreaterThan(0);
         expect(e.velocity).toBeLessThanOrEqual(1);

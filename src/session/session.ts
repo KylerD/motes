@@ -1,4 +1,6 @@
-import {composeTrack,randomSource,type Arrangement,type KeyVoice,type Mood,type Track} from '../music/composer';
+import {composeTrack,formBars,makeTheme,randomSource,type Arrangement,type CompCell,type FormName,type GrooveCell,type KeyVoice,type Mode,type Mood,type Theme,type Track} from '../music/composer';
+import {LOOPS} from '../music/composer/harmony';
+import {MELODY_CELLS} from '../music/composer/cells';
 
 export interface SessionSlot {index:number;start:number;duration:number;chapter:string;arrangement:Arrangement}
 export type EventKind='train'|'boat'|'birds'|'butterflies'|'shower'|'windows';
@@ -15,17 +17,49 @@ const keySteps=[0,0,0,5,5,0,0,7,7,0,0,5,5,0,0,7,0,0];
 const clamp=(x:number)=>Math.max(0,Math.min(1,x));
 const smooth=(x:number)=>{const t=clamp(x);return t*t*(3-2*t);};
 
-/** A written hour: tempo, colour and related keys make a sequence, not eighteen shuffled songs. */
+const forms:Record<string,FormName>={B:'beat-tape',H:'hook',L:'long',N:'nocturne'};
+/** Authored song shapes for the hour: 1128 bars each, no neighbours alike, nocturnes at 10 and 16, never on the train's track. */
+export const FORM_SEQUENCES:FormName[][]=['BLHLBLHBLHNLBHLBNH','HLBHLBLHBLNBLHBLNH','BHLBLHLBLHNLHBLHNB'].map(s=>[...s].map(c=>forms[c]));
+const compsFor:Record<FormName,CompCell[]>={'beat-tape':['roll','stab','charleston','push'],hook:['push','stab','roll','halves'],long:['charleston','halves','stab','roll'],nocturne:['halves']};
+const grooves:GrooveCell[]=['home','skip','late','lean'];
+
+/** Pick from options not used by the neighbours; the fallback order keeps assignment total. */
+function pick<T>(random:()=>number,options:readonly T[],avoid:(T|undefined)[]):T {
+  const open=options.filter(o=>!avoid.includes(o));
+  return (open.length?open:options)[Math.floor(random()*(open.length||options.length))];
+}
+
+/** A written hour: song shapes, loops, grooves and themes make a sequence, not eighteen shuffled songs. */
 export function createSession(seed:number,mood:Mood):SessionPlan {
   const random=randomSource(seed^0x527a91),tonic=[0,2,3,5,7,8,10][Math.floor(random()*7)];
-  const theme=Math.floor(random()*4),swing=.082+random()*.02;
+  const swing=.082+random()*.02,sequence=FORM_SEQUENCES[Math.floor(random()*FORM_SEQUENCES.length)];
   const raw=tempos.map(bpm=>bpm+(random()-.5)*1.2);
-  const scale=raw.reduce((sum,bpm)=>sum+256*60/bpm,0)/3600;
+  const scale=raw.reduce((sum,bpm,i)=>sum+formBars(sequence[i])*4*60/bpm,0)/3600;
+  // Minor on both nocturnes and on one track in each of chapters 2, 3, 5 and 6 (never the opening or the final return).
+  const minor=new Set(sequence.flatMap((f,i)=>f==='nocturne'?[i]:[]));
+  for(const chapter of [1,2,4,5]){const choices=[0,1,2].map(k=>chapter*3+k).filter(i=>i!==17&&!minor.has(i)&&!minor.has(i-1)&&!minor.has(i+1));if(choices.length)minor.add(choices[Math.floor(random()*choices.length)]);}
+  const hour=makeTheme(random);
+  const otherCell=()=>{let cell=hour.cell;while(cell===hour.cell)cell=Math.floor(random()*MELODY_CELLS.length);return cell;};
+  const themes:Theme[]=sequence.map((_,i)=>i===0||i===17?hour:i===15||i===16?makeTheme(random,hour.cell):i%3===0?makeTheme(random,hour.cell):i%3===1?makeTheme(random,otherCell(),hour.contour):makeTheme(random));
+  const stretch=new Set(sequence.flatMap((f,i)=>f==='long'&&energy[i]>=.8?[i]:[]).slice(0,2));
+  const loops:string[]=[],comps:CompCell[]=[],grooveCells:GrooveCell[]=[];
+  sequence.forEach((form,i)=>{
+    const mode:Mode=minor.has(i)?'minor':'major';
+    const candidates=LOOPS.filter(l=>l.mode===mode&&(form!=='nocturne'||l.nocturne)).map(l=>l.id);
+    // Spread the loop library across the hour: the least-heard loops come first.
+    const uses=(id:string)=>loops.filter(l=>l===id).length,fewest=Math.min(...candidates.filter(id=>id!==loops[i-1]).map(uses));
+    loops.push(i===17?loops[0]:pick(random,candidates.filter(id=>uses(id)===fewest),[loops[i-1]]));
+    const nextIsNocturne=sequence[i+1]==='nocturne';
+    // Charleston songs spend half their phrases in halves, so the two never sit side by side.
+    const previous=comps[i-1],cousin:CompCell|undefined=previous==='charleston'?'halves':previous==='halves'?'charleston':undefined;
+    comps.push(pick(random,compsFor[form].filter(c=>mode==='major'||c!=='stab'),[previous,cousin,nextIsNocturne?'halves':undefined,nextIsNocturne?'charleston':undefined]));
+    grooveCells.push(pick(random,grooves,[grooveCells[i-1]]));
+  });
   let start=0;
   const slots=raw.map((bpm,index)=>{
-    const duration=256*60/(bpm*scale);
-    const arrangement:Arrangement={bpm:bpm*scale,tonic:(tonic+keySteps[index])%12,voice:voices[index],energy:energy[index],swing,
-      motif:index>=15?theme:(theme+Math.floor(index/3))%4,progression:(theme+Math.floor(index/2))%4};
+    const form=sequence[index],tempo=bpm*scale,duration=formBars(form)*4*60/tempo;
+    const arrangement:Arrangement={bpm:tempo,tonic:(tonic+keySteps[index])%12,voice:voices[index],energy:energy[index],swing,
+      form,mode:minor.has(index)?'minor':'major',loop:loops[index],comp:comps[index],groove:grooveCells[index],theme:themes[index],stretch:stretch.has(index)};
     const slot={index,start,duration,chapter:chapters[Math.floor(index/3)],arrangement};start+=duration;return slot;
   });
   const event=(kind:EventKind,index:number,duration:number):SessionEvent=>({kind,start:slots[index].start+(kind==='train'?96*60/slots[index].arrangement.bpm:35)+random()*(kind==='train'?5:25),duration});
@@ -36,9 +70,11 @@ export function createSession(seed:number,mood:Mood):SessionPlan {
   return {seed,mood,duration:3600,slots,events};
 }
 
+/** After the hour, the same shapes continue quietly with fresh themes, so nothing replays. */
 export function composeSessionTrack(plan:SessionPlan,index:number):Track {
   const safeIndex=Math.max(0,Math.floor(index)),cycle=Math.floor(safeIndex/plan.slots.length),slot=plan.slots[safeIndex%plan.slots.length];
-  const track=composeTrack(plan.seed,plan.mood,safeIndex,cycle?{...slot.arrangement,energy:Math.min(.66,slot.arrangement.energy)}:slot.arrangement);
+  const arrangement=cycle?{...slot.arrangement,energy:Math.min(.66,slot.arrangement.energy),stretch:false,theme:makeTheme(randomSource(plan.seed^Math.imul(safeIndex+1,0x2545f491)))}:slot.arrangement;
+  const track=composeTrack(plan.seed,plan.mood,safeIndex,arrangement);
   track.session={seed:plan.seed,offset:cycle*plan.duration+slot.start};
   return track;
 }
