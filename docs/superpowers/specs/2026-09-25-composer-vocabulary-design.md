@@ -116,7 +116,7 @@ A song has an **A loop** (4 bars, ≤ 2 chords per bar, two chords only in bar 4
 - major: `Imaj9 – vi9 – ii9 – V13`; `IVmaj9#11 – iii7 – vi9 – V7/vi→vi`; `Imaj7 – III7 – vi9 – ii9 V13`; `ii9 – V13 – Imaj9 – Imaj9 (bVII9)`; `IVmaj9 – ivm6 – iii7 – vi9`; today's four progressions, reduced to 4-bar loops.
 - minor: `im9 – ivm9 – bVII13 – bIIImaj9`; `im11 – bVImaj9 – iiø – V7b9`; `im9 – im9 – ivm11 – bVII9`; `bVImaj7 – bVII13 – im9 – im9`.
 
-Secondary dominants: `V/vi` (III7) weighted most, then `V/ii`, `V/IV`. `iii` is `min7` (its ninth is not diatonic). Taste limits: `dom7b9` and tritone subs at most once per 8 bars and never in `intro`, `breath` or `nocturne`; `nocturne` uses only minor loops with ≤ 1 chord per bar. Final bar resolves to the tonic (maj9 or m9); `hook` may end on `ivm6`.
+Secondary dominants: `V/vi` (III7) weighted most, then `V/ii`, `V/IV`. `iii` is `min7` (its ninth is not diatonic). Taste limits: `dom7b9` and tritone subs at most once per 4-bar loop pass and never in `intro`, `breath` or `nocturne` (there a loop's `dom7b9` softens to `dom7sus` and turnarounds are off); `nocturne` uses only minor loops with ≤ 1 chord per bar. Final bar resolves to the tonic (maj9 or m9); `hook` may end on `ivm6`.
 
 About a third of an hour's tracks are minor, including every `nocturne`.
 
@@ -128,10 +128,12 @@ One table, used by the melody realiser and the hygiene test:
 | --- | --- |
 | maj7/maj9/six9 | Ionian (Lydian if `maj9#11`) |
 | min7/min9/min11 | Dorian |
-| min6 (borrowed iv) | Dorian of iv (key's ♭6 is the chord's ♭3; its 6th is the key's 2) |
+| min6 (borrowed iv) | Dorian |
 | dom7/dom9/dom13/dom7sus | Mixolydian |
 | dom7b9 | Mixolydian ♭9 ♭13 |
 | halfdim | Locrian ♮2 |
+
+A weak-beat melody note may use `(key scale ∩ chord scale) ∪ chord tones`. The intersection keeps diatonic minor chords honest: `iii` loses Dorian's ♯4 and the key's ♭9 avoid-note, and borrowed chords never pull in a note that clashes with the key.
 
 ## Melody
 
@@ -145,14 +147,14 @@ Realisation per note:
 - Strong beats (0, 2, and a cell's marked accent) take chord tones from {3, 5, 7, 9, 13} of the chord — never the root.
 - Weak-beat notes may be chord-scale tones; each non-chord tone moves by step (≤ 2 semitones) to a chord tone.
 - Phrase-final notes are ≥ 1 beat and one of {3, 9, 5}.
-- Register: floor = comp top voice − 2, ceiling 81, a 10th span per section.
+- Register: floor = max(64, the sounding voicing's top note − 2), ceiling 81. The window is always ≥ 9 semitones, so a permitted chord tone always exists.
 
 ### Development
 
 | Role | Treatment |
 | --- | --- |
-| `intro` | no melody, or the theme's first bar once, low velocity (as today) |
-| `head` | theme · theme sequenced to the next chords · theme · tail altered to cadence |
+| `intro` | the theme's first bar at bars 2 and 6, velocity .28 (as full as today's opening) |
+| `head` | per 8-bar phrase: theme · theme sequenced a step up · theme · cadence (the theme's first bar, tail altered, last note held into a silent final bar) |
 | `contrast` | first bar of the theme, sequenced over the B loop, then rest |
 | `breath` | augmented first bar (durations ×2), low velocity |
 | `stretch` | melody rests; comp's upper voice answers with theme fragments |
@@ -163,7 +165,7 @@ Answers default to tail alteration (the last 2–3 notes change), not inversion.
 
 ### Across the hour
 
-The session carries an **hour theme**. Track 0 and tracks 15–17 use it, but 15–17 each take a different loop from the same family as track 0, so the return is recognisable without three identical songs. Other tracks use a **cousin**: the hour theme's rhythm with a new contour, or its contour with a new rhythm, alternating by chapter. After hours (cycle ≥ 1) uses fresh themes.
+The session carries an **hour theme**. Track 0 states it; track 17 returns it over track 0's loop and key; tracks 15 and 16 take its rhythm cell with new contours and loops, so the return is prepared rather than repeated three times. Other tracks use a **cousin**: the hour theme's rhythm with a new contour, or its contour with a new rhythm, alternating by chapter. After hours (cycle ≥ 1) uses fresh themes.
 
 ## Groove
 
@@ -178,9 +180,9 @@ The session carries an **hour theme**. Track 0 and tracks 15–17 use it, but 15
 | `push` | 0 \| 3.5 (tied; next bar's downbeat omitted) | `hook` heads |
 | `halves` | 0, 2 \| 0 | contrast, stretch |
 | `charleston` | 0, 1.5 \| 0 | at most 8 bars per song |
-| `pad` | 0 held two bars | breath, intro, nocturne |
+| `pad` | 0 \| 0 (held, re-struck) | breath, nocturne breath and tag |
 
-`pad` keeps a velocity floor of .34 so quiet passages keep the atmosphere ≥ 18 dB below the music; nocturnes are not made thinner than today's breath section.
+`pad` re-strikes each bar (a held two-bar chord is too thin against the atmosphere). The intro keeps today's opening texture (rolled chord every bar, bass from bar 4, drums from bar 4 at energy ≥ .65) in every form: today's quietest opening sits only 0.2 dB inside the 18 dB atmosphere margin.
 
 **Kick + bass cells** move together (kicks always land on a bass note):
 
@@ -220,11 +222,11 @@ New tests (absolute thresholds; 8 fixture sessions, two per mood):
    - adjacent tracks: comp skeleton ≤ .5, kick/bass skeleton ≤ .5, melody ≤ .3, harmony root-motion 4-grams ≤ .5;
    - median over all pairs: comp ≤ .5, bass ≤ .5 (today both 1.0).
 2. **Hook and space.** In every track, ≥ 40% of melody 4-grams occur at least twice, and ≥ 25% of bars from `head` through `tag` are melody-silent. Distinctness cannot be bought with noise.
-3. **Theme return.** Melody similarity of tracks 15–17 to track 0 ≥ .6, and tracks 15–17 are not identical to one another.
-4. **Melodic hygiene.** Against the chord-scale table with the anticipation rule: strong-beat notes are chord tones other than the root; non-chord tones resolve by step; phrase endings in {3, 9, 5} and ≥ 1 beat; register within bounds.
+3. **Theme return.** Melody similarity of track 17 to track 0 ≥ .6; tracks 15 and 16 share track 0's rhythm cell; tracks 15–17 are pairwise different.
+4. **Melodic hygiene.** Against the chord-scale rule with anticipations: strong-beat notes are chord tones other than the root; non-chord tones are permitted scale tones and resolve by step; phrase endings in {3, 9, 5} and ≥ 1 beat; register within bounds.
 5. **Harmony.** Shells have 4 distinct pitch classes within 55–74; ≤ 2 chords per bar; `dom7b9`/tritone limits; `nocturne` vocabulary; final bar resolves.
 6. **Planner.** All three sequences: Σbars, adjacency, nocturne positions, stretch quota, BPM band across 200 seeds per mood.
-7. **Bounds.** Events per track < 2,600; events per bar never exceed today's per-bar maximum by more than 15%.
+7. **Bounds.** Events per track < 2,600; no bar above 34 events (today's maximum is 30); mean ≤ 19 events per bar (today 17.3).
 
 Scripts: `verify-music.mjs`, `verify-mix.mjs` (atmosphere ≥ 18 dB below music including index 10's nocturne) and `verify-sessions.mjs` pass. `render-music-preview.mjs` renders before/after previews for one seed and a medley (35 s from each of one session's eighteen tracks).
 
