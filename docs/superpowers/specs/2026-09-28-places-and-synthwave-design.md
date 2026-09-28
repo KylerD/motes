@@ -126,7 +126,7 @@ Eighteen songs in six chapters. A **darkness** value per song rises from 0 to 1 
 | The storm | 12–14 | 130–140 | heaviest drive, organ-like stabs, a second slow burner |
 | Midnight | 15–17 | 130–145 | the chase peaks; song 17 restates song 0 and ends on the heroic major lift |
 
-- Two or three authored form sequences, every one with the same bar total (as lofi's sequences all total 1,128). Nominal tempos are set so the common tempo scale that lands the hour on exactly 3,600 s stays within ±1.5% and every song stays inside its chapter band after scaling. Songs average exactly 3:20.
+- Three authored form sequences, every one totalling 1,880 bars (as lofi's sequences all total 1,128), with slow burners at songs 7 and 13 and `cruise` at 0 and 17; checked by script, each lands within 1.04–1.12% of the hour at nominal tempo. Nominal tempos are set so the common tempo scale that lands the hour on exactly 3,600 s stays within ±1.5% and every song stays inside its chapter band after scaling. Songs average exactly 3:20.
 - Neighbouring songs never share a loop, arpeggio, groove or form.
 - One tonic for the hour with related key steps between chapters, as lofi does. Song 17 uses song 0's loop, tonic and hook, so its first chorus restates song 0's lead note for note; only its final chorus lifts from i to I, with the hook re-fitted to the major chords.
 - After hours: darkness at least 0.8, energy down about 15%, a fresh hook each song, each slot's form and tempo kept. It never returns to sunset.
@@ -138,7 +138,7 @@ Eighteen songs in six chapters. A **darkness** value per song rises from 0 to 1 
 
 | Form | Bars | Sections (bars) |
 | --- | --- | --- |
-| `cruise` | 96 | intro 8 · verse 16 · build 8 · chorus 16 · break 16 · chorus 16 · outro 16 (keys only) |
+| `cruise` | 88 | intro 8 · verse 16 · build 8 · chorus 16 · break 8 · chorus 16 · outro 16 (keys only) |
 | `drive` | 112 | intro 8 · verse 16 · build 8 · chorus 16 · break 8 · verse 16 · build 8 · chorus 16 · outro 16 |
 | `descent` | 128 | intro 16 (held-tonic drone) · build 16 (filter opens) · chorus 32 (distorted bass and full drums land together) · break 16 · chorus 32 · outro 16 |
 | `slowburn` | 64 | intro 8 · verse 16 · chorus 16 · break 8 · chorus 8 · outro 8 |
