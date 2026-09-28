@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Work only on branch `feat/places-and-synthwave`. Three commits in total (end of Tasks 3, 7 and 9). Never push unless the user asks.
+- Work only on branch `feat/places-and-synthwave`. Three commits in total (end of Tasks 3, 6 and 8). The old song always finishes after a visit, across styles too (user decision, 2026-09-28). Never push unless the user asks.
 - The four lofi places must stay byte-identical in score (the Task 1 fingerprint), within 1e-4 per sample in PCM, and byte-identical in reduced-motion canvas captures, through Tasks 2 and 3.
 - Pure composers: no `Math.random`, no wall time; the same inputs give `toEqual` output. Scenery randomness never reads the audio clock.
 - Lofi limits: bpm 68–88, grid 2 per beat (swung), at most 34 events in a bar, mean 19, fewer than 2,600 per track, look-ahead 6 s.
@@ -31,9 +31,9 @@
 
 1. **Switching places across styles quickly** (rain, then deck, then rain, each within a second): pending voices stay under 200, no more than two segments are queued, and no pump or echo automation leaks into the next song. Test in Task 6 (`verify-music`).
 2. **Pause or Without drums in the middle of a synth chorus:** pumping stops at once (pump gain reads 1 within 100 ms), no echo tail resumes after Pause, and voices reach 0. Test in Task 6 (`verify-music`).
-3. **Still or reduced motion during the storm:** no lightning is ever drawn, and a still frame does not freeze mid-flash. Test in Task 6 (`lightningAt` unit check) and Task 8 (`verify-sessions` still frame at the storm).
-4. **The piano fails to download while the listener is at Top deck:** Listen shows the retry message, and a second Listen plays synthwave. Test in Task 8 (`verify-scenes`).
-5. **Sharing and daily links:** `?scene=deck&day=…` pins Top deck and survives reload; every existing daily date keeps its place and seed. Test in Task 8 (`edition.test.ts` and `verify-scenes`).
+3. **Still or reduced motion during the storm:** no lightning is ever drawn, and a still frame does not freeze mid-flash. Test in Task 6 (`lightningAt` unit check) and Task 7 (`verify-sessions` still frame at the storm).
+4. **The piano fails to download while the listener is at Top deck:** Listen shows the retry message, and a second Listen plays synthwave. Test in Task 7 (`verify-scenes`).
+5. **Sharing and daily links:** `?scene=deck&day=…` pins Top deck and survives reload; every existing daily date keeps its place and seed. Test in Task 7 (`edition.test.ts` and `verify-scenes`).
 
 ---
 
@@ -601,7 +601,7 @@ stop(at,from){holdParameter(pump.gain,at);pump.gain.linearRampToValueAtTime(1,at
 
 - [ ] **Step 4:** `npm run build` passes (the bank type-checks against `SoundBank`). Audible checks follow in Task 6, where the style is registered: `verify-mix` (levels, headroom), `verify-music` (lifecycle) and the rendered previews.
 
-### Task 6: Synthwave hour, style registration and mix calibration
+### Task 6: Synthwave hour, style registration and mix calibration (Commit 2)
 
 **Files:**
 - Create: `src/music/styles/synthwave/index.ts`, `src/places/deck.ts`
@@ -667,7 +667,7 @@ describe('the synthwave hour',()=>{
 });
 ```
 
-The general hour checks from Task 3 already loop `[...PLACES,...DRAFTS]`, so the draft deck joins them automatically; after Task 8 it moves between the two lists without being counted twice.
+The general hour checks from Task 3 already loop `[...PLACES,...DRAFTS]`, so the draft deck joins them automatically; after Task 7 it moves between the two lists without being counted twice.
 
 - [ ] **Step 2:** Run `npx vitest run tests/session.test.ts -t "synthwave hour"`. Expected: FAIL.
 
@@ -707,7 +707,7 @@ function planHour(random:()=>number,_place:Place):Slot[] {
 
 `pick` is the lofi helper from `styles/lofi/index.ts` (export it). The `index===0||index===17` hook draws `makeHook(random)` only for other slots, so the stream order is fixed. `compose(seed,place,slot,index)` derives `songSeed=(seed^Math.imul(index+1,0x9e3779b1)^Math.imul(place.music.salt,0x45d9f3b))>>>0` and the title `${choose(place.music.titles)} · ${choose(SUBTITLES)}` from `randomSource(songSeed)`. For `cycle=Math.floor(index/18)>0` it uses `{...slot.arrangement,darkness:Math.max(.8,arrangement.darkness),energy:arrangement.energy*.85,lift:false,hook:makeHook(randomSource(seed^Math.imul(index+1,0x2545f491)))}`. It returns `composeSynthSong(arrangement,songSeed,title)`.
 
-- [ ] **Step 4: Write the draft `src/places/deck.ts`.** Geometry comes from the prompt's layout and is traced from the painting in Task 8. Import `randomSource` from `../music/composer/random` (the leaf module), never from `../music/composer`, whose index imports the place registry.
+- [ ] **Step 4: Write the draft `src/places/deck.ts`.** Geometry comes from the prompt's layout and is traced from the painting in Task 7. Import `randomSource` from `../music/composer/random` (the leaf module), never from `../music/composer`, whose index imports the place registry.
 
 ```ts
 const storm=(progress:number)=>smooth((progress-.66)/.18);
@@ -767,37 +767,19 @@ node scripts/render-music-preview.mjs 150 captures-music/deck-slowburn.wav 20260
 
 Prefix the dark render with `time` and report its wall-clock time against the 150 s of audio. Expected: `clipped: 0`, `peak < 0.9`. Ask the user to listen before Commit 2.
 
-### Task 7: Style handover (only if the user approved it in spec review; otherwise skip to the commit step)
-
-**Files:** Modify `src/music/audio.ts`; test in `scripts/verify-music.mjs`.
-
-- [ ] **Step 1: Truncate the playing song at the next phrase when the style changes.** In `setEdition`, when the new place's style differs from the active segment's track style:
-
-```ts
-const beatNow=(now-active.start)*active.track.bpm/60,end=Math.ceil((beatNow+.001)/32)*32;
-if(end<active.track.bars*4){
-  active.endBeat=end;
-  const at=active.start+end*60/active.track.bpm;
-  stopVoices(this.graph,at,.12,at);
-}
-```
-
-`Segment` gains `endBeat?: number`. In `tick`, the end time uses `(segment.endBeat??segment.track.bars*4)`. Events at or after `endBeat` are skipped, and events in the final 8 beats before it are scheduled with velocity scaled by `(endBeat-beat)/8`.
-
-- [ ] **Step 2:** In `verify-music`, after `setEdition(71,'deck')` from a lofi song, the playing track's style is `synthwave` within 32 beats plus 1 s, and `voices<200`.
-
-- [ ] **Step 3: Commit 2.** `npm test`, `npm run build`, `verify-music`, `verify-mix` pass, and the user has listened to the previews.
+- [ ] **Step 9: Commit 2.** `npm test`, `npm run build`, `verify-music` and `verify-mix` pass, and the user has listened to the previews.
 
 ```bash
 git add -A src tests scripts
 git commit -m "feat: add a synthwave style for the night drive" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
+
 ---
 
 ## Commit 3: Top deck
 
-### Task 8: The place, from the delivered paintings
+### Task 7: The place, from the delivered paintings
 
 Precondition: `public/scenes/top-deck.png` and `public/scenes/top-deck-night.png` exist, are both 1672×941, and line up (spec Appendix B).
 
@@ -825,7 +807,7 @@ Precondition: `public/scenes/top-deck.png` and `public/scenes/top-deck-night.png
 
 - [ ] **Step 5: Register and verify.** Move `deck` into `PLACES`. `npm test` (the evening coverage, light arc and region checks now include the deck) and `npm run build`. Then run `verify-scenes` and `verify-sessions`, and check the desktop and phone captures of the deck by eye.
 
-### Task 9: Copy, docs and the finish review (Commit 3)
+### Task 8: Copy, docs and the finish review (Commit 3)
 
 **Files:** `index.html`, `DESIGN.md`, `.impeccable/design.json`, `CLAUDE.md`, `PRODUCT.md`, `README.md`, `public/audio/README.md`.
 
