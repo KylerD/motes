@@ -809,14 +809,14 @@ Precondition: `public/scenes/top-deck.png` and `public/scenes/top-deck-night.png
 
 ### Task 8: Copy, docs and the finish review (Commit 3)
 
-**Files:** `index.html`, `DESIGN.md`, `.impeccable/design.json`, `CLAUDE.md`, `PRODUCT.md`, `README.md`, `public/audio/README.md`.
+**Files:** `index.html`, `DESIGN.md`, `.impeccable/design.json`, `CLAUDE.md`, `AGENTS.md`, `PRODUCT.md`, `README.md`, `public/audio/README.md`.
 
 - [ ] **Step 1: Copy.** `index.html:55` panel intro becomes "Five places, each with its own feeling." No other markup changes. The style labels already come from `audio.labels`.
 
 - [ ] **Step 2: Docs.**
   - `DESIGN.md`: five authored places with matched paintings, the deck's .43 anchor, the Place browser's five rows, style-owned Sound & motion labels, the Top deck evening and storm in "Evenings across places", and caches of at most five arrival and five evening images.
   - `.impeccable/design.json`: the `scene-evening` and `scene-composite` purposes say five places.
-  - `CLAUDE.md`: "warm jazzy lofi radio" gains "and a synthwave place, Top deck"; "four" becomes "five" where it counts places; add the lightning cap and `DAILY_PLACES` freeze.
+  - `CLAUDE.md`: "warm jazzy lofi radio" gains "and a synthwave place, Top deck"; "four" becomes "five" where it counts places; add the lightning cap and `DAILY_PLACES` freeze. Apply the identical edit to `AGENTS.md` (Codex reads it) and confirm with `cmp CLAUDE.md AGENTS.md`.
   - `PRODUCT.md`: a dated 2026-09-28 user-direction paragraph (synthwave from melodic outrun to darksynth, reached only by choosing it), and place counts.
   - `README.md`: Top deck in the place list and the living-scenes section, the synthwave hour in "Listen", verify commands.
   - `public/audio/README.md`: synthwave sounds are synthesized locally, with no samples.
@@ -828,7 +828,7 @@ Precondition: `public/scenes/top-deck.png` and `public/scenes/top-deck-night.png
 - [ ] **Step 5: Commit 3.**
 
 ```bash
-git add -A src tests scripts public index.html DESIGN.md .impeccable/design.json CLAUDE.md PRODUCT.md README.md
+git add -A src tests scripts public index.html DESIGN.md .impeccable/design.json CLAUDE.md AGENTS.md PRODUCT.md README.md
 git commit -m "feat: add Top deck, a synthwave place above the city" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
 
