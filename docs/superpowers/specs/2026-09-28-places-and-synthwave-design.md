@@ -1,6 +1,6 @@
 # Places and synthwave
 
-Status: design, revised after adversarial review (2026-09-28). Branch `feat/places-and-synthwave`; nothing merges to `main` until Kyle has reviewed it. Scope: a place registry and a music-style interface (no behaviour change), a synthwave style, and a fifth place, **Top deck**, that plays it.
+Status: design, revised after adversarial review and improved with hq:improve (2026-09-28). Branch `feat/places-and-synthwave`; nothing merges to `main` until Kyle has reviewed it. Scope: a place registry and a music-style interface (no behaviour change), a synthwave style, and a fifth place, **Top deck**, that plays it.
 
 ## Problem
 
@@ -20,7 +20,7 @@ Success means:
 
 1. From the first garage song onward, the hour is unmistakably synthwave, and unmistakably darker by its last chapter, with hooks that repeat and the opening hook returning at the end.
 2. Moving between the garage and any lofi place never jumps in loudness, and the four lofi places sound and look exactly as they do today (proved by score hashes, a PCM comparison and screenshots).
-3. Adding a sixth place is one folder plus one registry line, and the existing tests then check it.
+3. Adding a sixth place is one file plus one registry line, and the existing tests then check it.
 4. `npm test`, `npm run build`, the browser scripts on desktop and phone, rendered PCM previews and lifecycle checks pass.
 
 Non-goals: loading places at runtime, user-supplied places, vocals or vocoder, guitar, sampled dialogue, key changes inside a song (the late major lift is the one exception), new audio sample files, any change to the lofi sound or the four paintings, new interface colours, adding the garage (or any future place) to the daily rotation, which would reshuffle every existing daily link.
@@ -37,19 +37,18 @@ Non-goals: loading places at runtime, user-supplied places, vocals or vocoder, g
 
 ```
 src/places/
-  types.ts        Place and its parts
-  index.ts        PLACES (panel order) and DAILY_PLACES (rain, meadow, snow, coast; frozen)
-  rain/ meadow/ snow/ coast/    today's per-place tables and branches, moved as they are
-  deck/           Top deck, including its headlights and lightning drawings
+  index.ts        Place types, PLACES (panel order) and DAILY_PLACES (rain, meadow, snow, coast; frozen)
+  rain.ts meadow.ts snow.ts coast.ts   today's per-place tables, branches and own drawings, moved as they are
+  deck.ts         Top deck, with its headlights and lightning
 src/music/
-  composer/       the lofi composer, unchanged in place
-  styles/types.ts MusicStyle and SoundBank
-  styles/index.ts STYLES
-  styles/lofi/    hour planner (from session.ts) and sound bank (from sound.ts), moved as they are
-  styles/synthwave/  library, hour, song, sound, index
+  composer/       the lofi composer, where it is; its titles, salt and standalone tempo come from the place,
+                  and performer gains an optional tight flag
+  styles/index.ts MusicStyle, SoundBank and STYLES
+  styles/lofi/    index.ts (the hour planner from session.ts) and sound.ts (the bank from sound.ts), moved as they are
+  styles/synthwave/  index.ts (style and hour), library.ts (loops, forms, cells), song.ts (plan and parts), sound.ts
 ```
 
-Synthwave imports `randomSource`, `chooser`, `partSeed`, `performer`, `chordAt` and `makeContour` from `composer/` directly, so no lofi file moves and no test import changes beyond what the registry requires.
+Types live beside their registries and are imported with `import type`, so place files and the registry never form a runtime cycle. Synthwave imports `randomSource`, `chooser`, `partSeed`, `performer`, `chordAt` and `makeContour` from `composer/` directly, so no lofi file moves and no test import changes beyond what the registry requires.
 
 ### Place
 
@@ -57,41 +56,37 @@ Every per-place table or branch in today's code becomes a field; shared code rea
 
 ```ts
 interface Place {
-  id: string; name: string; title: string; subtitle: string; weather: string; lights: readonly [string, string, string];
+  id: string; name: string; title: string; weather: string; lights: readonly [string, string, string];
   image: string; eveningImage: string; anchor: number; color: string;
-  water: { outline: readonly Point[]; from: number; shimmer: number; tint?: string };  // band start, shimmer, fixed ripple colour
-  lamps: { spots: readonly Point[]; size: number };
-  windows?: { spots: readonly Point[]; fixtures: readonly Point[] };
-  steam?: Point; birds?: { ambient: string; event: string };
-  grade: boolean;                                      // slow soft-light cloud grade before authored light loads
-  fallback?: { tint: string; depth: number };          // procedural evening when authored light is unavailable
-  effects: { rain?: boolean; snow?: boolean; pollen?: boolean };   // drawn in today's fixed order; rain rings follow rain
-  light: LightArc | ((seconds: number) => LightState); // timings, lamps, captions, subtitles; the meadow keeps its function
+  water?: { outline: readonly Point[]; from?: number; shimmer?: number; tint?: string }; // defaults .6 and 1; tint fixes the ripple colour
+  lamps: readonly Point[]; steam?: Point; birds?: string;            // birds: colour of the idle flock
+  effect?: 'rain' | 'snow' | 'pollen';                               // rain rings on the water follow rain
+  fallback?: { tint: string; depth: number };  // procedural evening and the soft cloud grade, both only before authored light
+  light(seconds: number): LightState;                                // arc(table) for most places; the meadow keeps its function
   regions(u: number, v: number): readonly [sky: number, distance: number, foreground: number];
-  environment: { events: readonly EventPlan[]; captions: readonly string[]; weather(input: WeatherInput): number };
-  layers?: readonly LayerDrawer[];                     // drawn every frame: meadow lantern, fireflies, deck lightning
-  draw?: Readonly<Record<string, EventDrawer>>;        // per event kind: train, boat, birds, butterflies, headlights
+  environment: { events: readonly EventPlan[]; weather(input: WeatherInput): number };
+  draw: readonly Layer[];                                            // in order, e.g. windows(spots, fixtures), during('train', train)
   ambience: { trim: number; texture: AmbienceTexture };
   music: { style: StyleId; salt: number; titles: readonly string[]; tempo: number };
 }
-interface EventPlan { kind: string; slot: number; duration: number; offset: { bars: number } | { seconds: number }; jitter: number }
+interface EventPlan { kind: string; slot: number; duration: number; beats?: number } // start: beats·60/bpm + 0–5 s, else 35 + 0–25 s
 ```
 
-- The place id type derives from `PLACES`. `edition()` rotates through `DAILY_PLACES` with today's formula, so every date keeps its place and seed. The ambience seed stays derived from the id, as today.
-- `music.salt` carries today's per-mood salt (rain 1, meadow 2, snow 3, coast 4) and `music.tempo` the standalone base tempo, so lofi scores are unchanged. The garage takes salt 5.
-- Shared drawing code (water shimmer and ripples, lamps, rain, snow, pollen, birds, steam, windows, the procedural fallback) stays shared and runs in today's fixed order, gated by the place's fields. Drawings unique to one place live in its folder.
+- The place id type derives from `PLACES`. `edition()` rotates through `DAILY_PLACES` with today's formula, so every date keeps its place and seed. The ambience seed stays derived from the id, as today. The caption subtitle is `light(0).subtitle`, which already equals every place's current subtitle.
+- `music.salt` carries today's per-mood salt (rain 1, meadow 2, snow 3, coast 4) and `music.tempo` the standalone base tempo, so lofi scores are unchanged. The garage takes salt 5. The train keeps `beats: 96`.
+- `draw` is one ordered list per place. Shared factories (`windows`, `birds`, and `during(kind, fn)`, which keeps today's six-event cap) live in `session-effects.ts`; drawings unique to one place live in its file. Today's order (windows, meadow layers, then events) is preserved, and no current plan overlaps two drawn events, so output is identical. Water shimmer and ripples, lamps, rain, snow, pollen, steam and the idle birds stay in the renderer, gated by the fields above in today's fixed order.
+- `SessionState.caption` and the per-place chapter captions are removed: nothing reads them (the atmosphere line comes from `light`).
 
 ### Music style
 
 ```ts
 interface MusicStyle {
-  id: StyleId; chapters: readonly string[]; lookahead: number;      // seconds scheduled ahead
-  limits: { bpm: readonly [number, number]; grid: 'swung-eighths' | 'straight-sixteenths'; perBar: number; meanPerBar: number; perTrack: number };
-  planHour(random: () => number, place: Place): Slot[];             // eighteen slots, exactly 3,600 s
-  compose(seed: number, place: Place, slot: Slot, index: number, cycle: number): Track;
+  id: StyleId; lookahead: number;                                    // seconds scheduled ahead
+  limits: { bpm: readonly [number, number]; grid: 2 | 4; perBar: number; meanPerBar: number; perTrack: number };
+  planHour(random: () => number, place: Place): Slot[];              // eighteen slots with their chapters, exactly 3,600 s
+  compose(seed: number, place: Place, slot: Slot, index: number): Track;  // after-hours cycle is floor(index / 18)
   labels: { drums: string; preparing: string; voice(track: Track): string };
-  load?(context: BaseAudioContext, signal?: AbortSignal): Promise<unknown>;
-  bank(graph: SoundGraph, assets: unknown): SoundBank;              // built on first use
+  bank(graph: SoundGraph, signal?: AbortSignal): Promise<SoundBank>; // loads its own assets; Listen awaits every style
 }
 interface SoundBank {
   schedule(event: ScoreEvent, time: number, secondsPerBeat: number, track: Track): void;
@@ -103,14 +98,14 @@ interface SoundBank {
 | --- | --- | --- |
 | `lookahead` | 6 s (today) | 3 s |
 | `limits.bpm` | 68–88 | 88–150 |
-| `limits.grid` | swung eighths | straight sixteenths |
+| `limits.grid` (per beat; one check, `n/g + (n odd ? swing : 0)`) | 2, swung | 4, straight |
 | per bar / mean / per track | 34 / 19 / 2,600 | 64 / 44 / 6,000 |
-| labels | "Warm lofi beats", "Preparing the piano…", instrument names | "Drum machine", "Warming up the synths…", Sunset synths / Night drive / Darksynth by darkness |
+| labels | "Warm lofi beats", "Preparing the piano…", instrument names | "Drum machine", "Warming up the synths…", "Analog synths" below darkness 0.6, "Darksynth" above |
 
 - **Session.** `createSession(seed, placeId)` owns the random stream as today: the style's `planHour` draws from it first, then the place's events, so existing plans are identical. `composeSessionTrack` hands after-hours cycles to the style; every cycle keeps its slot's form and tempo so offsets stay exact. `sessionAt`, the environment clock and the Pause, Next, Still, visit and after-hours rules do not change.
 - **Tracks.** The style sets `track.style` (and synthwave sets `track.darkness`) after composing; `ScoreEvent` gains an optional `legato`. `Track.voice` and `Track.form` widen to strings, and `Track.harmony` uses a track-level chord type with a string quality, so the lofi composer's own `Quality` tables stay exactly as they are.
-- **Sound.** `sound.ts` keeps what is shared: output, compressor, ceiling, music and ambience channels, the convolver reverb, voice tracking, `stopVoices`, ambience playback and disposal. It gains `schedule(graph, event, time, spb, track)`, which dispatches to the track's bank, building it on first use. Today's piano, melody, bass and drum code moves into the lofi bank unchanged, including its echo reset.
-- **Loading.** Listen loads every registered style's assets (today only the piano), so moving between places never waits on a download and failure/retry is unchanged.
+- **Sound.** `sound.ts` keeps what is shared: output, compressor, ceiling, music and ambience channels, the convolver reverb, voice tracking, `stopVoices`, ambience playback and disposal. It gains `schedule(graph, event, time, spb, track)`, which dispatches to the bank of the track's style. Today's piano, melody, bass and drum code moves into the lofi bank unchanged, including its echo reset.
+- **Loading.** Listen awaits every registered style's bank, each loading its own assets (today only the piano), so moving between places never waits on a download and failure/retry is unchanged. The trade-off is deliberate: a failed piano download also holds the garage, but there stays one failure and retry path and no song ever waits on a download mid-session.
 - **Scheduling.** Each queued segment is scheduled up to its own style's `lookahead`, and the next segment is prepared when the last one ends within its style's horizon. A lofi song followed by a synthwave song never schedules synth notes 6 s ahead.
 - **Handover between styles (proposed; needs user approval).** Today the old song always finishes after a visit. When the next place plays a different style, the current song instead ends at its next 8-bar phrase boundary with a two-bar fade, so darksynth never plays for minutes over the meadow and lofi never over the garage. Visits between places of the same style keep today's rule. If this is not approved, the rule stays as it is and success criterion 1 already allows for it.
 
@@ -171,22 +166,27 @@ All synthesized in `styles/synthwave/sound.ts`, seeded like today's drum buffers
 - **Echo reset:** `stop` cancels the echo's tempo automation and briefly ducks its return, so no tail resumes after Pause.
 - **Reverb:** the shared convolver with a larger send, never a second convolver.
 - **Mix:** a calibrated trim so the garage's music RMS in the theme window sits within 1.5 dB of the lofi places' median in `verify-mix`; the shared compressor, sliders and ceiling apply. Without drums: drums to zero, no pumping, bass eased back.
-- **Performance:** nodes are built when a note is scheduled; the bank itself is built only when the first synth note is, so its chorus and vibrato oscillators never run for lofi listeners. At about 26 notes a second a 3 s horizon holds roughly 80 pending voices, well inside `verify-music`'s bound of 200. Chrome does not throttle timers on audible pages and Firefox relaxes throttling while an AudioContext exists, so the shorter horizon bounds pending work without risking gaps. If the phone check struggles, the knobs are one saw per pad note, no oversampling and a 2 s horizon.
+- **Verified via context7** against the W3C Web Audio specification: exponential ramps reject 0; `setTargetAtTime` clamps a past start to now; `cancelAndHoldAtTime` is used through the existing `holdParameter` wrapper for Firefox; WaveShaper `oversample` takes `'none'`, `'2x'` or `'4x'`; `createPeriodicWave(real, imag)` builds the stab. Throttling behaviour was checked against Chrome's and Mozilla's published notes.
+- **Performance:** nodes are built when a note is scheduled; the bank's chorus and vibrato oscillators start with its first note, so they never run for lofi listeners. At about 26 notes a second a 3 s horizon holds roughly 80 pending voices, well inside `verify-music`'s bound of 200. Chrome does not throttle timers on audible pages and Firefox relaxes throttling while an AudioContext exists, so the shorter horizon bounds pending work without risking gaps. If the phone check struggles, the knobs are one saw per pad note, no oversampling and a 2 s horizon.
 
 ## Top deck
 
 - **Paintings.** `public/scenes/top-deck.png` (sunset) and `top-deck-night.png`, made like the other four: an original painting, then a composition-matched lighting edit of that image, both at 1672×941 like the others (resize the sunset before the night edit if the tool returns another 16:9 size). Each has a `.png.json` sidecar and an `ARTWORK.md` section. Prompts and the Codex steps are in the appendices.
 - **Composition.** The open top deck at human height: a parked 1980s coupe in the left third with its door open and cabin glowing (the shelter), concrete, bay lines, sodium lamps and a low wall; beyond, 1980s glass towers, an elevated highway of tail-lights, palms far below, and a banded orange, magenta and violet sun in the upper third. One broad continuous puddle across the lower middle fits the single water outline. At night a storm gathers in indigo and violet, neon comes up, the lamps turn amber and the puddle reflects it all. Palette, architecture and shelter keep it apart from Neon rain. Its regions keep the shared probes true: open sky at (.57, .12), sheltered foreground at (.1, .6).
 - **Place data.** Name "Top deck", crop anchor .43 so the car stays in frame on phones, the four-region light arc with the sun and its reflection fading together (as at the coast), lamp and cabin glows, tower windows through the existing windows event, and the procedural fallback. Water outline, lamp and window positions are traced from the delivered painting.
-- **Environment.** Headlights sweep the deck as a car arrives, as events in two slots. The storm is part of the weather curve, not an event: dry until the storm chapter, rising through it and holding after hours, so it drives the existing rain effect and rings and the existing weather scaling of the city-hum scene sound, which stays at least 18 dB under the music. Lightning is a layer while the storm rises during the hour: at most one flash (a double flicker at most, never three in a second) every 20 s, limited to the sky region at a low alpha, none after hours, and none when motion is Still or reduced. Six chapter captions and three daily light lines.
-- **Interface.** Same brown, amber and cream. The places panel gains a fifth row; its intro is rewritten for five places. The drums option, the "preparing" line and the instrument line come from the active style. Copy is drafted in the Motes voice and reviewed with Impeccable; working drafts: title "Above the city lights.", subtitle "Nowhere to be until morning."
+- **Environment.** Headlights sweep the deck as a car arrives, as events in two slots. The storm is part of the weather curve, not an event: dry until the storm chapter, rising through it and holding after hours, so it drives the existing rain effect and rings and the existing weather scaling of the city-hum scene sound, which stays at least 18 dB under the music. Lightning is a layer while the storm rises during the hour: at most one flash (a double flicker at most, never three in a second) every 20 s, limited to the sky region at a low alpha, none after hours, and none when motion is Still or reduced. Flash times are a pure function of the seed and environment time, like `sessionAt`, so Still, hidden tabs and revisits never replay or bunch them. Four light-arc captions, three subtitles and three daily light lines.
+- **Interface (Impeccable shape brief).**
+  - Copy, chosen by the user: title "Park up. Stay a while.", subtitle "Nowhere to be until morning.", places row "Neon and a gathering storm". The music is a discovery rather than announced; the panel intro becomes "Five places, each with its own feeling."
+  - No new colours, components or type: the fifth row reuses the scene-choice row, and the existing panel-bounds checks at 390×844, 320×568 and 844×390 prove it still scrolls inside short screens with focus returning to its trigger.
+  - Style-owned labels: "Drum machine" / "Without drums", "Warming up the synths…", and "Analog synths" or "Darksynth" before the chapter (Sunset, The drive, Night falls, Neon, The storm, Midnight) in the track detail.
+  - Lightning stays subordinate to the painting, as the living-scene rules require: sky only, low alpha, capped, off with Still and reduced motion.
 
 ## Testing
 
 No new test files.
 
-- **Safety net, first.** `music.test.ts` gains one check: hashes of a fixed projection of the lofi session scores (beat, duration, note, velocity, pan, instrument, voice; four places, three seeds, songs 0, 9, 17 and 18) and of `sessionAt` samples, recorded from `main` before anything moves. Before and after the refactor, `render-music-preview` renders one lofi song per place and the WAVs are compared sample by sample (tolerance 1e-4), and `verify-scenes`' reduced-motion scene captures are compared byte for byte, once, by hand.
-- **The registry is the contract.** Checks that hold for any place loop over `PLACES`: the exact contiguous hour, determinism, continuity across chapter edges, after hours without rewinding, evening painting and provenance, light arcs, regions summing to one with the shared probes, events inside their drawings. Checks that hold for any style loop over `STYLES` using `limits`: bpm, grid, events per bar and track, finite playable events, kicks on bass onsets. The daily rotation test counts `DAILY_PLACES`.
+- **Safety net, first.** `music.test.ts` gains one check: hashes of a fixed projection of the lofi session scores (beat, duration, note, velocity, pan, instrument, voice; four places, three seeds, songs 0, 9, 17 and 18) and of `sessionAt` samples without the unused caption, recorded from `main` before anything moves. Before and after the refactor, `render-music-preview` renders one lofi song per place and the WAVs are compared sample by sample (tolerance 1e-4), and `verify-scenes`' reduced-motion scene captures are compared byte for byte, once, by hand.
+- **The registry is the contract.** Checks that hold for any place loop over `PLACES`: the exact contiguous hour, determinism, continuity across chapter edges, after hours without rewinding, evening painting and provenance, light arcs, regions summing to one with the shared probes, and every planned event kind used by a drawing or the weather. Checks that hold for any style loop over `STYLES` using `limits`: bpm, grid, events per bar and track, finite playable events, kicks on bass onsets. The daily rotation test counts `DAILY_PLACES` and asserts it is exactly rain, meadow, snow, coast, so a future place can never silently reshuffle every existing daily link.
 - **Lofi-only, unchanged:** four key voices per hour, four-note shells, comp and piano variety, melody hygiene, and the lofi form-sequence checks.
 - **Synthwave checks** in `session.test.ts`: darkness rises by chapter and stays at least 0.8 after hours; neighbours differ in loop, arpeggio, groove and form; hooks repeat (the 40% rule, via an instrument parameter on the existing helper); song 17's first chorus lead matches song 0's; lead strong beats sit on chord tones; the peak number of scheduled-plus-sounding notes for the densest song under a 3 s horizon stays under 160.
 - **Scripts.** `verify-scenes`, `verify-sessions`, `verify-music` and `verify-mix` loop over the registry, and their image-cache bound becomes the number of places. `verify-music` adds a lofi-to-garage handover case. `verify-mix` adds the loudness match and measures the garage's atmosphere margin in the opening, the theme, a drumless break and a slow burner. `render-music-preview` renders a sunset song, a dark song, a slow burner and a medley, and reports render speed for the dark song.
@@ -198,16 +198,16 @@ Budget: about 150 net lines for the refactor, 700 to 900 for synthwave, and a ha
 
 Three commits on the branch, each gated by `npm test`, `npm run build` and the relevant scripts:
 
-1. **Structure.** Safety net, place folders, music-style interface with lofi behind it, per-segment horizon, registry-driven tests and scripts, and an "Adding a place" section in the README. Nothing audible or visible changes.
+1. **Structure.** Safety net, place files, music-style interface with lofi behind it, per-segment horizon, registry-driven tests and scripts, and an "Adding a place" section in the README (the place file, choosing or adding a style, the two-step painting route and its provenance, and which checks then run automatically). Nothing audible or visible changes.
 2. **Synthwave music.** Library, hour, songs, sound bank and mix calibration, plus the style handover if approved; previews and a phone check. Not reachable from the interface yet.
-3. **Top deck.** Place folder, paintings, regions, events, copy, and updates to `CLAUDE.md`, `PRODUCT.md`, `DESIGN.md`, `.impeccable/design.json`, `ARTWORK.md`, `public/audio/README.md` and the README (four places become five, lofi becomes lofi and synthwave, the image-cache bound). Finish review, then the branch is ready for Kyle. It is pushed only when asked.
+3. **Top deck.** Place file, paintings, regions, events, copy, and updates to `CLAUDE.md`, `PRODUCT.md`, `DESIGN.md`, `.impeccable/design.json`, `ARTWORK.md`, `public/audio/README.md` and the README (four places become five, lofi becomes lofi and synthwave, the image-cache bound). Finish review, then the branch is ready for Kyle. It is pushed only when asked.
 
 The paintings are needed only for commit 3.
 
 ## Risks
 
 - **Thin or toy-like synths.** Detune, chorus, filter envelopes, shared reverb, curated libraries, and the listening gate before commit 2.
-- **Phone CPU.** Cheap per-note nodes, a lazily built bank, a 3 s horizon, the pending-voice check, render-speed report, a real-phone check, and the knobs above.
+- **Phone CPU.** Cheap per-note nodes, synth oscillators that start only with the first synth note, a 3 s horizon, the pending-voice check, render-speed report, a real-phone check, and the knobs above.
 - **Loudness jumps.** The calibrated trim and the `verify-mix` match.
 - **Refactor regressions.** Score hashes, PCM comparison and screenshots before any new behaviour.
 - **Photosensitivity.** The lightning cap, sky-only area, low alpha and Still/reduced-motion off switch.
@@ -216,7 +216,7 @@ The paintings are needed only for commit 3.
 
 ## Review changes
 
-Revised after an adversarial review against the code: tracks carry style, darkness and legato for the bank; horizons are per segment; pumping moved to one gain per bank with the echo's reset pattern; the pickup follows the bass; forms are tabulated; caps allow at most two sixteenth layers; styles declare test limits; the no-change proof uses a score projection, a PCM comparison and reduced-motion captures; every place branch is enumerated; the storm is a weather curve with capped lightning and no second ambience layer; CLAUDE.md, PRODUCT.md and the image-cache bound join commit 3; the lofi composer stays where it is; the 3+3+2 and half-time grooves, a second kick sound and the pre-render fallback are cut; the style handover is proposed for approval.
+Revised after an adversarial review against the code: tracks carry style, darkness and legato for the bank; horizons are per segment; pumping moved to one gain per bank with the echo's reset pattern; the pickup follows the bass; forms are tabulated; caps allow at most two sixteenth layers; styles declare test limits; the no-change proof uses a score projection, a PCM comparison and reduced-motion captures; every place branch is enumerated; the storm is a weather curve with capped lightning and no second ambience layer; CLAUDE.md, PRODUCT.md and the image-cache bound join commit 3; the lofi composer stays where it is; the 3+3+2 and half-time grooves, a second kick sound and the pre-render fallback are cut; the style handover is proposed for approval. Then improved (hq:improve): copy and labels settled through an Impeccable shape brief, Web Audio claims verified via context7, the lofi composer's small changes stated honestly, and a simplification pass that flattened places to one file each, merged asset loading into `bank`, made `light` a function, folded drawings into one ordered `draw` list, removed dead fields (caption, grade, lamp size, subtitle) and fixed the train offset to beats.
 
 ## Appendix A: painting prompts
 
