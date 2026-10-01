@@ -1,5 +1,6 @@
 import './style.css';
 import { DEFAULT_MIX, RadioAudio } from './music/audio';
+import type {MusicStyle} from './music/composer';
 import { edition,dayLabel,localDay,validDay,isScene,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
 import { SceneRenderer } from './scenes/renderer';
 import {createSession,sessionAt} from './session/session';
@@ -18,27 +19,31 @@ let renderer:SceneRenderer;
 try { renderer=new SceneRenderer(canvas,current); }
 catch(error) { $('failure').hidden=false;$('failure').textContent=error instanceof Error?error.message:'The scene could not start. Try reloading.';throw error; }
 
-interface Preferences { volume:number; ambience:number; mode:'beats'|'ambient' }
-let preferences:Preferences={volume:DEFAULT_MIX.music,ambience:DEFAULT_MIX.ambience,mode:'beats'};
+interface Preferences { volume:number; ambience:number; mode:'beats'|'ambient'; style:MusicStyle }
+let preferences:Preferences={volume:DEFAULT_MIX.music,ambience:DEFAULT_MIX.ambience,mode:'beats',style:'lofi'};
 try {
   const saved=JSON.parse(localStorage.getItem('motes-listening')||'null');
   if(saved && typeof saved==='object') {
     for(const key of ['volume','ambience'] as const)if(typeof saved[key]==='number'&&Number.isFinite(saved[key]))preferences[key]=Math.max(0,Math.min(1,saved[key]));
     if(saved.mode==='beats'||saved.mode==='ambient')preferences.mode=saved.mode;
+    if(saved.style==='lofi'||saved.style==='synthwave')preferences.style=saved.style;
   }
 } catch { /* Listening still works when browser storage is unavailable. */ }
 const savePreferences=()=>{try{localStorage.setItem('motes-listening',JSON.stringify(preferences));}catch{/* Private browsing may disable persistence. */}};
 audio.setVolume(preferences.volume);audio.setAmbience(preferences.ambience);audio.setMode(preferences.mode);
+void audio.setStyle(preferences.style);
 for(const [id,value] of [['music-volume',preferences.volume],['ambience-volume',preferences.ambience]] as const) {
   $<HTMLInputElement>(id).value=String(Math.round(value*100));
   $(id).style.setProperty('--level',`${Math.round(value*100)}%`);
 }
 $('music-level').textContent=`${Math.round(preferences.volume*100)}%`;$('ambience-level').textContent=`${Math.round(preferences.ambience*100)}%`;
 $<HTMLSelectElement>('music-mode').value=preferences.mode;
+$<HTMLSelectElement>('music-style').value=preferences.style;
 
 let visualTime=0,last=performance.now(),frame=0,starting=false,listened=false,quiet=false,disposed=false;
 let previewSeconds:number|undefined;
 let statusTimer:ReturnType<typeof setTimeout>|undefined;
+let styleRequest=0,switchingStyle=false;
 const panelIds=['mix','scenes','edition'] as const;
 type PanelId=typeof panelIds[number];
 let openPanel:PanelId|null=null;
@@ -116,14 +121,14 @@ async function toggleListening() {
 }
 function updatePlayer() {
   const playing=audio.playing,track=audio.current,session=audio.session;
-  const voice={upright:'Upright piano',felt:'Felt piano',electric:'Electric keys',vibes:'Soft mallets'}[track.voice];
+  const voice=track.style==='synthwave'?{arpeggio:'Arpeggios & warm pads',pulse:'Pulsing bass',drift:'Drifting pads',lead:'Night-drive melodies'}[track.family??'arpeggio']:{upright:'Upright piano',felt:'Felt piano',electric:'Electric keys',vibes:'Soft mallets'}[track.voice];
   attribute('experience','data-playing',String(playing));
   $<HTMLButtonElement>('listen').disabled=starting;
   attribute('listen','aria-pressed',String(playing));attribute('listen','aria-label',playing?'Pause music':'Listen to music');
   attribute('listen-path','d',playing?'M8 5v14M16 5v14':'m9 5 11 7-11 7Z');
   text('listen-label',starting?'Tuning in…':playing?'Pause':listened?'Resume':'Listen');
   text('track-title',track.title);
-  text('track-detail',starting?'Preparing the piano…':!listened?'An hour, unfolding here':`${voice} · ${session.chapter}`);
+  text('track-detail',switchingStyle?'Tuning into your music…':starting?(track.style==='synthwave'?'Warming up the synths…':'Preparing the piano…'):!listened?'An hour, unfolding here':`${voice} · ${session.chapter}`);
   attribute('track-detail','title',`${voice} · ${session.chapter}${preferences.mode==='ambient'?' · Without drums':''}`);
   const environment=previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds);
   const shownEnvironment=renderer.motion?environment:renderer.diagnostics.session??environment;
@@ -142,6 +147,19 @@ $('next-track').addEventListener('click',()=>{audio.next();updatePlayer();});
 $<HTMLInputElement>('music-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.volume=value/100;audio.setVolume(preferences.volume);$('music-level').textContent=`${value}%`;$('music-volume').style.setProperty('--level',`${value}%`);savePreferences();});
 $<HTMLInputElement>('ambience-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.ambience=value/100;audio.setAmbience(preferences.ambience);$('ambience-level').textContent=`${value}%`;$('ambience-volume').style.setProperty('--level',`${value}%`);savePreferences();});
 $<HTMLSelectElement>('music-mode').addEventListener('change',e=>{preferences.mode=(e.target as HTMLSelectElement).value==='ambient'?'ambient':'beats';audio.setMode(preferences.mode);savePreferences();updatePlayer();});
+$<HTMLSelectElement>('music-style').addEventListener('change',async e=>{
+  const select=e.target as HTMLSelectElement,style:MusicStyle=select.value==='synthwave'?'synthwave':'lofi';
+  const request=++styleRequest;switchingStyle=true;updatePlayer();
+  try {
+    await audio.setStyle(style);
+    if(request!==styleRequest)return;
+    preferences.style=style;savePreferences();
+  } catch {
+    if(request!==styleRequest)return;
+    select.value=audio.current.style;
+    say('That music couldn’t load. Your current style is still here. Choose the style again to retry.',true);
+  } finally {if(request===styleRequest){switchingStyle=false;updatePlayer();}}
+});
 function setMotion(on:boolean){renderer.motion=on;$('motion').setAttribute('aria-pressed',String(on));$('motion-label').textContent=on?'On':'Still';last=performance.now();}
 setMotion(!reduced.matches);$('motion').addEventListener('click',()=>setMotion(!renderer.motion));reduced.addEventListener('change',()=>setMotion(!reduced.matches));
 canvas.addEventListener('pointerup',e=>{const box=canvas.getBoundingClientRect();renderer.ripple(e.clientX-box.left,e.clientY-box.top,visualTime);});

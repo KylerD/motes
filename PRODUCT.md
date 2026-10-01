@@ -2,6 +2,8 @@
 
 Motes is an alternative to lofi YouTube channels: beautiful living scenes and warm, jazzy lofi music, equally important, comfortable to watch and listen to for hours.
 
+The user added a second musical direction on 28 September: **dreamy night-drive synthwave**, with warm pads, pulsing bass, melodic arpeggios and restrained electronic drums. It has a dedicated composer and four contrasting song families. Sound & motion offers a remembered Lofi / Synthwave choice and an independent drums switch. Changing style begins a new musical hour with a gentle fade while the current environment continues; paused playback stays paused. The existing lofi sound remains available.
+
 ## User direction
 
 The user supplied saturated rainy anime-city and golden fantasy-meadow references. Keep that illustrated, cosy videogame sensibility. Avoid realism and toy-like procedural geometry. On 17 September they clarified that "living" describes the scene, not organisms with names and stats. They explicitly chose **warm, jazzy lofi beats**. This supersedes all artificial-life and experiment concepts.

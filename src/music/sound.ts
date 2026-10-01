@@ -1,4 +1,6 @@
 import { randomSource, type Mood, type MusicMode, type ScoreEvent } from './composer';
+import {synthVoice} from './synthwave/sound';
+import {createSynthEffects} from './synthwave/effects';
 
 const sampleNotes = [47,51,54,57,60,63,66,69,72,75,78,81];
 export const DEFAULT_MIX = { music:0.65, ambience:0.38 } as const;
@@ -11,10 +13,11 @@ export function holdParameter(parameter:AudioParam,time:number):void {
   if(typeof parameter.cancelAndHoldAtTime==='function')parameter.cancelAndHoldAtTime(time);
   else {const value=parameter.value;parameter.cancelScheduledValues(time);parameter.setValueAtTime(value,time);}
 }
-export interface Voice { start: number; end: number; gain: GainNode; source: AudioScheduledSourceNode; nodes: AudioNode[] }
+export interface Voice { start: number; end: number; gain: GainNode; source: AudioScheduledSourceNode; auxiliary: AudioScheduledSourceNode[]; nodes: AudioNode[] }
 export interface SoundGraph {
   context: BaseAudioContext; output: GainNode; music: GainNode; ambience: GainNode;
-  piano: BiquadFilterNode; melody: BiquadFilterNode; bass: GainNode; drums: GainNode;
+  piano: BiquadFilterNode; melody: BiquadFilterNode; bass: GainNode; drums: GainNode; synth: GainNode; synthSnare: GainNode;
+  effectSources: AudioScheduledSourceNode[];
   echoDelay: DelayNode; echoBeat: number;
   ambienceSources: {source:AudioBufferSourceNode;gain:GainNode}[]; voices: Set<Voice>; bank: PianoBank;
   drumBuffers: Map<string,AudioBuffer>; nodes: AudioNode[]; seed: number;
@@ -67,6 +70,7 @@ export function createGraph(context: BaseAudioContext, bank:PianoBank, seed:numb
   const reverb=context.createConvolver();reverb.buffer=impulse(context,seed);
   const wet=gain(0.20);pianoHP.connect(reverb);reverb.connect(wet);wet.connect(music);
   const bass=gain(1),drums=gain(1);bass.connect(music);drums.connect(music);
+  const synthEffects=createSynthEffects(context,music,drums,seed);nodes.push(...synthEffects.nodes);
   // Shared delay adds depth to the upper piano without accumulating unbounded feedback.
   const delay=context.createDelay(1);delay.delayTime.value=0.8;
   const echo=gain(0.065);melody.connect(delay);delay.connect(echo);echo.connect(pianoHP);
@@ -75,7 +79,9 @@ export function createGraph(context: BaseAudioContext, bank:PianoBank, seed:numb
   drumBuffers.set('snare',noiseBuffer(context,0.20,seed^34,(t,n)=>(n*0.72+Math.sin(2*Math.PI*185*t)*0.28)*Math.exp(-t*30)*(1-Math.exp(-t*1400))));
   drumBuffers.set('hat',noiseBuffer(context,0.12,seed^76,(t,n)=>n*Math.exp(-t*70)*(1-Math.exp(-t*1800))));
   drumBuffers.set('rim',noiseBuffer(context,0.075,seed^99,(t,n)=>(n*0.4+Math.sin(2*Math.PI*1700*t)*0.6)*Math.exp(-t*110)));
-  return {context,output,music,ambience,piano,melody,bass,drums,echoDelay:delay,echoBeat:0,bank,drumBuffers,nodes,seed,voices:new Set(),ambienceSources:[]};
+  drumBuffers.set('synth-snare',noiseBuffer(context,.32,seed^0x813,(t,n)=>(n*.75+Math.sin(2*Math.PI*180*t)*.25)*Math.exp(-t*17)*(1-Math.exp(-t*1800))));
+  drumBuffers.set('synth-hat',noiseBuffer(context,.1,seed^0x808,(t,n)=>n*Math.exp(-t*55)*(1-Math.exp(-t*2000))));
+  return {context,output,music,ambience,piano,melody,bass,drums,synth:synthEffects.input,synthSnare:synthEffects.snare,effectSources:synthEffects.sources,echoDelay:delay,echoBeat:0,bank,drumBuffers,nodes,seed,voices:new Set(),ambienceSources:[]};
 }
 
 export function setSoundMode(graph:SoundGraph,mode:MusicMode) {
@@ -86,12 +92,17 @@ export function setSoundMode(graph:SoundGraph,mode:MusicMode) {
 }
 
 function trackVoice(graph:SoundGraph, source:AudioScheduledSourceNode, gain:GainNode, nodes:AudioNode[], start:number,end:number,auxiliary:AudioScheduledSourceNode[]=[] ) {
-  const voice={source,gain,nodes,start,end};graph.voices.add(voice);
+  const voice={source,gain,nodes,start,end,auxiliary};graph.voices.add(voice);
   source.onended=()=>{for(const extra of auxiliary){try{extra.stop();}catch{/* Already ended. */}}for(const node of nodes)node.disconnect();graph.voices.delete(voice);};
   source.start(start);source.stop(end);
 }
 
 export function scheduleNote(graph:SoundGraph,event:ScoreEvent,time:number,secondsPerBeat:number) {
+  const synth=synthVoice(graph,event,time,secondsPerBeat);
+  if(synth){
+    for(const extra of synth.auxiliary){extra.start(time);extra.stop(synth.end);}
+    trackVoice(graph,synth.source,synth.gain,synth.nodes,time,synth.end,synth.auxiliary);return;
+  }
   const {context}=graph;
   const gain=context.createGain(),pan=context.createStereoPanner();pan.pan.value=event.pan;
   gain.connect(pan);
@@ -194,11 +205,13 @@ export function stopVoices(graph:SoundGraph,at:number,fade=0.12,from=-Infinity) 
     holdParameter(voice.gain.gain,at);
     voice.gain.gain.linearRampToValueAtTime(0,at+fade);
     try{voice.source.stop(at+fade+0.01);}catch{/* A completed source needs no further stop. */}
+    for(const extra of voice.auxiliary){try{extra.stop(at+fade+.01);}catch{/* Already stopped. */}}
   }
 }
 
 export function disposeGraph(graph:SoundGraph) {
-  for(const voice of graph.voices) {try{voice.source.stop();}catch{/* Already stopped. */}for(const node of voice.nodes)node.disconnect();}
+  for(const source of graph.effectSources){try{source.stop();}catch{/* Already stopped. */}}
+  for(const voice of graph.voices) {for(const source of [voice.source,...voice.auxiliary]){try{source.stop();}catch{/* Already stopped. */}}for(const node of voice.nodes)node.disconnect();}
   graph.voices.clear();
   for(const {source,gain} of graph.ambienceSources){try{source.stop();}catch{/* Already stopped. */}source.disconnect();gain.disconnect();}
   graph.ambienceSources=[];

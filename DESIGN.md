@@ -177,6 +177,8 @@ Most line icons are 21px with 1.65px rounded strokes. The playback icon is fille
 
 ## Components
 
+The Sound & motion panel now contains two labelled native selects in the existing warm field style: **Music style** (Warm lofi / Dreamy synthwave) and **Drums** (On / Off). They remain independently selectable, keyboard accessible and scrollable on short phones. Synthwave track details describe the active family (arpeggios, pulsing bass, drifting pads or night-drive melodies). Switching style keeps the current place and its environmental progress.
+
 - **Identity:** use `motes-logo.svg` as an image with the accessible name Motes. The tagline is “your quiet corner of the world.” Use the independent symbol for small contexts and the warm-brown favicon tile for browser tabs. Do not recreate the logo using a font.
 - **Radio:** the amber Listen action becomes Tuning in…, Pause or Resume as appropriate. Next track remains beside the title and instrument/chapter detail. A small amber dot signals playback. The quiet progress strip represents the hour and uses `scaleX` with a left transform origin, avoiding layout animation. Reduced motion removes its transition. Disabled controls use .4 opacity.
 - **Sound & motion:** “Make yourself at home.” introduces independent Music and Scene sounds sliders, Warm lofi beats / Without drums, and Scene motion On / Still. Slider fill tracks the saved values immediately. The motion switch has a visible text state and `aria-pressed`. Preferences persist locally. The panel note explains that music continues when switching tabs.

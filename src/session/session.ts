@@ -1,10 +1,15 @@
 import {LOOPS,MELODY_CELLS,composeTrack,formBars,makeTheme,randomSource,type Arrangement,type CompCell,type FormName,type GrooveCell,type KeyVoice,type Mode,type Mood,type Theme,type Track} from '../music/composer';
 
-export interface SessionSlot {index:number;start:number;duration:number;chapter:string;arrangement:Arrangement}
+import {planSynthwave,synthTheme,type SynthArrangement} from '../music/synthwave/catalog';
+import {composeSynthwave} from '../music/synthwave/composer';
+import type {MusicStyle} from '../music/composer';
+export interface SessionSlot<A=Arrangement> {index:number;start:number;duration:number;chapter:string;arrangement:A}
 export type EventKind='train'|'boat'|'birds'|'butterflies'|'shower'|'windows';
 export interface SessionEvent {kind:EventKind;start:number;duration:number}
 export interface ActiveEvent {kind:EventKind;progress:number;strength:number}
-export interface SessionPlan {seed:number;mood:Mood;duration:number;slots:SessionSlot[];events:SessionEvent[]}
+export interface SessionPlan {seed:number;mood:Mood;style:'lofi';duration:number;slots:SessionSlot[];events:SessionEvent[]}
+export interface SynthSessionPlan extends Omit<SessionPlan,'style'|'slots'> {style:'synthwave';slots:SessionSlot<SynthArrangement>[]}
+export type MusicSessionPlan=SessionPlan|SynthSessionPlan;
 export interface SessionState {elapsed:number;progress:number;chapter:string;caption:string;dusk:number;warmth:number;weather:number;lamps:number;events:ActiveEvent[]}
 
 const chapters=['Arriving','Settling in','The long way home','Room to breathe','Lamplight','Stay a little longer'];
@@ -28,7 +33,19 @@ function pick<T>(random:()=>number,options:readonly T[],avoid:(T|undefined)[]):T
 }
 
 /** A written hour: song shapes, loops, grooves and themes make a sequence, not eighteen shuffled songs. */
-export function createSession(seed:number,mood:Mood):SessionPlan {
+export function createSession(seed:number,mood:Mood,style?:'lofi'):SessionPlan;
+export function createSession(seed:number,mood:Mood,style:'synthwave'):SynthSessionPlan;
+export function createSession(seed:number,mood:Mood,style:MusicStyle):MusicSessionPlan;
+export function createSession(seed:number,mood:Mood,style:MusicStyle='lofi'):MusicSessionPlan {
+  if(style==='synthwave') {
+    const environment=createSession(seed,mood);
+    let start=0;
+    const slots=planSynthwave(seed).map((arrangement,index)=>{
+      const duration=arrangement.bars*240/arrangement.bpm;
+      const slot={index,start,duration,chapter:chapters[Math.floor(index/3)],arrangement};start+=duration;return slot;
+    });
+    return {...environment,style,slots};
+  }
   const random=randomSource(seed^0x527a91),tonic=[0,2,3,5,7,8,10][Math.floor(random()*7)];
   const swing=.082+random()*.02,sequence=FORM_SEQUENCES[Math.floor(random()*FORM_SEQUENCES.length)];
   const raw=tempos.map(bpm=>bpm+(random()-.5)*1.2);
@@ -67,11 +84,16 @@ export function createSession(seed:number,mood:Mood):SessionPlan {
     :mood==='coast'?[event('birds',2,38),event('boat',7,150),event('birds',14,35)]
     :mood==='meadow'?[event('butterflies',1,65),event('butterflies',4,65),event('birds',6,38)]
     :[event('shower',5,280),event('windows',12,120)];
-  return {seed,mood,duration:3600,slots,events};
+  return {seed,mood,style:'lofi',duration:3600,slots,events};
 }
 
 /** After the hour, the same shapes continue quietly with fresh themes, so nothing replays. */
-export function composeSessionTrack(plan:SessionPlan,index:number):Track {
+export function composeSessionTrack(plan:MusicSessionPlan,index:number):Track {
+  if(plan.style==='synthwave') {
+    const safeIndex=Math.max(0,Math.floor(index)),cycle=Math.floor(safeIndex/18),slot=plan.slots[safeIndex%18];
+    const arrangement=cycle?{...slot.arrangement,energy:Math.min(.56,slot.arrangement.energy),theme:synthTheme(randomSource(plan.seed^Math.imul(safeIndex+1,0x2545f491)))}:slot.arrangement;
+    return {...composeSynthwave(plan.seed,plan.mood,safeIndex,arrangement),session:{seed:plan.seed,offset:cycle*3600+slot.start}};
+  }
   const safeIndex=Math.max(0,Math.floor(index)),cycle=Math.floor(safeIndex/plan.slots.length),slot=plan.slots[safeIndex%plan.slots.length];
   const arrangement=cycle?{...slot.arrangement,energy:Math.min(.66,slot.arrangement.energy),stretch:false,theme:makeTheme(randomSource(plan.seed^Math.imul(safeIndex+1,0x2545f491)))}:slot.arrangement;
   const track=composeTrack(plan.seed,plan.mood,safeIndex,arrangement);
@@ -87,7 +109,7 @@ const captions:Record<Mood,string[]>={
 };
 
 /** Stateless sampling makes hidden-tab recovery and seeking skip old events instead of replaying them. */
-export function sessionAt(plan:SessionPlan,seconds:number):SessionState {
+export function sessionAt(plan:MusicSessionPlan,seconds:number):SessionState {
   const elapsed=Math.max(0,Number.isFinite(seconds)?seconds:0),progress=clamp(elapsed/plan.duration);
   const slot=[...plan.slots].reverse().find(s=>s.start<=elapsed)??plan.slots[0];
   const chapterIndex=Math.floor(slot.index/3),dusk=smooth((progress-.10)/.85);

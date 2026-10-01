@@ -2,6 +2,7 @@ import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
+const style=process.argv[2]==='synthwave'?'synthwave':'lofi';
 
 // Measure each instrumental colour, including the quieter late-session tracks.
 // This catches a loud continuous texture even when the combined mix never clips.
@@ -11,15 +12,15 @@ const browser=await chromium.launch({channel:'chromium'});
 try {
   const page=await browser.newPage();
   await page.goto(server.resolvedUrls.local[0]+'__mix_test');
-  const report=await page.evaluate(async()=>{
+  const report=await page.evaluate(async(style)=>{
     const {DEFAULT_MIX,createGraph,loadPiano,scheduleNote,setSoundMode,startAmbience,disposeGraph}=await import('/src/music/sound.ts');
     const {createSession,composeSessionTrack}=await import('/src/session/session.ts');
     const {edition}=await import('/src/scenes/edition.ts');
     const sampleRate=44100,seconds=48;
-    const bank=await loadPiano(new OfflineAudioContext(2,1,sampleRate));
+    const bank=style==='lofi'?await loadPiano(new OfflineAudioContext(2,1,sampleRate)):new Map();
     const render=async(seed,mood,mode,layer,index=0)=>{
       const context=new OfflineAudioContext(2,seconds*sampleRate,sampleRate);
-      const graph=createGraph(context,bank,seed),track=composeSessionTrack(createSession(seed,mood),index);
+      const graph=createGraph(context,bank,seed),track=composeSessionTrack(createSession(seed,mood,style),index);
       graph.output.gain.value=1;
       graph.music.gain.value=layer==='atmosphere'?0:DEFAULT_MIX.music;
       // Exercise the loudest weather level the live scheduler permits.
@@ -48,16 +49,17 @@ try {
       const seed=edition('2026-09-18',mood).seed;
       const atmosphere=await render(seed,mood,'beats','atmosphere');
       for(const mode of ['beats','ambient']){
-        for(const index of [0,1,3,6,9,10,17]){
+        for(const index of style==='synthwave'?[0,1,2,3,16,17,18]:[0,1,3,6,9,10,17]){
           const music=await render(seed,mood,mode,'music',index);
           results.push({mood,mode,index,voice:music.voice,atmosphere,music,openingDb:20*Math.log10(atmosphere.opening/music.opening),themeDb:20*Math.log10(atmosphere.theme/music.theme)});
         }
       }
     }
     return results;
-  });
-  mkdirSync('captures-music',{recursive:true});
-  writeFileSync('captures-music/mix-balance.json',JSON.stringify(report,null,2));
+  },style);
+  const output=style==='synthwave'?'captures-synthwave':'captures-music';
+  mkdirSync(output,{recursive:true});
+  writeFileSync(`${output}/mix-balance.json`,JSON.stringify(report,null,2));
   console.table(report.map(({mood,mode,index,voice,openingDb,themeDb,music})=>({mood,mode,index,voice,openingDb:openingDb.toFixed(1),themeDb:themeDb.toFixed(1),peak:music.peak.toFixed(3)})));
   for(const result of report){
     assert.ok(result.openingDb<=-18,`${result.mood}/${result.mode}: atmosphere must sit at least 18 dB below the quiet opening (${result.openingDb.toFixed(1)} dB)`);
