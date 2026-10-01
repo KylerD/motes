@@ -218,6 +218,10 @@ The paintings are needed only for commit 3.
 
 Revised after an adversarial review against the code: tracks carry style, darkness and legato for the bank; horizons are per segment; pumping moved to one gain per bank with the echo's reset pattern; the pickup follows the bass; forms are tabulated; caps allow at most two sixteenth layers; styles declare test limits; the no-change proof uses a score projection, a PCM comparison and reduced-motion captures; every place branch is enumerated; the storm is a weather curve with capped lightning and no second ambience layer; CLAUDE.md, PRODUCT.md and the image-cache bound join commit 3; the lofi composer stays where it is; the 3+3+2 and half-time grooves, a second kick sound and the pre-render fallback are cut; the style handover was proposed and then declined by the user. Then improved (hq:improve): copy and labels settled through an Impeccable shape brief, Web Audio claims verified via context7, the lofi composer's small changes stated honestly, and a simplification pass that flattened places to one file each, merged asset loading into `bank`, made `light` a function, folded drawings into one ordered `draw` list, removed dead fields (caption, grade, lamp size, subtitle) and fixed the train offset to beats.
 
+## Addendum, 30 September
+
+After listening, the user chose four synth voices in place of the darkness-switched labels above. Top deck rotates Analog synths, Soft pulse, Glass bells and Darksynth from a fixed 18-song table: every hour uses all four, neighbours never share one and the track label names the voice. Each voice brings its own snare. Each song has one melodic focus, lead or arpeggio, so no bar layers more than three of pad, bass, arpeggio, lead and stabs. The descent no longer opens on a held-tonic drone: every intro builds without kick or snare, and an arp-focused descent's lead teases the hook in the build and sings the break. README.md and CLAUDE.md describe the current behaviour.
+
 ## Appendix A: painting prompts
 
 ### Top deck (sunset)
