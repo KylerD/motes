@@ -41,7 +41,7 @@ Panel brief (impeccable shape, Operate mode, inside the established world):
 - After the UI change, run `impeccable detect --json index.html` once.
 
 Memory:
-- A pick from the select is saved in preferences and applies everywhere, in every place and every daily edition.
+- A pick from the select is saved in preferences as `styleChoice` and applies everywhere, in every place and every daily edition.
 - With nothing saved, each place plays its own style, so a first visit to Top deck plays driving synthwave.
 - Only a pick from the select counts. Kyle's code writes `style: 'lofi'` whenever any preference is saved, so a stored `lofi` from `main` cannot be told apart from the default. On load, a saved `synthwave` from `main` becomes `dreamy`, and a saved `lofi` from `main` is ignored.
 - The style never goes in the URL. Daily and scene links behave as before.
@@ -50,6 +50,7 @@ Switching:
 - **Changing style** follows Kyle's rule. The music fades out over 0.6 s, the new style starts a new musical hour with a 0.6 s fade in, and the scenery and its clock are untouched. Paused playback stays paused, choosing the playing style does nothing, and the latest request wins.
 - **Changing place** follows this branch's rule. The new place's environment starts at once, and the old song finishes before the new place's hour begins. That hour plays the saved style, or the new place's own style if nothing is saved.
 - A place change during a pending style switch uses the latest requested style, never the one being replaced.
+- If a place change needs a bank that fails to load (a lofi place with the piano unreachable), the music already playing carries on in the new place, the select shows it, and Kyle's message invites choosing the style again to retry.
 - While a switch is pending, the track details read Kyle's "Tuning into your music…".
 
 ## Planning
@@ -57,9 +58,9 @@ Switching:
 `createSession(seed, place, style)` keeps the environment and the music apart:
 - **Environment.** Events, weather, chapters and captions always come from the place's own style plan, drawn from the same random stream as today. A style switch cannot move a train, a boat or Top deck's headlights, and every existing environment is byte-identical.
 - **Music.** The slots come from the selected style. When that is the place's own style, it is the same plan, so nothing changes. A different style plans from its own random stream and never draws from the environment's, so the scenery cannot depend on the music (CLAUDE.md: never consume scenery randomness from the audio clock).
-- **Dreamy.** It keeps Kyle's own seeding (`planSynthwave(seed)`) and his after-hours rule, so its hour is identical to `main` in every place. `planHour` gains the session seed for this.
+- **Dreamy.** It keeps Kyle's own seeding (`planSynthwave(seed)`) and his after-hours rule, so its hour is identical to `main` in every place. `planHour` gains the session seed for this. Kyle's title table gains a Top deck row that reuses four of Top deck's existing titles, so dreamy can play there.
 
-`sessionAt` reads the environment plan. Chapter captions therefore follow the place, so rain shows its own chapters while playing driving synthwave.
+One plan carries both: `slots` are the selected style's music and `events` are the place's scenery. Light, weather and events follow the place. The chapter in the track details follows the music being played, because it is read from the music's position, so rain playing driving synthwave shows Sunset, The drive and so on.
 
 ## Sound and loading
 
@@ -94,15 +95,15 @@ Tests and checks, extending what exists rather than adding new harnesses:
 - Kyle's `tests/synthwave.test.ts` becomes `tests/dreamy.test.ts`, with updated imports and ids. Kyle's `verify-synthwave.mjs`, `verify-synthwave-sound.mjs` and `verify-ios-audio.mjs` keep their names, and their select values change to `dreamy`.
 - The style contract test covers all three styles. It also asserts, for every place, that the events and `sessionAt` samples are identical whichever style is selected, so the environment invariant stays tested after this change.
 - `verify-mix` takes a style argument, as on `main`. It checks lofi in its four places and at Top deck, driving at Top deck and rain, and Kyle's dreamy sweep with Top deck added, all in both drum modes (CLAUDE.md: verify every timbre, including sparse passages).
-- One added browser check, in `verify-scenes`, covers:
+- No new browser script. Kyle's existing preferences check in `verify-synthwave` is extended to cover:
   - the select offering three options;
-  - Top deck playing Driving synthwave with nothing saved;
+  - Top deck playing Driving synthwave with nothing saved, even with a saved `style: 'lofi'` from `main`;
   - a pick applying in another place and surviving a reload;
   - a saved `synthwave` from `main` loading as Dreamy.
 - The deck piano check now says that a piano failure does not block Top deck, and that switching to Warm lofi there shows a retryable error.
 - The full suite runs: `npm test`, `npm run build`, `tsc`, verify-music, verify-mix (all three styles), verify-scenes, verify-sessions, Kyle's three scripts, desktop and phone captures, and a rendered PCM preview per style.
 
-Budget: the integration commit adds under 150 lines of source, excluding moved files, and one browser check.
+Budget: the integration commit adds under 150 lines of source, excluding moved files, and no new test files or scripts.
 
 ## Delivery
 
