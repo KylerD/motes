@@ -129,5 +129,5 @@ export function composeSynthSong(a:SynthArrangement,songSeed:number,title:string
   lead.events.forEach((e,i,all)=>{const p=all[i-1];if(p&&p.duration>=1&&Math.abs(p.beat+p.duration-e.beat)<1e-6)e.legato=true;});
   const events=[pad,bass,drums,arp,lead].flatMap(p=>p.events).sort((x,y)=>x.beat-y.beat);
   return {seed:songSeed,index:0,title,bpm:a.bpm,key:keyNames[a.tonic]+'m',bars,swing:0,events,harmony,sections,
-    voice:a.voice,form:a.form,mode:'minor',theme:a.hook,loop:loop.id,style:'synthwave',darkness:a.darkness};
+    voice:a.voice,form:a.form,mode:'minor',theme:a.hook,loop:loop.id,style:'driving',darkness:a.darkness};
 }

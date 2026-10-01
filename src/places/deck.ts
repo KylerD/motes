@@ -64,5 +64,5 @@ export default {
   // Trim .1 keeps the city hum at least 19 dB under the quietest intro, the slow burner's (verify-mix).
   ambience:{trim:.1,texture:(_white,brown,soft,phase,channel)=>brown*.3+soft*.08*(.6+.4*Math.sin(phase*5+channel*.2))},
   // `tempo` only feeds the lofi standalone arrangement; synthwave songs take theirs from the planned hour.
-  music:{style:'synthwave',salt:5,titles:['Sodium Glow','Level Nine','Glass Towers','Ramp Down','Heat Haze','Violet Hour','Concrete Sunset','Low Fuel','Cabin Light','Rooftop Signal'],tempo:120},
+  music:{style:'driving',salt:5,titles:['Sodium Glow','Level Nine','Glass Towers','Ramp Down','Heat Haze','Violet Hour','Concrete Sunset','Low Fuel','Cabin Light','Rooftop Signal'],tempo:120},
 } as const satisfies Place;

@@ -2,7 +2,7 @@ import { composeTrack, type Mood, type MusicMode, type Track } from './composer'
 import {createSession,composeSessionTrack,sessionAt,type SessionPlan} from '../session/session';
 import {EnvironmentClock} from '../session/environment';
 import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, prepareBank, schedule, setSoundMode, startAmbience, stopVoices, type SoundGraph } from './sound';
-import { STYLES, isStyleId, styleOf, type SoundBank, type StyleId } from './styles';
+import { STYLES, atmosphereLevel, playingStyle, styleOf, type SoundBank, type StyleId } from './styles';
 import { placeById } from '../places';
 export { composeTrack } from './composer';
 export { DEFAULT_MIX } from './sound';
@@ -58,7 +58,7 @@ export class RadioAudio {
   }
   get labels() {return styleOf(this.style).labels;}
   get diagnostics() {
-    const now=this.context?.currentTime??0,synth=this.graph?.banks.get('synthwave');
+    const now=this.context?.currentTime??0,synth=this.graph?.banks.get('driving');
     return {playing:this.running,contextState:this.context?.state??'uninitialized',voices:this.graph?.voices.size??0,scheduledSegments:this.segments.length,ticks:this.ticks,compositions:this.compositions,scheduledThrough:this.segments[this.segments.length-1]?.start??0,
       scheduledAhead:this.running?Math.max(0,this.lastNote-now):0,currentTime:now,pump:synth?.pump?.gain.value??1,echo:synth?.echo?.gain.value??1};
   }
@@ -96,7 +96,7 @@ export class RadioAudio {
         const graph=this.graph;
         graph.music.gain.cancelScheduledValues(context.currentTime);
         graph.music.gain.setValueAtTime(this.volume,context.currentTime);
-        graph.ambience.gain.value=this.ambienceVolume*this.weatherLevel;
+        graph.ambience.gain.value=this.atmosphere;
         setSoundMode(graph,this.mode);
         const now=context.currentTime;
         stopVoices(graph,now,0.025);
@@ -139,11 +139,13 @@ export class RadioAudio {
   }
 
   setVolume(value:number):void {this.volume=clamp(value);if(this.graph){holdParameter(this.graph.music.gain,this.graph.context.currentTime);this.graph.music.gain.setTargetAtTime(this.volume,this.graph.context.currentTime,0.07);}}
-  setAmbience(value:number):void {this.ambienceVolume=clamp(value);if(this.graph)this.graph.ambience.gain.setTargetAtTime(this.ambienceVolume*this.weatherLevel,this.graph.context.currentTime,0.1);}
+  setAmbience(value:number):void {this.ambienceVolume=clamp(value);this.retrim();}
   setMode(mode:MusicMode):void {this.mode=mode;if(this.graph)setSoundMode(this.graph,mode);}
 
-  // Until all three styles are offered everywhere, a pick only applies where the place's own music is lofi.
-  private styleFor(mood:Mood):StyleId {const own=placeById(mood).music.style;return own==='lofi'?this.chosen??'lofi':isStyleId(own)?own:'lofi';}
+  private styleFor(mood:Mood):StyleId {return playingStyle(placeById(mood),this.chosen);}
+  private get atmosphere() {return this.ambienceVolume*this.weatherLevel*atmosphereLevel(placeById(this.mood),this.style);}
+  /** The atmosphere follows the slider, the weather, the place and the planned style. */
+  private retrim(lag=.1):void {if(this.graph)this.graph.ambience.gain.setTargetAtTime(this.atmosphere,this.graph.context.currentTime,lag);}
 
   /** One style's bank, prepared on demand: synths need no download, and only Warm lofi waits for the piano. */
   private ensureBank(style:StyleId):Promise<SoundBank> {
@@ -157,7 +159,7 @@ export class RadioAudio {
   /** A listener's pick: switch music without resetting the scenery or starting playback. The latest pick wins. */
   async setStyle(style:StyleId):Promise<void> {
     if(this.disposed)return;
-    const revision=++this.styleRevision,previous=this.chosen;
+    const revision=++this.styleRevision,previous=this.chosen,from=this.style;
     this.chosen=style;
     const next=this.styleFor(this.mood);
     if(next===this.style)return;
@@ -166,8 +168,9 @@ export class RadioAudio {
       catch(error){
         if(revision!==this.styleRevision||this.disposed)return;
         this.chosen=previous;
-        // A place change made while this loaded planned with it; give that place its music back.
-        if(this.style===next)this.replan(this.styleFor(this.mood));
+        // A place change made while this loaded planned with it; give that place its music back if it is ready, else keep what was playing.
+        const back=this.styleFor(this.mood);
+        if(this.style===next)this.replan(this.graph?.banks.has(back)?back:from);
         throw error;
       }
       if(revision!==this.styleRevision||this.disposed)return;
@@ -176,14 +179,14 @@ export class RadioAudio {
   }
 
   private replan(style:StyleId):void {
-    this.style=style;this.index=0;this.plan=createSession(this.seed,this.mood,style);
+    this.style=style;this.index=0;this.plan=createSession(this.seed,this.mood,style);this.retrim();
     if(!this.running){this.track=this.makeTrack();this.beat=0;}
   }
 
   private switchTo(style:StyleId):void {
     // Synths need no samples: wake a waiting Listen rather than finish an obsolete piano download.
     if(style!=='lofi'&&this.graph?.loading.has('lofi')){this.abort?.abort();this.abort=undefined;}
-    this.style=style;this.index=0;this.plan=createSession(this.seed,this.mood,style);this.track=this.makeTrack();this.beat=0;
+    this.style=style;this.index=0;this.plan=createSession(this.seed,this.mood,style);this.track=this.makeTrack();this.beat=0;this.retrim();
     if(this.running&&this.context&&this.graph) {
       const now=this.context.currentTime,graph=this.graph;
       stopVoices(graph,now,.6);
@@ -197,7 +200,7 @@ export class RadioAudio {
     if(seed===this.seed&&mood===this.mood)return Promise.resolve();
     const before=this.style;
     this.seed=seed;this.mood=mood;this.index=0;this.style=this.styleFor(mood);this.plan=createSession(seed,mood,this.style);
-    this.environmentClock.reset(this.context?.currentTime??0);
+    this.environmentClock.reset(this.context?.currentTime??0);this.retrim();
     if(this.running&&this.context&&this.graph) {
       const active=this.activeSegment();
       if(active){
@@ -262,7 +265,7 @@ export class RadioAudio {
     this.ticks++;
     const now=context.currentTime;
     const weatherLevel=Math.max(.75,Math.min(1.12,this.environment.weather));
-    if(Math.abs(weatherLevel-this.weatherLevel)>.005){this.weatherLevel=weatherLevel;graph.ambience.gain.setTargetAtTime(this.ambienceVolume*weatherLevel,now,3);}
+    if(Math.abs(weatherLevel-this.weatherLevel)>.005){this.weatherLevel=weatherLevel;this.retrim(3);}
     // Audio remains scheduled through normal background timer throttling. There is exactly one timer; each segment looks ahead by its own style's horizon.
     while(this.segments.length>1&&this.segments[1].start<=now)this.segments.shift();
     let segment=this.segments[this.segments.length-1];
@@ -295,10 +298,12 @@ export async function renderPreview(options:{seed?:number;mood?:Mood;index?:numb
   const graph=createGraph(context,plan.seed);await prepareBank(graph,STYLES[plan.style]);
   graph.output.gain.setValueAtTime(0,0);graph.output.gain.linearRampToValueAtTime(1,0.3);
   graph.output.gain.setValueAtTime(1,seconds-0.3);graph.output.gain.linearRampToValueAtTime(0,seconds);
-  graph.ambience.gain.value=options.ambience??DEFAULT_MIX.ambience;setSoundMode(graph,options.mode??'beats');
+  // The player's level for this style here, so a style away from home previews as it plays.
+  const ambience=(options.ambience??DEFAULT_MIX.ambience)*atmosphereLevel(placeById(plan.mood),plan.style);
+  graph.ambience.gain.value=ambience;setSoundMode(graph,options.mode??'beats');
   if(track.session)for(let time=0;time<seconds;time+=.25){
     const weather=Math.max(.75,Math.min(1.12,sessionAt(plan,track.session.offset+time).weather));
-    graph.ambience.gain.setTargetAtTime((options.ambience??DEFAULT_MIX.ambience)*weather,time,3);
+    graph.ambience.gain.setTargetAtTime(ambience*weather,time,3);
   }
   startAmbience(graph,placeById(options.mood??'rain'),0);
   let song=track,start=0.05,index=options.index??0;

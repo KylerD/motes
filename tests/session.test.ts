@@ -2,12 +2,12 @@ import {describe,it,expect} from 'vitest';
 import {createSession,sessionAt,composeSessionTrack} from '../src/session/session';
 import {LOOPS,formBars,randomSource,type Arrangement,type Track} from '../src/music/composer';
 import {FORM_SEQUENCES} from '../src/music/styles/lofi';
-import {STYLES,styleOf} from '../src/music/styles';
+import {STYLES,styleOf,playingStyle,type StyleId} from '../src/music/styles';
 import {PLACES,DRAFTS,placeById} from '../src/places';
-import {composeSynthSong,makeHook} from '../src/music/styles/synthwave/song';
-import {SYNTH_FORMS} from '../src/music/styles/synthwave/library';
+import {composeSynthSong,makeHook} from '../src/music/styles/driving/song';
+import {SYNTH_FORMS} from '../src/music/styles/driving/library';
 import {chordAt} from '../src/music/composer/harmony';
-import {SEQUENCES,NOMINAL,DARKNESS} from '../src/music/styles/synthwave';
+import {SEQUENCES,NOMINAL,DARKNESS} from '../src/music/styles/driving';
 import {lightningAt} from '../src/places/deck';
 
 const ids=[...PLACES,...DRAFTS].map(p=>p.id),lofi=ids.filter(id=>placeById(id).music.style==='lofi');
@@ -49,6 +49,25 @@ describe('an hour in a scene',()=>{
       expect(sessionAt(plan,event.start-1).events.some(e=>e.kind===event.kind)).toBe(false);
     }
     expect(plan.events.reduce((sum,e)=>sum+e.duration,0)).toBeLessThan(720);
+  });
+  it('plays every style in every place without moving the scenery',()=>{
+    expect(playingStyle(placeById('deck'))).toBe('driving');expect(playingStyle(placeById('rain'))).toBe('lofi');
+    expect(playingStyle(placeById('deck'),'lofi')).toBe('lofi');
+    for(const mood of ids){
+      const home=createSession(913,mood);
+      for(const id of Object.keys(STYLES) as StyleId[]){
+        const plan=createSession(913,mood,id),limits=STYLES[id].limits;
+        expect(plan.style).toBe(id);expect(plan.events).toEqual(home.events);
+        // The chapter follows the music; light, weather and events follow the place.
+        for(const s of [0,600,1800,3300,5000]){const {chapter:_a,...here}=sessionAt(plan,s),{chapter:_b,...there}=sessionAt(home,s);expect(here).toEqual(there);}
+        for(const index of [0,9,17,18]){
+          const track=composeSessionTrack(plan,index);
+          expect(track.style,`${id} at ${mood}`).toBe(id);
+          expect(track.bpm).toBeGreaterThanOrEqual(limits.bpm[0]);expect(track.bpm).toBeLessThanOrEqual(limits.bpm[1]);
+          expect(track.events.length).toBeLessThan(limits.perTrack);
+        }
+      }
+    }
   });
   it('preserves the shared groove and playable scores through every instrumental change',()=>{
     for(const mood of ids){
@@ -164,7 +183,7 @@ describe('the synthwave hour',()=>{
       expect(composeSessionTrack(plan,18).loop).not.toBe(a[17].loop);expect(a[17].arp).not.toBe(a[0].arp);expect(a[17].groove).not.toBe(a[0].groove);
       expect(a[17].voice).not.toBe(a[0].voice);
     }
-    const deck=createSession(1,'deck'),label=(i:number)=>styleOf('synthwave').labels.voice(composeSessionTrack(deck,i));
+    const deck=createSession(1,'deck'),label=(i:number)=>styleOf('driving').labels.voice(composeSessionTrack(deck,i));
     expect(new Set(deck.slots.map(s=>label(s.index)))).toEqual(new Set(['Analog synths','Soft pulse','Glass bells','Darksynth']));
     for(const s of SEQUENCES)expect(s.reduce((sum,f)=>sum+({cruise:88,drive:112,descent:128,slowburn:64} as Record<string,number>)[f],0)).toBe(1880);
     expect(NOMINAL).toHaveLength(18);

@@ -54,7 +54,8 @@ function planHour(random:()=>number):Slot[] {
 
 /** A night drive from sunset to the storm: darkness rises through the hour and never returns to sunset after it. */
 export default {
-  id:'synthwave',lookahead:3,
+  // Its pad-only intros sit nearer a lofi place's louder atmosphere, so away from Top deck the atmosphere drops 3.1 dB (verify-mix).
+  id:'driving',lookahead:3,away:.7,
   limits:{bpm:[88,150],grid:4,perBar:64,meanPerBar:44,perTrack:6000},
   planHour,
   compose(seed,place,slot,index) {

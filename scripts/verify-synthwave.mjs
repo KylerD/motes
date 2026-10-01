@@ -29,7 +29,7 @@ try {
   assert.equal(await page.evaluate(() => window.radio.current.style), 'lofi');
   assert.ok(await page.evaluate(t => window.radio.environment.elapsed >= t, before));
   results.push('synth starts without samples; failed lofi switch is retryable and preserves audio/environment');
-  for (let i = 0; i < 8; i++) await page.evaluate(i => window.radio.setStyle(i % 2 ? 'lofi' : 'dreamy'), i);
+  for (let i = 0; i < 9; i++) await page.evaluate(i => window.radio.setStyle(['lofi', 'dreamy', 'driving'][i % 3]), i);
   await page.evaluate(() => window.radio.setStyle('dreamy'));
   await page.waitForTimeout(800);
   assert.ok(await page.evaluate(() => window.radio.diagnostics.voices < 220));
@@ -60,7 +60,10 @@ try {
 
   // A slow sample request must not override a newer choice or a pause.
   await page.unroute('**/audio/piano/*.mp3');
-  await page.route('**/audio/piano/*.mp3', async route => { await new Promise(r => setTimeout(r, 300)); await route.continue(); });
+  let slow = 0;
+  await page.route('**/audio/piano/*.mp3', async route => { slow++; await new Promise(r => setTimeout(r, 300)); await route.continue(); });
+  // A fresh page, so the piano is not already decoded and the request really waits.
+  await page.reload();
   await page.evaluate(async () => {
     const { RadioAudio } = await import('/src/music/audio.ts');
     window.radio = new RadioAudio(52, 'coast');
@@ -71,6 +74,7 @@ try {
   });
   assert.equal(await page.evaluate(() => window.radio.current.style), 'dreamy');
   assert.equal(await page.evaluate(() => window.radio.playing), false);
+  assert.ok(slow > 0, 'The piano request must actually be slow.');
   await page.evaluate(() => window.radio.dispose());
   await page.waitForTimeout(200);
   assert.deepEqual(errors, []);
@@ -107,7 +111,17 @@ try {
   assert.ok(stalled > 0, 'The piano request must actually stall.');
   await page.evaluate(() => window.radio.dispose());
   await page.waitForTimeout(200);
-  results.push('switching to synthwave abandons stalled initial piano loading');
+  // A Warm lofi pick still loading at Top deck, then a move to a lofi place: the 503 leaves the synths that were playing.
+  await page.evaluate(async () => {
+    const { RadioAudio } = await import('/src/music/audio.ts');
+    window.radio = new RadioAudio(72, 'deck'); await window.radio.enable();
+    const pick = window.radio.setStyle('lofi').catch(() => {});
+    await Promise.all([pick, window.radio.setEdition(73, 'rain').catch(() => {})]);
+  });
+  assert.equal(await page.evaluate(() => window.radio.current.style), 'driving', 'A failed pick during a place change keeps the synths that were playing.');
+  await page.evaluate(() => window.radio.dispose());
+  await page.waitForTimeout(200);
+  results.push('switching to synthwave abandons stalled initial piano loading; a failed pick during a place change keeps the synths');
 
   await page.unroute('**/audio/piano/*.mp3');
   await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ volume: .6, ambience: .2, mode: 'ambient', style: 'synthwave' })));
@@ -117,10 +131,10 @@ try {
   assert.equal(await page.locator('#music-style').inputValue(), 'dreamy');
   assert.equal(await page.locator('#music-mode').inputValue(), 'ambient');
   await page.selectOption('#music-style', 'lofi');
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).style === 'lofi');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).styleChoice === 'lofi');
   assert.equal(await page.locator('#music-mode').inputValue(), 'ambient');
   await page.selectOption('#music-style', 'dreamy');
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).style === 'dreamy');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).styleChoice === 'dreamy');
   await page.keyboard.press('Escape');
   await page.click('#listen');
   await page.waitForFunction(() => document.querySelector('#listen-label').textContent === 'Pause');
@@ -133,12 +147,26 @@ try {
   await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ mode: 'ambient' })));
   await page.reload();
   assert.equal(await page.locator('#music-style').inputValue(), 'lofi');
+  assert.deepEqual(await page.locator('#music-style option').evaluateAll(o => o.map(x => x.value)), ['lofi', 'dreamy', 'driving']);
+  // Main saved `style: 'lofi'` with any change; Top deck still opens on its own music and keeps the volume.
+  await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ volume: .5, style: 'lofi' })));
+  await page.goto(server.resolvedUrls.local[0] + '?scene=deck');
+  assert.equal(await page.locator('#music-style').inputValue(), 'driving');
+  assert.equal(await page.locator('#music-volume').inputValue(), '50');
+  // A pick applies in every place and survives a reload.
+  await page.click('#mix-toggle'); await page.selectOption('#music-style', 'dreamy');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).styleChoice === 'dreamy');
+  await page.goto(server.resolvedUrls.local[0] + '?scene=rain');
+  assert.equal(await page.locator('#music-style').inputValue(), 'dreamy');
+  await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ styleChoice: 'bogus' })));
+  await page.goto(server.resolvedUrls.local[0] + '?scene=deck');
+  assert.equal(await page.locator('#music-style').inputValue(), 'driving');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.click('#mix-toggle');
   await page.locator('#music-style').scrollIntoViewIfNeeded();
   assert.ok(await page.locator('#music-style').isVisible());
   await page.selectOption('#music-style', 'dreamy');
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).style === 'dreamy');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).styleChoice === 'dreamy');
   mkdirSync('captures-synthwave', { recursive: true });
   await page.screenshot({ path: 'captures-synthwave/phone-controls.png' });
   await page.setViewportSize({ width: 1440, height: 960 });

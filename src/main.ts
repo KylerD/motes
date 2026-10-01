@@ -20,27 +20,27 @@ let renderer:SceneRenderer;
 try { renderer=new SceneRenderer(canvas,current); }
 catch(error) { $('failure').hidden=false;$('failure').textContent=error instanceof Error?error.message:'The scene could not start. Try reloading.';throw error; }
 
-interface Preferences { volume:number; ambience:number; mode:'beats'|'ambient'; style:StyleId }
-let preferences:Preferences={volume:DEFAULT_MIX.music,ambience:DEFAULT_MIX.ambience,mode:'beats',style:'lofi'};
+interface Preferences { volume:number; ambience:number; mode:'beats'|'ambient'; styleChoice?:StyleId }
+let preferences:Preferences={volume:DEFAULT_MIX.music,ambience:DEFAULT_MIX.ambience,mode:'beats'};
 try {
   const saved=JSON.parse(localStorage.getItem('motes-listening')||'null');
   if(saved && typeof saved==='object') {
     for(const key of ['volume','ambience'] as const)if(typeof saved[key]==='number'&&Number.isFinite(saved[key]))preferences[key]=Math.max(0,Math.min(1,saved[key]));
     if(saved.mode==='beats'||saved.mode==='ambient')preferences.mode=saved.mode;
-    // A saved `synthwave` comes from the earlier two-style select, where it meant dreamy; read it before the style ids, which include Top deck's.
-    if(saved.style==='synthwave')preferences.style='dreamy';else if(isStyleId(saved.style))preferences.style=saved.style;
+    if(isStyleId(saved.styleChoice))preferences.styleChoice=saved.styleChoice;
+    // Main saved `style` with every change, so only its synthwave value records a real pick.
+    else if(saved.style==='synthwave')preferences.styleChoice='dreamy';
   }
 } catch { /* Listening still works when browser storage is unavailable. */ }
 const savePreferences=()=>{try{localStorage.setItem('motes-listening',JSON.stringify(preferences));}catch{/* Private browsing may disable persistence. */}};
 audio.setVolume(preferences.volume);audio.setAmbience(preferences.ambience);audio.setMode(preferences.mode);
-void audio.setStyle(preferences.style);
+if(preferences.styleChoice)void audio.setStyle(preferences.styleChoice);
 for(const [id,value] of [['music-volume',preferences.volume],['ambience-volume',preferences.ambience]] as const) {
   $<HTMLInputElement>(id).value=String(Math.round(value*100));
   $(id).style.setProperty('--level',`${Math.round(value*100)}%`);
 }
 $('music-level').textContent=`${Math.round(preferences.volume*100)}%`;$('ambience-level').textContent=`${Math.round(preferences.ambience*100)}%`;
 $<HTMLSelectElement>('music-mode').value=preferences.mode;
-$<HTMLSelectElement>('music-style').value=preferences.style;
 
 let visualTime=0,last=performance.now(),frame=0,starting=false,listened=false,quiet=false,disposed=false;
 let previewSeconds:number|undefined;
@@ -55,6 +55,8 @@ function say(message:string,persistent=false) {
   $('status').textContent=message;$('status').hidden=false;
   if(!persistent)statusTimer=setTimeout(()=>{$('status').hidden=true;},5500);
 }
+/** Music that plays again retires the style error, and only that message. */
+const clearStyleError=()=>{if($('status').textContent===styleError)$('status').hidden=true;};
 function closePanels(focus=true) {
   const previous=openPanel;
   for(const id of panelIds){$(`${id}-panel`).hidden=true;$(`${id}-toggle`).setAttribute('aria-expanded','false');}
@@ -83,7 +85,6 @@ function updateEdition() {
   const place=SCENES[current.scene];
   $('experience').dataset.scene=current.scene;$('scene-title').textContent=place.title;$('scene-subtitle').textContent=sceneLightAt(current.scene,0).subtitle;
   $('atmosphere-description').textContent=current.light;
-  $<HTMLSelectElement>('music-style').disabled=SCENES[current.scene].music.style!=='lofi';
   $('edition-label').textContent=`${current.day===localDay()?'Today · ':''}${dayLabel(current.day)}`;
   $('edition-short-label').textContent=new Date(`${current.day}T12:00:00`).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   $('edition-toggle').title=`Revisit a day · ${dayLabel(current.day)}`;
@@ -93,7 +94,10 @@ function updateEdition() {
   updateUrl();updatePlayer();
 }
 function visit(day:string,scene?:SceneId) {
-  scenePinned=scene!==undefined;current=edition(day,scene);renderer.setEdition(current);void audio.setEdition(current.seed,current.scene).catch(()=>say(styleError,true));visualTime=0;previewSeconds=undefined;
+  // A pick still loading may yet fail on its own, so only a visit made with none pending clears the style error.
+  const settled=!switchingStyle,request=styleRequest;
+  scenePinned=scene!==undefined;current=edition(day,scene);renderer.setEdition(current);
+  void audio.setEdition(current.seed,current.scene).then(()=>{if(settled&&request===styleRequest)clearStyleError();},()=>{say(styleError,true);updatePlayer();});visualTime=0;previewSeconds=undefined;
   $('new-day').hidden=true;closePanels();updateEdition();
 }
 for(const place of PLACES) {
@@ -131,6 +135,7 @@ function updatePlayer() {
   attribute('listen-path','d',playing?'M8 5v14M16 5v14':'m9 5 11 7-11 7Z');
   text('listen-label',starting?'Tuning in…':playing?'Pause':listened?'Resume':'Listen');
   text('track-title',track.title);
+  const styleSelect=$<HTMLSelectElement>('music-style');if(!switchingStyle&&styleSelect.value!==audio.current.style)styleSelect.value=audio.current.style;
   text('track-detail',switchingStyle?'Tuning into your music…':starting?audio.labels.preparing:!listened?'An hour, unfolding here':`${track.label} · ${session.chapter}`);
   attribute('track-detail','title',`${track.label} · ${session.chapter}${preferences.mode==='ambient'?' · Without drums':''}`);
   const environment=previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds);
@@ -156,7 +161,7 @@ $<HTMLSelectElement>('music-style').addEventListener('change',async e=>{
   try {
     await audio.setStyle(style);
     if(request!==styleRequest)return;
-    preferences.style=style;savePreferences();
+    preferences.styleChoice=style;savePreferences();clearStyleError();
   } catch {
     if(request!==styleRequest)return;
     select.value=audio.current.style;say(styleError,true);

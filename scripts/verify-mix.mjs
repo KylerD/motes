@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 const style=process.argv[2]==='dreamy'?'dreamy':undefined;
 const lofiPlaces=['rain','meadow','snow','coast'];
-// Each style keeps its calibration: lofi in its own places and Top deck's synthwave, or the dreamy sweep with Top deck added.
+// Each style keeps its calibration: lofi in its own places and at Top deck, driving at Top deck and on the coast (its worst place away), or the dreamy sweep with Top deck added.
 const runs=style==='dreamy'
   ?[...lofiPlaces,'deck'].map(mood=>[mood,'dreamy',[0,1,2,3,16,17,18]])
-  :[...lofiPlaces.map(mood=>[mood,'lofi',[0,1,3,6,9,10,17]]),['deck','synthwave',[0,1,3,6,7,9,10,16,17]]];
+  :[...lofiPlaces.map(mood=>[mood,'lofi',[0,1,3,6,9,10,17]]),['deck','lofi',[0,1,3,6,9,10,17]],['deck','driving',[0,1,3,6,7,9,10,16,17]],['coast','driving',[0,1,7,16,17]]];
 
 // Measure each instrumental colour, including the quieter late-session tracks.
 // This catches a loud continuous texture even when the combined mix never clips.
@@ -19,7 +19,7 @@ try {
   await page.goto(server.resolvedUrls.local[0]+'__mix_test');
   const report=await page.evaluate(async(runs)=>{
     const {DEFAULT_MIX,createGraph,prepareBank,schedule,setSoundMode,startAmbience,disposeGraph}=await import('/src/music/sound.ts');
-    const {STYLES}=await import('/src/music/styles/index.ts');
+    const {STYLES,atmosphereLevel}=await import('/src/music/styles/index.ts');
     const {placeById}=await import('/src/places/index.ts');
     const {createSession,composeSessionTrack}=await import('/src/session/session.ts');
     const {edition}=await import('/src/scenes/edition.ts');
@@ -30,8 +30,8 @@ try {
       await prepareBank(graph,STYLES[track.style??'lofi']);
       graph.output.gain.value=1;
       graph.music.gain.value=layer==='atmosphere'?0:DEFAULT_MIX.music;
-      // Exercise the loudest weather level the live scheduler permits.
-      graph.ambience.gain.value=layer==='music'?0:DEFAULT_MIX.ambience*1.12;
+      // Exercise the loudest weather level the live scheduler permits, at the player's level for this style here.
+      graph.ambience.gain.value=layer==='music'?0:DEFAULT_MIX.ambience*1.12*atmosphereLevel(placeById(mood),runStyle);
       setSoundMode(graph,mode);
       if(layer!=='music')startAmbience(graph,placeById(mood),0);
       let rendered;
@@ -80,7 +80,7 @@ try {
     const results=[];
     for(const [mood,runStyle,indices] of runs){
       // A synth hour also measures its opening song's first break (about 105 s in), the slow burner at 7 and its loudest song, 16.
-      const seed=edition('2026-09-18',mood).seed,synth=runStyle==='synthwave';
+      const seed=edition('2026-09-18',mood).seed,synth=runStyle==='driving';
       const atmosphere=await render(seed,mood,runStyle,'beats','atmosphere',0,synth?130:48);
       for(const mode of ['beats','ambient']){
         for(const index of indices){
