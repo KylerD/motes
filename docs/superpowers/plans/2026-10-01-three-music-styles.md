@@ -76,7 +76,7 @@ No product code changes. This task produces the baselines that Task 2 proves aga
 git status --short            # expect nothing
 git fetch origin
 git log --oneline -1 origin/main   # expect abf0a44 fix: request media playback audio on iOS
-git log --oneline origin/main..HEAD | wc -l   # expect 17: 6 docs, 1 chore, 7 code, the addendum, the spec, and this plan
+git log --oneline origin/main..HEAD | wc -l   # expect 18: 6 docs, 1 chore, 7 code (b212911 to 138af07), then 4 docs (aa25042 onwards)
 ```
 
 If `origin/main` has moved past `abf0a44`, stop and ask the user. This plan resolves against `abf0a44`.
@@ -158,7 +158,7 @@ git cherry-pick $CODE_TO..backup/pre-rebase     # the addendum, the spec and the
 git diff backup/pre-rebase HEAD --stat     # expect no output
 git branch -f feat/places-and-synthwave HEAD
 git switch feat/places-and-synthwave
-git log --oneline origin/main..HEAD | wc -l     # expect 11
+git log --oneline origin/main..HEAD | wc -l     # expect 12: six fewer than Step 1, since seven code commits became one
 ```
 
 Replace `<trailer>` with your session's attribution trailer.
@@ -336,7 +336,8 @@ export interface MusicStyle {
 }
 export const STYLES={lofi,dreamy,synthwave} satisfies Record<string,MusicStyle>;
 export type StyleId=keyof typeof STYLES;
-export const isStyleId=(value:unknown):value is StyleId=>typeof value==='string'&&Object.hasOwn(STYLES,value);
+// Not `in` (which accepts inherited keys) or Object.hasOwn (ES2022; this project targets ES2020).
+export const isStyleId=(value:unknown):value is StyleId=>typeof value==='string'&&Object.keys(STYLES).includes(value);
 export const styleOf=(style:string|undefined):MusicStyle=>isStyleId(style)?STYLES[style]:STYLES.lofi;
 ```
 
@@ -631,6 +632,7 @@ Make these changes:
   - Keep this branch's Top deck and synthwave paragraphs and the "Adding a place" guide.
   - The file table row becomes `src/music/styles/dreamy/`.
   - The preview example's style argument becomes `dreamy`.
+  - In "Adding a place", `planHour` becomes `planHour(random, place, seed)`. The last sentence ("Listen waits for every registered bank, so moving between places never waits on a download.") becomes: "Banks load on demand: Listen prepares only the playing style's bank, a switch or a place change prepares the next one, and only Warm lofi downloads anything."
 - **PRODUCT.md:** keep both user-direction paragraphs.
 - **DESIGN.md:** in the Sound & motion component entry, replace "Warm lofi beats / Without drums, and Scene motion On / Still. The rhythm labels belong to the place's music style: Top deck offers Drum machine / Without drums." with "the Music style and Drums selects, and Scene motion On / Still." Keep Kyle's paragraph describing the two selects.
 - Check for em dashes: `git diff --cached -U0 | grep -c "$(printf '\342\200\224')"` must print 0.
@@ -682,9 +684,10 @@ for p in rain meadow snow coast; do node scripts/render-music-preview.mjs 60 cap
 node -e "const fs=require('fs');for(const n of ['dreamy-rain','driving-deck','rain','meadow','snow','coast']){const a=fs.readFileSync('captures-baseline/'+n+'.wav'),b=fs.readFileSync('captures-after/'+n+'.wav');let m=0;for(let i=44;i<Math.min(a.length,b.length);i+=2)m=Math.max(m,Math.abs(a.readInt16LE(i)-b.readInt16LE(i)));console.log(n,a.length===b.length,m);}"
 node scripts/verify-music.mjs && node scripts/verify-mix.mjs && node scripts/verify-mix.mjs dreamy
 node scripts/verify-synthwave.mjs && node scripts/verify-synthwave-sound.mjs && node scripts/verify-ios-audio.mjs
-npx vite --host 127.0.0.1 --port 5175 --strictPort &   # stop it after the next line
 MOTES_URL=http://127.0.0.1:5175 node scripts/verify-scenes.mjs && MOTES_URL=http://127.0.0.1:5175 node scripts/verify-sessions.mjs
 ```
+
+Run the last line against a dev server you start in the background (`npx vite --host 127.0.0.1 --port 5175 --strictPort`; pick another port and set `MOTES_URL` to match if 5175 is taken). Wait until it answers, and stop it afterwards.
 
 Expected: every size check prints `true`. The maximum difference is at most 4 for the lofi places and at most 16 for dreamy and driving. Every script exits 0.
 
@@ -711,7 +714,7 @@ branch.
 <trailer>
 EOF
 GIT_EDITOR=true git rebase --continue
-git log --oneline origin/main..HEAD   # 11 commits, the squashed one rewritten
+git log --oneline origin/main..HEAD   # 12 commits, the squashed one rewritten
 ```
 
 ---
@@ -869,9 +872,8 @@ node scripts/render-music-preview.mjs 60 captures-after/driving-deck.wav 2026091
 node -e "const fs=require('fs');const a=fs.readFileSync('captures-baseline/driving-deck.wav'),b=fs.readFileSync('captures-after/driving-deck.wav');let m=0;for(let i=44;i<a.length;i+=2)m=Math.max(m,Math.abs(a.readInt16LE(i)-b.readInt16LE(i)));console.log(a.length===b.length,m);"
 node scripts/verify-music.mjs && node scripts/verify-mix.mjs && node scripts/verify-mix.mjs dreamy
 node scripts/verify-synthwave.mjs && node scripts/verify-synthwave-sound.mjs && node scripts/verify-ios-audio.mjs
-npx vite --host 127.0.0.1 --port 5175 --strictPort &   # stop it afterwards
-MOTES_URL=http://127.0.0.1:5175 node scripts/verify-scenes.mjs && MOTES_URL=http://127.0.0.1:5175 node scripts/verify-sessions.mjs
-git diff --stat HEAD -- src | tail -1   # under 150 insertions, excluding the rename
+MOTES_URL=http://127.0.0.1:5175 node scripts/verify-scenes.mjs && MOTES_URL=http://127.0.0.1:5175 node scripts/verify-sessions.mjs   # against a background dev server, as in Task 2 Step 15
+git diff --stat -M HEAD -- src | tail -1   # under 150 insertions; -M keeps the rename out of the count
 ```
 
 Expected: everything passes, the fingerprints still match (they ignore style ids), and the driving PCM difference is at most 16.
