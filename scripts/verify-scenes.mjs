@@ -70,6 +70,14 @@ try {
     assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await phone.screenshot({path:`captures-scenes/${scene}-mobile.png`});
   }
+  // Phones re-resolve 100dvh after the first layout without any window resize event.
+  // The bitmap must follow the canvas box, or the painting shows squashed until a reload.
+  await phone.evaluate(()=>{document.querySelector('#experience').style.height='700px';});await settle(phone);
+  const late=await phone.evaluate(()=>{const {bitmap}=window.__motes.rendering,box=document.querySelector('#scene').getBoundingClientRect();return {bitmap,box:[box.width,box.height]};});
+  assert.equal(late.box[1],700);
+  assert.ok(Math.abs(late.bitmap[0]/late.bitmap[1]-late.box[0]/late.box[1])<.005,`The canvas bitmap must match its box after a late viewport change: ${JSON.stringify(late)}`);
+  await phone.evaluate(()=>{document.querySelector('#experience').style.height='';});await settle(phone);
+  assert.deepEqual((await phone.evaluate(()=>window.__motes.rendering)).bitmap,[780,1688]);report.lateViewportChange=true;
   for(const panel of ['mix','scenes','edition']) {
     await phone.click(`#${panel}-toggle`);const box=await phone.locator(`#${panel}-panel`).boundingBox();
     if(panel==='scenes'){await thumbnails(phone);await settle(phone);}

@@ -23,16 +23,24 @@ export class SceneRenderer {
   private evenings=new Map<SceneId,HTMLImageElement>();
   private eveningFailures=new Set<SceneId>();
   private sceneLight?:SceneLight;
+  private observer?:ResizeObserver;
   motion = true;
   constructor(private canvas: HTMLCanvasElement, public edition: Edition) {
     const ctx = canvas.getContext('2d',{alpha:false});
     if (!ctx) throw new Error('This browser could not open the scene. Try reloading the page.');
     this.ctx = ctx; this.load(edition.scene); this.resize();
+    // The canvas box can change without any window resize event: phones re-resolve
+    // dynamic viewport units after the first layout, fullscreen changes the host,
+    // fonts and panels reflow. Follow the element itself, not the window.
+    if(typeof ResizeObserver!=='undefined') {
+      this.observer=new ResizeObserver(()=>this.resize());
+      this.observer.observe(canvas);
+    }
   }
   get ready() { return !!this.images.get(this.edition.scene)?.naturalWidth; }
   get lightingFailed() {return this.eveningFailures.has(this.edition.scene);}
   get failed() { return this.failures.has(this.edition.scene)||this.lightingFailed; }
-  get diagnostics() { return { images:this.images.size,eveningImages:this.evenings.size,composites:this.sceneLight?1:0, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.sceneLight,lightingFailed:this.lightingFailed }; }
+  get diagnostics() { return { images:this.images.size,eveningImages:this.evenings.size,composites:this.sceneLight?1:0, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.sceneLight,lightingFailed:this.lightingFailed,bitmap:[this.canvas.width,this.canvas.height],box:[this.width,this.height],ratio:this.ratio }; }
   setEdition(next: Edition): void {
     if(this.ready && this.motion) {
       this.previous = document.createElement('canvas');
@@ -64,11 +72,22 @@ export class SceneRenderer {
     image.onerror = () => this.failures.add(id);
     this.images.set(id,image); image.src = SCENES[id].image;
   }
+  /** Size the bitmap to the canvas's current CSS box. A no-op while nothing changed, so
+   * observers and per-frame checks never clear a frame or interrupt a crossfade. */
   resize(): void {
-    const box = this.canvas.getBoundingClientRect(); this.width = Math.max(1,box.width); this.height = Math.max(1,box.height);
-    this.ratio = Math.min(devicePixelRatio || 1,2,2560/this.width);
-    this.canvas.width = Math.round(this.width*this.ratio); this.canvas.height = Math.round(this.height*this.ratio);
-    this.previous = null; this.layout();
+    const box = this.canvas.getBoundingClientRect(), width = Math.max(1,box.width), height = Math.max(1,box.height);
+    const ratio = Math.min(devicePixelRatio || 1,2,2560/width);
+    const bitmapWidth = Math.round(width*ratio), bitmapHeight = Math.round(height*ratio);
+    const sameBitmap = bitmapWidth===this.canvas.width && bitmapHeight===this.canvas.height;
+    if(sameBitmap && width===this.width && height===this.height && ratio===this.ratio) return;
+    this.width = width; this.height = height; this.ratio = ratio;
+    // Assigning canvas.width clears the bitmap even when unchanged, so only a real change touches it.
+    if(!sameBitmap) { this.canvas.width = bitmapWidth; this.canvas.height = bitmapHeight; this.previous = null; }
+    this.layout();
+  }
+  /** The bitmap must never be shown through a box of another shape; a stale size squashes the painting. */
+  private fits(): boolean {
+    return Math.abs(this.canvas.clientWidth-this.width)<=1 && Math.abs(this.canvas.clientHeight-this.height)<=1;
   }
   private layout(): void {
     const image = this.images.get(this.edition.scene), aspect = image?.naturalWidth ? image.naturalWidth/image.naturalHeight : 16/9;
@@ -101,6 +120,7 @@ export class SceneRenderer {
     ctx.fillStyle=g;ctx.fillRect(0,0,80,80);this.glows.set(color,canvas);return canvas;
   }
   draw(time:number,now=performance.now(),session?:SessionState):void {
+    if(!this.fits())this.resize();
     if(session&&(!this.journey||this.motion))this.journey=session;
     const ctx=this.ctx,{scene,warmth,seed}=this.edition,image=this.images.get(scene);
     const intensity=this.edition.intensity*(this.journey?.weather??1);
@@ -220,6 +240,7 @@ export class SceneRenderer {
     }ctx.restore();
   }
   dispose():void {
+    this.observer?.disconnect();this.observer=undefined;
     this.images.forEach(i=>{i.onload=null;i.onerror=null;});this.images.clear();this.glows.clear();this.previous=null;
     this.evenings.forEach(i=>{i.onload=null;i.onerror=null;});this.evenings.clear();
     this.sceneLight?.dispose();this.sceneLight=undefined;

@@ -85,7 +85,7 @@ node scripts/verify-sessions.mjs
 node scripts/render-music-preview.mjs
 ```
 
-Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
+Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, canvas sizing after a late viewport change with no window resize, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
 
 Technical audio checks establish playback and signal health, not a claim that every generated track meets someone's musical taste. The listening experience remains the quality bar.
 
