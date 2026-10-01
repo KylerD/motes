@@ -60,6 +60,12 @@ export class RadioAudio {
     this.wanted=true;
     if(this.suspendTimer!==undefined){clearTimeout(this.suspendTimer);this.suspendTimer=undefined;}
     if(this.running)return;
+    // iOS treats Web Audio as ambient by default, which Silent Mode can mute.
+    // Claim music playback within the Listen gesture, before creating/resuming audio.
+    try {
+      const session=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
+      if(session&&session.type!=='playback')session.type='playback';
+    }catch{/* Browsers without a usable Audio Session API keep their normal route. */}
     if(!this.context) {
       const Audio=globalThis.AudioContext ?? (globalThis as typeof globalThis & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;
       if(!Audio)throw new Error('Your browser does not support audio playback.');

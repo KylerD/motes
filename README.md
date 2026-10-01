@@ -29,6 +29,8 @@ Synthwave has its own composer: warm detuned pads, plucked arpeggios, mellow lea
 
 A dedicated Web Audio look-ahead clock schedules music independently of rendering. Hiding the tab stops visual rendering while audio continues; browser or operating-system suspension can still interrupt playback. Controls and media-session playback actions support pause/resume. Failed sample loading is visible and retryable.
 
+On browsers supporting the Audio Session API, Listen requests the music playback category before starting audio so iOS Silent Mode does not mute the radio. Older iOS versions without that API may still require Silent Mode to be turned off.
+
 ## Living scenes, daily editions
 
 The four paintings are authored assets, not new AI images generated each day. Each date changes the selected place and its seed for music, weather intensity, wind, light and event timing. Water reflections move; rain makes ripples, snow drifts, steam curls above cups, butterflies and distant birds pass through. A tap inside painted water makes a ripple. Reduced-motion preference starts with the scene still, independently of the radio.
@@ -74,6 +76,7 @@ npm test
 npm run build
 node scripts/verify-scenes.mjs
 node scripts/verify-music.mjs
+node scripts/verify-ios-audio.mjs
 node scripts/verify-mix.mjs
 node scripts/verify-mix.mjs synthwave
 node scripts/verify-synthwave.mjs
