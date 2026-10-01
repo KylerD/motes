@@ -41,7 +41,8 @@ export function composeSynthwave(seed: number, mood: Mood, index: number, a: Syn
       const notes = intervals.map(n => { let midi = 48 + root + n; while (midi < 52) midi += 12; while (midi > 74) midi -= 12; return midi; }).sort((x, y) => x - y);
       harmony.push([{ root, quality: colour === 'minor' ? 'min9' : colour === 'sus' ? 'dom7sus' : 'maj7', notes, beat: 0 }]);
 
-      if (local % 2 === 0) for (let n = 0; n < notes.length; n++) add('pad', beat, notes[n], 7.8, level * (a.family === 'drift' ? .58 : .48), (n - 1.5) * .16);
+      // Hold through the next pad's attack, like changing chords under a sustain pedal.
+      if (local % 2 === 0) for (let n = 0; n < notes.length; n++) add('pad', beat, notes[n], 8.8, level * (a.family === 'drift' ? .58 : .48), (n - 1.5) * .16);
       // Long-short-short sixteenths give the bass its rolling, galloping motion.
       const bassSteps = a.family === 'arpeggio' ? [0, .5, .75, 1, 1.5, 1.75, 2, 2.5, 2.75, 3, 3.5, 3.75]
         : a.family === 'pulse' ? [0, .25, .5, 1, 1.25, 1.5, 2, 2.25, 2.5, 3, 3.25, 3.5]

@@ -60,6 +60,19 @@ describe('dreamy synthwave sessions', () => {
     expect(brightness(full)).toBeGreaterThan(brightness(early) + .25);
   });
 
+  it('holds the pad through the next chord attack instead of leaving a harmonic gap', () => {
+    const plan = createSession(20260928, 'rain', 'synthwave');
+    for (const index of [0, 1, 2, 3, 18]) {
+      const track = composeSessionTrack(plan, index);
+      const pads = track.events.filter(e => e.instrument === 'pad');
+      const starts = [...new Set(pads.map(e => e.beat))];
+      for (let i = 0; i < starts.length - 1; i++) {
+        const held = pads.filter(e => e.beat === starts[i]);
+        expect(Math.min(...held.map(e => e.beat + e.duration))).toBeGreaterThanOrEqual(starts[i + 1] + .5);
+      }
+    }
+  });
+
   it('keeps notes bounded, hook returns identical and after hours fresh', () => {
     for (const mood of ['rain', 'meadow', 'snow', 'coast'] as const) {
       const plan = createSession(34, mood, 'synthwave');

@@ -8,7 +8,7 @@ function room(context: BaseAudioContext, seed: number, seconds: number, gated = 
     for (let i = 0; i < data.length; i++) {
       const t = i / context.sampleRate;
       smooth = smooth * .55 + (random() * 2 - 1) * .45;
-      const envelope = gated ? Math.min(1, (seconds - t) / .035) * Math.exp(-t * 3) : Math.exp(-t * 2.25);
+      const envelope = gated ? Math.min(1, (seconds - t) / .035) * Math.exp(-t * 3) : Math.exp(-t * 1.3);
       data[i] = smooth * envelope * Math.min(1, t / .012);
     }
   }
@@ -33,12 +33,30 @@ export function createSynthEffects(context: BaseAudioContext, music: GainNode, d
   const predelay = context.createDelay(.1), highpass = context.createBiquadFilter(), lowpass = context.createBiquadFilter();
   predelay.delayTime.value = .035; highpass.type = 'highpass'; highpass.frequency.value = 230;
   lowpass.type = 'lowpass'; lowpass.frequency.value = 5300;
-  const hall = context.createConvolver(); hall.buffer = room(context, seed ^ 0x68416c6c, 3.4);
-  const hallLevel = gain(.48);
+  const hall = context.createConvolver(); hall.buffer = room(context, seed ^ 0x68416c6c, 5.2);
+  const hallLevel = gain(.68);
   input.connect(predelay); predelay.connect(highpass); highpass.connect(hall); hall.connect(lowpass); lowpass.connect(hallLevel); hallLevel.connect(music);
   const plate = context.createConvolver(); plate.buffer = room(context, seed ^ 0x67617465, .28, true);
   const plateLevel = gain(.36); snare.connect(plate); plate.connect(plateLevel); plateLevel.connect(drums);
   nodes.push(predelay, highpass, lowpass, hall, plate);
   lfo.start();
   return { input, snare, nodes, sources };
+}
+
+/** Four decaying dotted-eighth repeats; no feedback loop or shared tempo automation. */
+export function addSynthEcho(context: BaseAudioContext, input: AudioNode, output: AudioNode, secondsPerBeat: number, nodes: AudioNode[]): number {
+  const spacing = .75 * secondsPerBeat;
+  let previous = input;
+  for (let tap = 1; tap <= 4; tap++) {
+    // Short mono stages bound delay storage even with many overlapping voices.
+    const delay = context.createDelay(spacing + .01), level = context.createGain(), filter = context.createBiquadFilter(), pan = context.createStereoPanner();
+    delay.delayTime.value = spacing; delay.channelCount = 1; delay.channelCountMode = 'explicit';
+    level.gain.value = .52 * .6 ** (tap - 1);
+    filter.type = 'lowpass'; filter.frequency.value = 4200 * .8 ** (tap - 1); filter.Q.value = .4;
+    pan.pan.value = tap % 2 ? -.65 : .65;
+    previous.connect(delay); delay.connect(filter); filter.connect(level); level.connect(pan); pan.connect(output);
+    previous = delay;
+    nodes.push(delay, filter, level, pan);
+  }
+  return 3 * secondsPerBeat;
 }

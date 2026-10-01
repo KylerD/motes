@@ -27,11 +27,26 @@ try {
       graph.ambience.gain.value=layer==='music'?0:DEFAULT_MIX.ambience*1.12;
       setSoundMode(graph,mode);
       if(layer!=='music')startAmbience(graph,mood,0);
-      if(layer!=='atmosphere')for(const event of track.events){
-        const at=0.05+event.beat*60/track.bpm;
-        if(at<seconds)scheduleNote(graph,event,at,60/track.bpm);
+      // Match the player's bounded look-ahead instead of allocating every echo
+      // in a 48-second score before rendering its first sample.
+      let cursor=0;
+      const scheduleThrough=until=>{
+        if(layer==='atmosphere')return;
+        while(cursor<track.events.length){
+          const event=track.events[cursor],at=0.05+event.beat*60/track.bpm;
+          if(at>=Math.min(until,seconds))break;
+          scheduleNote(graph,event,at,60/track.bpm);cursor++;
+        }
+      };
+      scheduleThrough(6);
+      let suspended=context.suspend(4);
+      const rendered=context.startRendering();
+      for(let time=4;time<seconds;time+=4){
+        await suspended;scheduleThrough(time+6);
+        if(time+4<seconds)suspended=context.suspend(time+4);
+        await context.resume();
       }
-      const buffer=await context.startRendering();disposeGraph(graph);
+      const buffer=await rendered;disposeGraph(graph);
       const rms=(from,to)=>{
         let power=0,count=0;
         for(let channel=0;channel<2;channel++){

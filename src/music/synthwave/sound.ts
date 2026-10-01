@@ -1,5 +1,6 @@
 import type { ScoreEvent } from '../composer';
 import type { SoundGraph } from '../sound';
+import { addSynthEcho } from './effects';
 
 export interface SynthVoice {
   source: AudioScheduledSourceNode; auxiliary: AudioScheduledSourceNode[];
@@ -18,6 +19,7 @@ export function synthVoice(graph: SoundGraph, event: ScoreEvent, time: number, s
   pan.pan.value = event.pan; gain.connect(pan);
   const frequency = 440 * 2 ** ((event.note - 69) / 12);
   let source: AudioScheduledSourceNode, end: number;
+  let voiceGain = gain;
   if (kind === 'synth-snare' || kind === 'synth-hat') {
     const noise = context.createBufferSource(), filter = context.createBiquadFilter();
     noise.buffer = graph.drumBuffers.get(kind)!;
@@ -42,7 +44,13 @@ export function synthVoice(graph: SoundGraph, event: ScoreEvent, time: number, s
       oscillator.detune.value = pad ? -8 : bass || arp ? 0 : -7;
       const weight = context.createGain(); weight.gain.value = pad ? .6 : chord || kind === 'lead' ? .7 : 1;
       oscillator.connect(weight); weight.connect(filter); nodes.push(weight); filter.connect(gain);
-      pan.connect(kind === 'synth-bass' ? graph.bass : graph.synth);
+      let echoTail = 0;
+      if (arp || chord || kind === 'lead') {
+        // Cancellation fades the direct note and its queued echoes together.
+        voiceGain = context.createGain(); nodes.push(voiceGain);
+        pan.connect(voiceGain); voiceGain.connect(graph.synth);
+        echoTail = addSynthEcho(context, gain, voiceGain, secondsPerBeat, nodes);
+      } else pan.connect(bass ? graph.bass : graph.synth);
       const partner = (type: OscillatorType, detune: number, level: number, pitch = frequency, destination: AudioNode = filter) => {
         const oscillator = context.createOscillator(), mix = context.createGain();
         oscillator.type = type; oscillator.frequency.value = pitch; oscillator.detune.value = detune; mix.gain.value = level;
@@ -56,9 +64,10 @@ export function synthVoice(graph: SoundGraph, event: ScoreEvent, time: number, s
         partner('sine', 0, .32, event.note >= 40 ? frequency / 2 : frequency, gain);
       }
       const amplitude = velocity * (pad ? .11 : bass ? .28 : arp ? .12 : chord ? .1 : .14);
-      const attack = pad ? .42 : bass ? .004 : arp ? .005 : chord ? .012 : .03;
-      const release = pad ? .85 : bass ? .035 : arp ? .2 : chord ? .24 : .48;
-      end = time + duration + release + .02;
+      const attack = pad ? .65 : bass ? .004 : arp ? .005 : chord ? .012 : .03;
+      const release = pad ? 2.4 : bass ? .035 : arp ? .2 : chord ? .24 : .48;
+      const dryEnd = time + duration + release + .02;
+      end = dryEnd + echoTail;
       filter.Q.value = bass ? 1.1 : arp ? .85 : .5;
       const high = pad ? 1000 + brightness * 1900 : bass ? 650 + brightness * 1500 : arp ? 1600 + brightness * 3400 : 1500 + brightness * 2400;
       filter.frequency.setValueAtTime(pad ? high * .6 : high, time);
@@ -66,8 +75,10 @@ export function synthVoice(graph: SoundGraph, event: ScoreEvent, time: number, s
       gain.gain.setValueAtTime(0, time);
       gain.gain.linearRampToValueAtTime(amplitude, time + Math.min(attack, duration * .4));
       gain.gain.exponentialRampToValueAtTime(Math.max(.0002, amplitude * (pad ? .85 : bass ? .65 : arp ? .25 : .78)), time + duration);
-      gain.gain.exponentialRampToValueAtTime(.0001, end - .01);
+      gain.gain.exponentialRampToValueAtTime(.0001, dryEnd - .01);
+      // Keep the voice owner alive until the last delayed sample has left its nodes.
+      gain.gain.setValueAtTime(0, dryEnd);
     }
   }
-  return { source, auxiliary, gain, nodes, end };
+  return { source, auxiliary, gain: voiceGain, nodes, end };
 }
