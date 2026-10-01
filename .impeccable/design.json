@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-22T18:41:05Z",
+  "generatedAt": "2026-09-29T20:43:30Z",
   "title": "Design System: Motes",
   "extensions": {
     "shadows": [
@@ -89,12 +89,12 @@
       {
         "name": "scene-evening",
         "value": "approximately 3000s",
-        "purpose": "All four places have matched arrival and evening paintings with distinct sky, distance, foreground and water timing. The coastal sun and its reflection fade together; local lamps and captions follow each scene's arc, with later lantern light and fireflies in the meadow. After hours holds the final lighting. A failed evening load preserves the original painting with scene-specific retry; procedural evening grades are a fallback."
+        "purpose": "All five places have matched arrival and evening paintings with distinct sky, distance, foreground and water timing. The coastal sun and its reflection fade together; local lamps and captions follow each scene's arc, with later lantern light and fireflies in the meadow. After hours holds the final lighting. A failed evening load preserves the original painting with scene-specific retry; procedural evening grades are a fallback."
       },
       {
         "name": "scene-composite",
         "value": "2 scene-seconds",
-        "purpose": "Retain one full-size lighting composite for the active place and rebuild it at most once per interval; water reflections sample that same composite. Load each arrival/evening pair when its place is visited, caching at most four arrival and four evening images."
+        "purpose": "Retain one full-size lighting composite for the active place and rebuild it at most once per interval; water reflections sample that same composite. Load each arrival/evening pair when its place is visited, caching at most five arrival and five evening images."
       },
       {
         "name": "reduced-motion",
@@ -145,7 +145,7 @@
   ],
   "narrative": {
     "northStar": "A Quiet Place",
-    "overview": "Motes is an illustrated place to settle into with warm, jazzy lofi. A shelter holding an amber mote welcomes the listener; a toasted-brown radio and cream settings make the interface feel familiar and comfortable. The paintings remain the focus.\n\nFour authored places establish the world: Neon rain, Golden hour, Last light station and The last chapter. Each has matched arrival and evening paintings. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.",
+    "overview": "Motes is an illustrated place to settle into with warm, jazzy lofi. A shelter holding an amber mote welcomes the listener; a toasted-brown radio and cream settings make the interface feel familiar and comfortable. The paintings remain the focus.\n\nFive authored places establish the world: Neon rain, Golden hour, Last light station, The last chapter and Top deck. Each has matched arrival and evening paintings. Daily editions change the chosen place, atmosphere and musical arrangement. They do not create a new painting each day.",
     "keyCharacteristics": [
       "Full-viewport paintings with moving water, weather, light and small distant events.",
       "An original shelter-and-mote logo, warm brown radio, amber playback and cream settings.",
@@ -156,7 +156,7 @@
       "Do keep the illustrated, cosy videogame character and make every scene beautiful when still.",
       "Do preserve the original shelter-and-mote identity, warm brown radio, amber listening action and cream settings.",
       "Do retain visible action labels on phones, readable contrast and useful keyboard focus.",
-      "Do distinguish the four authored places and their paired lighting states from their daily atmospheric and musical editions."
+      "Do distinguish the five authored places and their paired lighting states from their daily atmospheric and musical editions."
     ],
     "donts": [
       "Don't reintroduce organisms, names/stats, experiments, an Explore interface or dashboard density.",

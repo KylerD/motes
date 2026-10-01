@@ -4,9 +4,9 @@ import { composeSessionTrack, createSession, sessionAt } from '../src/session/se
 describe('dreamy synthwave sessions', () => {
   it('plans a deterministic hour at synthwave tempos without changing lofi defaults', () => {
     for (const seed of [0, 1, 42, 20260928]) {
-      const plan = createSession(seed, 'rain', 'synthwave');
-      expect(plan.style).toBe('synthwave');
-      expect(plan).toEqual(createSession(seed, 'rain', 'synthwave'));
+      const plan = createSession(seed, 'rain', 'dreamy');
+      expect(plan.style).toBe('dreamy');
+      expect(plan).toEqual(createSession(seed, 'rain', 'dreamy'));
       expect(plan.slots).toHaveLength(18);
       expect(plan.slots.reduce((sum, s) => sum + s.duration, 0)).toBeCloseTo(3600, 8);
       for (const slot of plan.slots) {
@@ -22,7 +22,7 @@ describe('dreamy synthwave sessions', () => {
   });
 
   it('writes four distinct families with different rhythm and instrumentation', () => {
-    const plan = createSession(20260928, 'rain', 'synthwave');
+    const plan = createSession(20260928, 'rain', 'dreamy');
     const tracks = plan.slots.map(s => composeSessionTrack(plan, s.index));
     expect(new Set(tracks.map(t => t.family)).size).toBe(4);
     const signatures = tracks.slice(0, 4).map(t => t.events.filter(e => e.instrument === 'synth-bass').map(e => e.beat).join(','));
@@ -40,13 +40,13 @@ describe('dreamy synthwave sessions', () => {
 
   it('prepares the final reprise without repeating the preceding loop', () => {
     for (let seed = 0; seed < 100; seed++) {
-      const plan = createSession(seed, 'rain', 'synthwave');
+      const plan = createSession(seed, 'rain', 'dreamy');
       expect(plan.slots[16].arrangement.loop, `seed ${seed}`).not.toBe(plan.slots[17].arrangement.loop);
     }
   });
 
   it('rolls the bass in long-short-short sixteenths and builds layers into the hook', () => {
-    const track = composeSessionTrack(createSession(20260928, 'rain', 'synthwave'), 0);
+    const track = composeSessionTrack(createSession(20260928, 'rain', 'dreamy'), 0);
     const head = track.sections.find(s => s.role === 'head')!;
     const bass = track.events.filter(e => e.instrument === 'synth-bass' && e.beat >= head.startBar * 4 && e.beat < (head.startBar + 1) * 4);
     expect(bass.map(e => e.beat - head.startBar * 4)).toEqual([0, .5, .75, 1, 1.5, 1.75, 2, 2.5, 2.75, 3, 3.5, 3.75]);
@@ -61,7 +61,7 @@ describe('dreamy synthwave sessions', () => {
   });
 
   it('holds the pad through the next chord attack instead of leaving a harmonic gap', () => {
-    const plan = createSession(20260928, 'rain', 'synthwave');
+    const plan = createSession(20260928, 'rain', 'dreamy');
     for (const index of [0, 1, 2, 3, 18]) {
       const track = composeSessionTrack(plan, index);
       const pads = track.events.filter(e => e.instrument === 'pad');
@@ -74,8 +74,8 @@ describe('dreamy synthwave sessions', () => {
   });
 
   it('keeps notes bounded, hook returns identical and after hours fresh', () => {
-    for (const mood of ['rain', 'meadow', 'snow', 'coast'] as const) {
-      const plan = createSession(34, mood, 'synthwave');
+    for (const mood of ['rain', 'meadow', 'snow', 'coast', 'deck'] as const) {
+      const plan = createSession(34, mood, 'dreamy');
       for (const index of [0, 1, 2, 3, 10, 16, 17, 18, 35]) {
         const track = composeSessionTrack(plan, index);
         expect(track).toEqual(composeSessionTrack(plan, index));

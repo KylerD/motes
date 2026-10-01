@@ -1,6 +1,6 @@
 # Original scene paintings
 
-Four original paintings generated with the built-in image generation tool for Motes: the rooftop and meadow on 6 September 2026, the station and reading room on 17 September 2026. The user's supplied screenshots served as mood and style references, not runtime assets. All finished paintings are local project assets. Water, weather, local light and small environmental events are drawn separately at runtime. The exact original prompts below and in the JSON sidecars are retained as provenance; the earlier prompts' cellular-light concept has since been removed from the application.
+Five original paintings generated with the built-in image generation tool for Motes: the rooftop and meadow on 6 September 2026, the station and reading room on 17 September 2026, and the car-park deck on 29 September 2026. The user's supplied screenshots served as mood and style references, not runtime assets. All finished paintings are local project assets. Water, weather, local light and small environmental events are drawn separately at runtime. The exact original prompts below and in the JSON sidecars are retained as provenance; the earlier prompts' cellular-light concept has since been removed from the application.
 
 ## Neon rain
 
@@ -41,3 +41,9 @@ Three composition-matched lighting edits were generated with the built-in image-
 | The last chapter | [the-last-chapter-night.png](the-last-chapter-night.png) | Sunset gives way to a silver-blue bay, cool curtain and terrace, warm reading lamps and harbour windows. [Prompt and provenance](the-last-chapter-night.png.json). |
 
 Runtime lighting uses separate sky, distance, foreground and water masks over about fifty minutes. The coastal sun and its reflection fade at the same rate. Rain, snow, steam, moving reflections and occasional events remain code-driven. Only the visited place loads its evening image; no artwork is generated during a visit. Each prompt is retained in its sidecar and embedded in the PNG.
+
+## Top deck
+
+An original open car-park deck above a 1980s city at sunset. A fictional burgundy retro coupe with its door open and its cabin lit sits in the left third, beside a stairwell with a warm doorway; the skyline, elevated highway, palms and banded sun reflect in one broad puddle. Generated with the built-in image-generation tool on 29 September 2026, with Neon rain and Golden hour as style references and a user-supplied sports-car photograph guiding the coupe's shape. It was refined over four iterations, and only the final pair is kept. Exact prompts and provenance: [top-deck.png.json](top-deck.png.json).
+
+[top-deck-night.png](top-deck-night.png) is its stormy-night lighting state. Both paintings are 1672×941. Storm clouds gather over the skyline, the sodium lamps come on, the tower neon brightens and the puddle turns to dark, glassy ink. The final sunset image was relit from this night state so the two share one canvas and register closely. Lightning, rain and moving reflections remain code-driven. [Prompt and provenance](top-deck-night.png.json); like the other evening paintings, its prompt is also embedded in the PNG.

@@ -15,6 +15,7 @@ try {
   const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(`${base}/?debug&day=2026-09-17&scene=rain&seed=2766115161&habitat=reef`);await ready(page);
+  const places=await page.evaluate(async()=>(await import('/src/places/index.ts')).PLACES.map(p=>p.id));
   assert.deepEqual(await page.evaluate(()=>Array.from(document.fonts,face=>({family:face.family,status:face.status}))),[
     {family:'Nunito Sans',status:'loaded'},{family:'EB Garamond',status:'loaded'},
   ]);report.brandAssets=true;
@@ -24,11 +25,11 @@ try {
   assert.equal(await page.evaluate(()=>window.__listenMutations),0,'The idle player must not continually replace its label/icon.');
   assert.ok(!page.url().includes('habitat='));
   assert.equal(await page.getByRole('button',{name:'Explore',exact:true}).count(),0);
-  for(const scene of ['rain','meadow','snow','coast']) {
+  for(const scene of places) {
     await page.evaluate(scene=>window.__motes.visit('2026-09-17',scene),scene);await ready(page);await settle(page);
     await page.screenshot({path:`captures-scenes/${scene}-desktop.png`});
   }
-  report.fourScenes=true;
+  report.everyScene=true;
   const frozen=await page.locator('#scene').screenshot();await page.waitForTimeout(150);
   assert.ok(frozen.equals(await page.locator('#scene').screenshot()));report.reducedMotion=true;
   await page.click('#mix-toggle');await page.click('#motion');await page.keyboard.press('Escape');
@@ -59,13 +60,17 @@ try {
   const edition=await page.evaluate(()=>window.__motes.edition);await page.reload();await ready(page);
   assert.equal(new URL(page.url()).searchParams.has('scene'),false,'Daily editions must not pin yesterday’s scene in the URL.');
   assert.deepEqual(await page.evaluate(()=>window.__motes.edition),edition);report.revisitableDates=true;
+  await page.goto(`${base}/?debug&scene=deck&day=2026-09-17`);await ready(page);await page.reload();await ready(page);
+  assert.equal(new URL(page.url()).searchParams.get('scene'),'deck','A chosen place stays shareable.');
+  assert.deepEqual(await page.evaluate(()=>({scene:window.__motes.edition.scene,day:window.__motes.edition.day})),{scene:'deck',day:'2026-09-17'});
+  assert.equal(await page.locator('#scene-list [data-place]').count(),5);report.deckLinkPinned=true;
   await page.click('#scenes-toggle');await thumbnails(page);await settle(page);await page.screenshot({path:'captures-scenes/places-desktop.png'});await page.keyboard.press('Escape');
-  assert.ok((await page.evaluate(()=>window.__motes.rendering)).images<=4);
+  assert.ok((await page.evaluate(()=>window.__motes.rendering)).images<=places.length);
 
   const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   phone.on('pageerror',error=>errors.push(error.message));
   await phone.goto(`${base}/?debug&day=2026-09-17`);await ready(phone);
-  for(const scene of ['rain','meadow','snow','coast']) {
+  for(const scene of places) {
     await phone.evaluate(scene=>window.__motes.visit('2026-09-17',scene),scene);await ready(phone);await settle(phone);
     assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await phone.screenshot({path:`captures-scenes/${scene}-mobile.png`});
@@ -109,6 +114,18 @@ try {
   await rejected.addInitScript(()=>{const resume=AudioContext.prototype.resume;let failed=false;AudioContext.prototype.resume=function(){if(!failed){failed=true;return Promise.reject(new Error('Blocked playback'));}return resume.call(this);};});
   await rejected.goto(`${base}/?debug`);await ready(rejected);await rejected.click('#listen');await rejected.waitForFunction(()=>!document.querySelector('#status').hidden);
   assert.equal(await rejected.evaluate(()=>window.__motes.radio.playing),false);await rejected.click('#listen');await rejected.waitForFunction(()=>window.__motes.radio.playing);report.audioRetry=true;
+  const piano=await browser.newPage({reducedMotion:'reduce'});
+  piano.on('pageerror',error=>errors.push(error.message));
+  await piano.route('**/audio/piano/*.mp3',route=>route.abort());await piano.goto(`${base}/?debug&scene=deck`);await ready(piano);
+  await piano.click('#listen');await piano.waitForFunction(()=>window.__motes.radio.playing);
+  assert.ok(['Analog synths','Soft pulse','Glass bells','Darksynth'].includes(await piano.evaluate(()=>window.__motes.track.label)));
+  // A lofi place keeps the synths playing and says why.
+  await piano.click('#scenes-toggle');await piano.click('[data-place="rain"]');
+  await piano.waitForFunction(()=>!document.querySelector('#status').hidden);
+  assert.equal(await piano.evaluate(()=>window.__motes.radio.playing),true);
+  assert.equal(await piano.evaluate(()=>window.__motes.track.style),'synthwave','Rain keeps the synths when its piano fails.');
+  assert.match(await piano.locator('#status').textContent(),/couldn’t load\. Your current style is still here/);
+  await piano.unroute('**/audio/piano/*.mp3');report.pianoFailureKeepsSynths=true;
   const calendar=await browser.newPage({reducedMotion:'reduce'});
   await calendar.addInitScript(()=>{
     const OriginalDate=Date;window.__calendarNow=new OriginalDate(2026,8,17,23,59).getTime();

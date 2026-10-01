@@ -6,6 +6,7 @@ import { performer } from './perform';
 import { planSong, standaloneArrangement } from './plan';
 import { chooser, partSeed, randomSource } from './random';
 import type { Arrangement, Mood, Track } from './types';
+import { placeById } from '../../places';
 
 export type * from './types';
 export { randomSource } from './random';
@@ -14,21 +15,16 @@ export { formBars } from './form';
 export { LOOPS } from './harmony';
 export { MELODY_CELLS } from './cells';
 
-const keyNames = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
-const words: Record<Mood, string[]> = {
-  rain: ['Window Seat', 'After the Rain', 'Blue Hour', 'Last Train', 'Umbrella Waltz', 'Warm Windows'],
-  meadow: ['Honey Light', 'Dandelion Days', 'Cloud Watching', 'Sunday Pages', 'Golden Hour', 'Slow Morning'],
-  snow: ['Paper Lantern', 'Snow on the Sill', 'The Quiet Car', 'Wool & Ink', 'A Small Fire', 'Northern Postcard'],
-  coast: ['Saltwater Pages', 'Low Tide Letters', 'Sea Glass', 'Harbour Lights', 'Driftwood Notes', 'The Reading Room'],
-};
+export const keyNames = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
 const subtitles = ['a little later', 'side streets', 'soft focus', 'the long way home', 'in the margins', 'second cup'];
 
 /** A song is planned (form, loops, theme, groove), then each part is realised on one shared swung grid. */
 export function composeTrack(seed: number, mood: Mood, index = 0, arrangement?: Arrangement): Track {
-  const songSeed = (seed ^ Math.imul(index + 1, 0x9e3779b1) ^ Math.imul(['rain', 'meadow', 'snow', 'coast'].indexOf(mood) + 1, 0x45d9f3b)) >>> 0;
+  const music = placeById(mood).music;
+  const songSeed = (seed ^ Math.imul(index + 1, 0x9e3779b1) ^ Math.imul(music.salt, 0x45d9f3b)) >>> 0;
   const random = randomSource(songSeed), choose = chooser(random);
-  const title = `${choose(words[mood])} · ${choose(subtitles)}`;
-  const chosen = arrangement ?? standaloneArrangement(random, mood);
+  const title = `${choose(music.titles)} · ${choose(subtitles)}`;
+  const chosen = arrangement ?? standaloneArrangement(random, music.tempo);
   const plan = planSong(chosen, songSeed);
   const part = (tag: string) => performer({ swing: plan.swing, songSeed, random: randomSource(partSeed(songSeed, tag)), bars: plan.bars, voice: plan.voice });
 

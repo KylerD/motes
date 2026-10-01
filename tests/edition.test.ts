@@ -1,5 +1,6 @@
 import { describe,it,expect } from 'vitest';
 import { edition,validDay,localDay,SCENE_IDS } from '../src/scenes/edition';
+import { DAILY_PLACES } from '../src/places';
 
 describe('daily scene editions',()=>{
   it('revisits the same scene, light and soundtrack seed on a date',()=>{
@@ -8,9 +9,16 @@ describe('daily scene editions',()=>{
   });
   it('visits every place and never repeats a neighbouring daily scene',()=>{
     const days = Array.from({length:28},(_,i)=>edition(`2026-02-${String(i+1).padStart(2,'0')}`));
-    expect(new Set(days.map(x=>x.scene)).size).toBe(SCENE_IDS.length);
+    expect(DAILY_PLACES).toEqual(['rain','meadow','snow','coast']);
+    expect(new Set(days.map(x=>x.scene)).size).toBe(DAILY_PLACES.length);
     expect(new Set(days.map(x=>x.seed)).size).toBe(28);
     for(let i=1;i<days.length;i++) expect(days[i].scene).not.toBe(days[i-1].scene);
+  });
+  it('keeps every existing daily link and shows Top deck only when chosen',()=>{
+    // Recorded on this branch before Top deck joined PLACES.
+    expect(['2026-09-17','2026-09-18'].map(day=>{const {scene,seed}=edition(day);return {scene,seed};}))
+      .toEqual([{scene:'meadow',seed:796858997},{scene:'snow',seed:265113732}]);
+    expect(edition('2026-09-17','deck').scene).toBe('deck');
   });
   it('rejects impossible dates rather than silently rolling them forward',()=>{
     for(const day of ['2026-02-30','2025-02-29','2026-13-01','2026-09-17x','1999-01-01']) expect(validDay(day)).toBe(false);

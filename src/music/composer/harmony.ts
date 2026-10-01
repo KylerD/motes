@@ -139,7 +139,7 @@ export function buildHarmony(sections: { role: Role; startBar: number; endBar: n
 }
 
 /** The chord sounding at a beat; a note in the last half-beat of a bar anticipates the next bar's chord. */
-export function chordAt(harmony: Chord[][], beat: number, anticipate = true): Chord {
+export function chordAt<C extends { beat: number }>(harmony: C[][], beat: number, anticipate = true): C {
   let bar = Math.floor(beat / 4 + 1e-6), within = beat - bar * 4;
   if (anticipate && within >= 3.5 - 1e-6 && bar + 1 < harmony.length) { bar++; within = 0; }
   const chords = harmony[Math.min(harmony.length - 1, Math.max(0, bar))];

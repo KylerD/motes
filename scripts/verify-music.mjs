@@ -12,11 +12,9 @@ try {
   await page.addInitScript(()=>{AudioParam.prototype.cancelAndHoldAtTime=undefined;});
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(server.resolvedUrls.local[0]+'__music_test');
-  await page.evaluate(async()=>{
-    const {RadioAudio}=await import('/src/music/audio.ts');
-    window.radio=new RadioAudio(20260917,'rain');
-    document.querySelector('#play').onclick=()=>{window.activation=window.radio.enable().then(()=>({ok:true}),error=>({ok:false,error:error.message}));};
-  });
+  const tuneIn=(seed,mood)=>page.evaluate(async([seed,mood])=>{const {RadioAudio}=await import('/src/music/audio.ts');window.radio=new RadioAudio(seed,mood);
+    document.querySelector('#play').onclick=()=>{window.activation=window.radio.enable().then(()=>({ok:true}),error=>({ok:false,error:error.message}));};},[seed,mood]);
+  await tuneIn(20260917,'rain');
   assert.equal(await page.evaluate(()=>window.radio.diagnostics.contextState),'uninitialized');
   let block=true;
   await page.route('**/audio/piano/60.mp3',async route=>block?route.fulfill({status:503,body:'Unavailable'}):route.continue());
@@ -63,7 +61,8 @@ try {
   const disposed=await page.evaluate(()=>window.radio.diagnostics);assert.equal(disposed.playing,false);assert.equal(disposed.voices,0);
   await page.unroute('**/audio/piano/60.mp3');
   await page.route('**/audio/piano/*.mp3',async route=>{await new Promise(resolve=>setTimeout(resolve,120));await route.continue();});
-  await page.evaluate(async()=>{const {RadioAudio}=await import('/src/music/audio.ts');window.radio=new RadioAudio(1,'coast');});
+  // Decoded pianos are kept for the page, so start a fresh page to really load again.
+  await page.reload();await tuneIn(1,'coast');
   await page.click('#play');await page.evaluate(()=>window.radio.pause());await page.evaluate(()=>window.activation);
   assert.equal(await page.evaluate(()=>window.radio.playing),false);
   assert.equal(await page.evaluate(()=>window.radio.diagnostics.contextState),'suspended');
@@ -148,6 +147,56 @@ try {
     {action:'pause-resume',returnedElapsed:0,pausedElapsed:0,resumedElapsed:0,resumedSuccessor:0,nextIndex:0,startsAtBeginning:true},
   ],'Each edition visit starts a fresh session, including a return to the seed of the still-audible song.');
   results.push({name:'A to B to A resets the session through natural, Next and pause/resume handovers',handovers});
+  // From rain to the deck, mid-chorus: bounded, pumping, and Without drums and Pause stop the pumping at once.
+  await page.evaluate(()=>window.radio.dispose());await page.waitForTimeout(200);
+  await tuneIn(20260917,'rain');await page.click('#play');assert.equal((await page.evaluate(()=>window.activation)).ok,true);
+  await page.evaluate(async()=>{
+    const radio=window.radio;await radio.setEdition(71,'deck');radio.next();
+    const segment=radio.segments[0],chorus=segment.track.sections.find(s=>s.role==='chorus').startBar*4;
+    segment.start=radio.context.currentTime-chorus*60/segment.track.bpm;segment.cursor=segment.track.events.findIndex(e=>e.beat>=chorus);radio.tick();
+  });
+  const drive=[];
+  for(let i=0;i<20;i++){await page.waitForTimeout(250);drive.push(await page.evaluate(()=>window.radio.diagnostics));}
+  const most=(samples,key)=>Math.max(...samples.map(d=>d[key])),chorus={voices:most(drive,'voices'),segments:most(drive,'scheduledSegments'),ahead:most(drive,'scheduledAhead'),pump:Math.min(...drive.map(d=>d.pump))};
+  assert.ok(chorus.voices<200);assert.ok(chorus.segments<=2);assert.ok(chorus.ahead<=3.3);assert.ok(chorus.pump<1,'The chorus pumps.');
+  assert.equal(await page.evaluate(()=>window.radio.current.section),await page.evaluate(()=>window.radio.segments[0].track.sections.find(s=>s.role==='chorus').name));
+  await page.evaluate(()=>window.radio.setMode('ambient'));await page.waitForTimeout(100);
+  assert.equal(await page.evaluate(()=>window.radio.diagnostics.pump),1,'Without drums stops the pumping within 100 ms.');
+  // Kicks queued while drumless carry no dips, so the pumping returns once the 3 s horizon has refilled.
+  await page.evaluate(()=>window.radio.setMode('beats'));await page.waitForTimeout(3500);
+  const pumping=[];for(let i=0;i<8;i++){await page.waitForTimeout(250);pumping.push(await page.evaluate(()=>window.radio.diagnostics.pump));}
+  assert.ok(Math.min(...pumping)<1,'The chorus pumps again with drums.');
+  // The echo return closes within 100 ms of Pause and stays closed through the resume, so no tail comes back.
+  assert.equal(await page.evaluate(()=>{const open=window.radio.diagnostics.echo;window.radio.pause();return open;}),1);
+  await page.waitForTimeout(100);
+  assert.deepEqual(await page.evaluate(()=>({echo:window.radio.diagnostics.echo,pump:window.radio.diagnostics.pump})),{echo:0,pump:1},'Pause closes the echo and stops the pumping within 100 ms.');
+  await page.waitForTimeout(200);assert.equal(await page.evaluate(()=>window.radio.diagnostics.voices),0,'Pause releases every voice.');
+  await page.click('#play');assert.equal((await page.evaluate(()=>window.activation)).ok,true);assert.equal(await page.evaluate(()=>window.radio.playing),true);
+  assert.equal(await page.evaluate(()=>window.radio.diagnostics.echo),0,'No echo tail resumes after Pause.');
+  // Rain, the deck, then rain again inside a second: bounded, and no pump or echo automation leaks into the rain song.
+  await page.evaluate(async()=>{
+    const radio=window.radio,wait=()=>new Promise(resolve=>setTimeout(resolve,150));
+    radio.setEdition(1,'rain');radio.next();await wait();radio.setEdition(2,'deck');radio.next();await wait();radio.setEdition(3,'rain');radio.next();
+  });
+  const switched=[];
+  for(let i=0;i<12;i++){await page.waitForTimeout(250);switched.push(await page.evaluate(()=>window.radio.diagnostics));}
+  assert.ok(switched.every(d=>d.voices<200&&d.scheduledSegments<=2),'Fast switching stays bounded throughout.');assert.ok(switched.every(d=>d.pump===1),'No pumping leaks into the rain song.');
+  assert.equal(switched[0].echo,0,'No echo leaks into the rain song.');
+  results.push({name:'rain to a pumping deck chorus, Without drums, Pause and fast switching across styles',chorus,switched:switched.at(-1)});
+  // Five quick Nexts from the deck chorus: notes due inside each fade stay silent rather than sounding at unity gain (+10 dB).
+  // 1.5 dB clears the under 1 dB a new song's own peak can sit above a steady window, and the smallest burst the bug produced was 3.3 dB.
+  await page.evaluate(()=>window.radio.dispose());await page.waitForTimeout(200);
+  await tuneIn(71,'deck');await page.evaluate(()=>{const radio=window.radio;radio.beat=radio.track.sections.find(s=>s.role==='chorus').startBar*4;});
+  await page.click('#play');assert.equal((await page.evaluate(()=>window.activation)).ok,true);
+  const burst=await page.evaluate(async()=>{
+    const radio=window.radio,{context,output}=radio.graph,meter=context.createAnalyser(),data=new Float32Array(meter.fftSize),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    let peak=0;output.connect(meter);const timer=setInterval(()=>{meter.getFloatTimeDomainData(data);for(const value of data)peak=Math.max(peak,Math.abs(value));},20);
+    await wait(1500);peak=0;await wait(3000);const steady=peak;peak=0;
+    for(let i=0;i<5;i++){radio.next();await wait(150);}
+    await wait(1000);clearInterval(timer);output.disconnect(meter);return {steady,rapid:peak,db:20*Math.log10(peak/steady)};
+  });
+  assert.ok(burst.db<=1.5,`Rapid Next must stay within 1.5 dB of the chorus's steady peak (${burst.db.toFixed(1)} dB).`);
+  results.push({name:'rapid Next from a deck chorus never bursts above its steady peak',burst});
   await page.evaluate(()=>window.radio.dispose());await page.waitForTimeout(200);
   assert.deepEqual(errors,[]);
   mkdirSync('captures-music',{recursive:true});writeFileSync('captures-music/lifecycle-results.json',JSON.stringify(results,null,2));

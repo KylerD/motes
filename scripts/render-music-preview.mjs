@@ -8,7 +8,7 @@ const output=resolve(process.argv[3]||'captures-music/warm-jazz-preview.wav');
 const seed=Number(process.argv[4]||'20260917');
 const mood=process.argv[5]||'rain';
 const index=Number(process.argv[6]||'0');
-const style=process.argv[7]||'lofi';
+const style=process.argv[7]||undefined;
 const server=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'error',plugins:[{name:'music-preview',configureServer(server){server.middlewares.use('/__music_preview',(_req,res)=>{res.setHeader('Content-Type','text/html');res.end('<!doctype html><title>Motes music preview</title>');});}}]});
 await server.listen();
 const browser=await chromium.launch({channel:'chromium'});
@@ -33,7 +33,7 @@ try {
     text(0,'RIFF');view.setUint32(4,wav.byteLength-8,true);text(8,'WAVE');text(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,buffer.numberOfChannels,true);view.setUint32(24,buffer.sampleRate,true);view.setUint32(28,buffer.sampleRate*buffer.numberOfChannels*2,true);view.setUint16(32,buffer.numberOfChannels*2,true);view.setUint16(34,16,true);text(36,'data');view.setUint32(40,wav.byteLength-44,true);
     for(let frame=0;frame<buffer.length;frame++)for(let ch=0;ch<channels.length;ch++)view.setInt16(44+(frame*channels.length+ch)*2,Math.max(-32768,Math.min(32767,Math.round(channels[ch][frame]*32767))),true);
     const bytes=new Uint8Array(wav);let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
-    return {wav:btoa(binary),report:{seconds,sampleRate:buffer.sampleRate,peak,rms:Math.sqrt(power/(buffer.length*channels.length)),clipped,blockRms,title:track.title,bpm:track.bpm,key:track.key,voice:track.voice,style,family:track.family,events:track.events.length}};
+    return {wav:btoa(binary),report:{seconds,sampleRate:buffer.sampleRate,peak,rms:Math.sqrt(power/(buffer.length*channels.length)),clipped,blockRms,title:track.title,bpm:track.bpm,key:track.key,voice:track.voice,style:track.style,family:track.family,events:track.events.length}};
   },{seconds,seed,mood,index,style});
   mkdirSync(dirname(output),{recursive:true});
   writeFileSync(output,Buffer.from(result.wav,'base64'));

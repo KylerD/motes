@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { composeTrack, type Mood } from '../src/music/composer';
+import {createSession,composeSessionTrack,sessionAt} from '../src/session/session';
+
+const fnv=(text:string)=>{let h=0x811c9dc5;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),0x01000193)>>>0;return h.toString(16);};
+/** A fixed projection of every lofi hour: scores, sampled environment (without the unused caption), slots and events. */
+const lofiFingerprint=()=>Object.fromEntries((['rain','meadow','snow','coast'] as Mood[]).flatMap(mood=>[1,4242,20260917].map(seed=>{
+  const plan=createSession(seed,mood);
+  const scores=[0,9,17,18].map(i=>{const t=composeSessionTrack(plan,i);return [t.title,t.bpm,t.bars,t.key,...t.events.map(e=>[e.beat,e.duration,e.note,e.velocity,e.pan,e.instrument,e.voice??''].join(','))].join(';');});
+  const states=[0,600,1800,3300,5000].map(s=>{const {elapsed,progress,chapter,dusk,warmth,weather,lamps,events}=sessionAt(plan,s);return JSON.stringify({elapsed,progress,chapter,dusk,warmth,weather,lamps,events});});
+  const slots=plan.slots.map(s=>[s.start,s.duration,s.chapter].join(',')),events=plan.events.map(e=>[e.kind,e.start,e.duration].join(','));
+  return [`${mood}/${seed}`,fnv([...scores,...states,...slots,...events].join('|'))];
+})));
+const LOFI_FINGERPRINT:Record<string,string>={"rain/1":"520d576c","rain/4242":"a00ceb1e","rain/20260917":"c3cc988f","meadow/1":"c823b936","meadow/4242":"f3240531","meadow/20260917":"c1271de3","snow/1":"2dc761","snow/4242":"e3a0a7e4","snow/20260917":"48dc65ed","coast/1":"c263fb30","coast/4242":"e65cdd17","coast/20260917":"4df9990b"};
+/** Every event field too: dreamy must match main, and Top deck's driving hour the reviewed branch. */
+const styleFingerprint=(style:string|undefined,moods:readonly Mood[])=>Object.fromEntries(moods.flatMap(mood=>[1,4242,20260917].map(seed=>{
+  const plan=createSession(seed,mood,style);
+  const scores=[0,9,17,18].map(i=>{const t=composeSessionTrack(plan,i);return JSON.stringify([t.title,t.bpm,t.bars,t.key,t.events,t.harmony,t.sections]);});
+  const states=[0,600,1800,3300,5000].map(s=>{const {elapsed,progress,chapter,dusk,warmth,weather,lamps,events}=sessionAt(plan,s);return JSON.stringify({elapsed,progress,chapter,dusk,warmth,weather,lamps,events});});
+  const slots=plan.slots.map(s=>[s.start,s.duration,s.chapter].join(',')),events=plan.events.map(e=>[e.kind,e.start,e.duration].join(','));
+  return [`${mood}/${seed}`,fnv([...scores,...states,...slots,...events].join('|'))];
+})));
+const DREAMY_FINGERPRINT:Record<string,string>={"rain/1":"43682df3","rain/4242":"d771d1c4","rain/20260917":"84853415","meadow/1":"94df011d","meadow/4242":"925a4b91","meadow/20260917":"c2336924","snow/1":"79c061bb","snow/4242":"893d2d63","snow/20260917":"6bbc9773","coast/1":"93110d8c","coast/4242":"48751816","coast/20260917":"6fbc5b05"};
+const DRIVING_FINGERPRINT:Record<string,string>={"deck/1":"86f825d0","deck/4242":"dd3c30fa","deck/20260917":"b040d1ac"};
 
 describe('daily radio composition', () => {
   it('reproduces the same score without sharing mutable state', () => {
@@ -75,5 +97,12 @@ describe('daily radio composition', () => {
         expect(e.note).toBeLessThanOrEqual(88);
       }
     }
+  });
+  it('keeps every lofi hour identical through the places and styles refactor',()=>{
+    expect(lofiFingerprint()).toEqual(LOFI_FINGERPRINT);
+  });
+  it('keeps dreamy synthwave identical to main and Top deck identical to the reviewed branch',()=>{
+    expect(styleFingerprint('dreamy',['rain','meadow','snow','coast'])).toEqual(DREAMY_FINGERPRINT);
+    expect(styleFingerprint(undefined,['deck'])).toEqual(DRIVING_FINGERPRINT);
   });
 });

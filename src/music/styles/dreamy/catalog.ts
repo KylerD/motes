@@ -1,5 +1,5 @@
-import { randomSource } from '../composer/random';
-import type { SynthFamily, Theme } from '../composer/types';
+import { randomSource } from '../../composer/random';
+import type { SynthFamily, Theme } from '../../composer/types';
 
 export interface SynthArrangement {
   family: SynthFamily; bars: number; bpm: number; tonic: number; energy: number;

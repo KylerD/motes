@@ -11,6 +11,12 @@ export function randomSource(seed: number): () => number {
 
 export const chooser = (random: () => number) => <T>(values: readonly T[]): T => values[Math.floor(random() * values.length)];
 
+/** Pick from options not used by the neighbours; the fallback order keeps assignment total. */
+export function pick<T>(random: () => number, options: readonly T[], avoid: (T | undefined)[]): T {
+  const open = options.filter(o => !avoid.includes(o));
+  return (open.length ? open : options)[Math.floor(random() * (open.length || options.length))];
+}
+
 /** Each part gets its own stream, so one part's jitter never shifts another's choices. */
 export const partSeed = (songSeed: number, tag: string) =>
   [...tag].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0, songSeed ^ 0x811c9dc5) >>> 0;

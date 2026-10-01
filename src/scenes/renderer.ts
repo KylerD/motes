@@ -1,4 +1,5 @@
-import { SCENES, type Edition, type Point, type SceneId } from './edition';
+import type { Edition, SceneId } from './edition';
+import {placeById,type Place,type Point} from '../places';
 import type {SessionState} from '../session/session';
 import {drawSessionEffects} from './session-effects';
 import {meadowLightAt} from './meadow-light';
@@ -62,7 +63,7 @@ export class SceneRenderer {
     if(this.evenings.has(id))return;
     const image=new Image();image.decoding='async';
     image.onload=()=>this.prepareLight();image.onerror=()=>{this.eveningFailures.add(id);};
-    this.evenings.set(id,image);image.src=SCENES[id].eveningImage;
+    this.evenings.set(id,image);image.src=placeById(id).eveningImage;
   }
   private load(id: SceneId): void {
     this.loadEvening(id);
@@ -70,7 +71,7 @@ export class SceneRenderer {
     const image = new Image(); image.decoding = 'async';
     image.onload = () => { if(id===this.edition.scene) this.layout();this.prepareLight(); };
     image.onerror = () => this.failures.add(id);
-    this.images.set(id,image); image.src = SCENES[id].image;
+    this.images.set(id,image); image.src = placeById(id).image;
   }
   /** Size the bitmap to the canvas's current CSS box. A no-op while nothing changed, so
    * observers and per-frame checks never clear a frame or interrupt a crossfade. */
@@ -92,17 +93,17 @@ export class SceneRenderer {
   private layout(): void {
     const image = this.images.get(this.edition.scene), aspect = image?.naturalWidth ? image.naturalWidth/image.naturalHeight : 16/9;
     this.iw = Math.max(this.width,this.height*aspect); this.ih = this.iw/aspect;
-    this.ox = (this.width-this.iw)*SCENES[this.edition.scene].anchor; this.oy = (this.height-this.ih)*.5;
+    this.ox = (this.width-this.iw)*placeById(this.edition.scene).anchor; this.oy = (this.height-this.ih)*.5;
   }
   point(u:number,v:number) { return { x:this.ox+u*this.iw, y:this.oy+v*this.ih }; }
   private waterPath(): void {
     const ctx = this.ctx; ctx.beginPath();
-    SCENES[this.edition.scene].water.forEach(([u,v],i)=>{ const p=this.point(u,v); if(i)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y); });
+    (placeById(this.edition.scene).water?.outline??[]).forEach(([u,v],i)=>{ const p=this.point(u,v); if(i)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y); });
     ctx.closePath();
   }
   ripple(x:number,y:number,time:number): boolean {
     if(!this.motion || !this.ready) return false;
-    const u=(x-this.ox)/this.iw,v=(y-this.oy)/this.ih, poly=SCENES[this.edition.scene].water;
+    const u=(x-this.ox)/this.iw,v=(y-this.oy)/this.ih, poly=placeById(this.edition.scene).water?.outline??[];
     // Polygon containment keeps interactions inside the actual illustrated shoreline.
     let inside=false;
     for(let i=0,j=poly.length-1;i<poly.length;j=i++) {
@@ -122,37 +123,37 @@ export class SceneRenderer {
   draw(time:number,now=performance.now(),session?:SessionState):void {
     if(!this.fits())this.resize();
     if(session&&(!this.journey||this.motion))this.journey=session;
-    const ctx=this.ctx,{scene,warmth,seed}=this.edition,image=this.images.get(scene);
-    const intensity=this.edition.intensity*(this.journey?.weather??1);
+    const ctx=this.ctx,{scene,warmth,seed}=this.edition,image=this.images.get(scene),place=placeById(scene);
+    const intensity=this.edition.intensity*(this.journey?.weather??1),light=sceneLightAt(scene,this.journey?.elapsed??0);
     ctx.setTransform(this.ratio,0,0,this.ratio,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-    ctx.fillStyle=SCENES[scene].color;ctx.fillRect(0,0,this.width,this.height);
+    ctx.fillStyle=place.color;ctx.fillRect(0,0,this.width,this.height);
     if(image?.naturalWidth) {
       const painting=this.sceneLight&&this.journey?this.sceneLight.frame(this.journey.elapsed):image;
       ctx.drawImage(painting,this.ox,this.oy,this.iw,this.ih);
-      if(SCENES[scene].water.length) {
+      if(place.water) {
         ctx.save();this.waterPath();ctx.clip();
-        const strip=Math.ceil(image.naturalHeight/135),start=scene==='coast'?.38:.60;
+        const strip=Math.ceil(image.naturalHeight/135),start=place.water.from??.6;
         for(let y=Math.floor(image.naturalHeight*start);y<image.naturalHeight;y+=strip) {
           const h=Math.min(strip,image.naturalHeight-y),v=y/image.naturalHeight;
-          const shift=(Math.sin(v*92+time*.58)*1.2+Math.sin(v*149-time*.37)*.7)*(scene==='coast'?1.5:1);
+          const shift=(Math.sin(v*92+time*.58)*1.2+Math.sin(v*149-time*.37)*.7)*(place.water.shimmer??1);
           ctx.drawImage(painting,0,y,image.naturalWidth,h,this.ox+shift,this.oy+v*this.ih,this.iw,h/image.naturalHeight*this.ih+.6);
         }
-        this.water(time,intensity);ctx.restore();
+        this.water(time,intensity,place,light.water);ctx.restore();
       }
       // Very slow cloud shadow and warm/cool variation, always subordinate to the painting.
-      if(!this.sceneLight&&scene!=='meadow') {
+      if(!this.sceneLight&&place.fallback) {
         ctx.fillStyle=warmth>.5?'#ffb575':'#557cb3';ctx.globalCompositeOperation='soft-light';
         ctx.globalAlpha=.035+warmth*.035+Math.sin(time*.012+seed%13)*.018;ctx.fillRect(0,0,this.width,this.height);
       }
       ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-      if(this.journey)drawSessionEffects(ctx,scene,this.journey,time,{width:this.width,height:this.height,iw:this.iw,point:(u,v)=>this.point(u,v)},!!this.sceneLight);
-      this.lights(time);
+      if(this.journey)drawSessionEffects(ctx,place,this.journey,time,{width:this.width,height:this.height,iw:this.iw,point:(u,v)=>this.point(u,v)},!!this.sceneLight,light,this.motion,seed);
+      this.lights(time,place,light.lamps);
     }
-    if(scene==='rain')this.rain(time,intensity);
-    if(scene==='snow')this.snow(time,intensity);
-    if(scene==='meadow')this.meadow(time);
-    if(!this.journey&&(scene==='coast'||scene==='meadow'))this.birds(time);
-    if(scene==='coast'||scene==='snow')this.steam(time);
+    if(place.effect==='rain')this.rain(time,intensity);
+    if(place.effect==='snow')this.snow(time,intensity);
+    if(place.effect==='pollen')this.pollen(time);
+    if(!this.journey&&place.birds)this.birds(time,place.birds);
+    if(place.steam)this.steam(time,place.steam);
     if(this.previous) {
       if(!this.motion) this.previous=null;
       else {
@@ -163,11 +164,10 @@ export class SceneRenderer {
       }
     }
   }
-  private water(time:number,intensity:number):void {
-    const ctx=this.ctx,{scene,seed}=this.edition;
-    const evening=sceneLightAt(scene,this.journey?.elapsed??0).water;
-    ctx.lineWidth=.6;ctx.strokeStyle=scene==='rain'?'#bcecff':`rgb(${Math.round(255-54*evening)},${Math.round(227-4*evening)},${Math.round(174+72*evening)})`;
-    if(scene==='rain')for(let i=0;i<30*intensity;i++) {
+  private water(time:number,intensity:number,place:Place,evening:number):void {
+    const ctx=this.ctx,{seed}=this.edition;
+    ctx.lineWidth=.6;ctx.strokeStyle=place.water?.tint??`rgb(${Math.round(255-54*evening)},${Math.round(227-4*evening)},${Math.round(174+72*evening)})`;
+    if(place.effect==='rain')for(let i=0;i<30*intensity;i++) {
       const p=this.point(.2+noise(seed+i)*.57,.66+noise(i+82)*.34),age=(time*.39+noise(i+21))%1;
       ctx.globalAlpha=(1-age)*.22;ctx.beginPath();ctx.ellipse(p.x,p.y,2+age*17,1+age*4,0,0,TAU);ctx.stroke();
     }
@@ -195,7 +195,7 @@ export class SceneRenderer {
       ctx.globalAlpha=.18+depth*.55;ctx.beginPath();ctx.ellipse(x,y,.6+depth*1.8,.8+depth*1.6,0,0,TAU);ctx.fill();
     }ctx.restore();
   }
-  private meadow(time:number):void {
+  private pollen(time:number):void {
     const ctx=this.ctx,{seed,intensity}=this.edition;ctx.save();ctx.globalCompositeOperation='screen';
     const daylight=1-meadowLightAt(this.journey?.elapsed??0).clearing;
     for(let i=0;i<32*intensity;i++) {
@@ -210,29 +210,27 @@ export class SceneRenderer {
       for(const side of [-1,1]){ctx.beginPath();ctx.ellipse(p.x+side*2*wing,p.y,2.5*wing,2.2,-side*.4,0,TAU);ctx.fill();}
     }ctx.restore();
   }
-  private birds(time:number):void {
+  private birds(time:number,colour:string):void {
     const ctx=this.ctx,cycle=(time+this.edition.seed%130)%130;
     if(cycle>26)return;
-    ctx.save();ctx.lineWidth=.85;ctx.strokeStyle=this.edition.scene==='coast'?'#223148':'#34515a';
+    ctx.save();ctx.lineWidth=.85;ctx.strokeStyle=colour;
     for(let i=0;i<5;i++) {
       const progress=cycle/26, p=this.point(-.08+progress*1.22-i*.012,.23+Math.sin(progress*3)*.035+i*.009);
       const size=2+noise(i+33)*2,wing=Math.sin(time*3.2-i)*size;
       ctx.globalAlpha=Math.min(1,cycle,26-cycle)*.6;ctx.beginPath();ctx.moveTo(p.x-size,p.y-wing);ctx.quadraticCurveTo(p.x-size*.4,p.y-1,p.x,p.y);ctx.quadraticCurveTo(p.x+size*.4,p.y-1,p.x+size,p.y-wing);ctx.stroke();
     }ctx.restore();
   }
-  private lights(time:number):void {
-    const ctx=this.ctx,scene=this.edition.scene;ctx.save();ctx.globalCompositeOperation='screen';
-    const lamps=sceneLightAt(scene,this.journey?.elapsed??0).lamps;
-    const spots:Record<SceneId,readonly Point[]>={rain:[[.312,.321]],meadow:[],snow:[[.208,.326],[.341,.375]],coast:[[.061,.452],[.451,.72]]};
-    for(const [u,v] of spots[scene]) {
-      const p=this.point(u,v),size=this.iw*(scene==='meadow'?.014:.033);
+  private lights(time:number,place:Place,lamps:number):void {
+    const ctx=this.ctx;ctx.save();ctx.globalCompositeOperation='screen';
+    for(const [u,v] of place.lamps) {
+      const p=this.point(u,v),size=this.iw*.033;
       ctx.globalAlpha=.12+lamps*.12+(Math.sin(time*.63+u*10)+Math.sin(time*.21))* .025;
       ctx.drawImage(this.glow('#ffd0a0'),p.x-size,p.y-size,size*2,size*2);
     }
     ctx.restore();
   }
-  private steam(time:number):void {
-    const ctx=this.ctx,spot=this.edition.scene==='coast'?[.084,.587]:[.13,.525];
+  private steam(time:number,spot:Point):void {
+    const ctx=this.ctx;
     ctx.save();ctx.strokeStyle='#fff0dd';ctx.lineWidth=1.1;
     for(let i=0;i<3;i++) {
       const age=(time*.13+i/3)%1,p=this.point(spot[0],spot[1]-age*.048);

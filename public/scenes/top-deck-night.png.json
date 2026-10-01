@@ -1,0 +1,18 @@
+{
+  "prompt": "Use case: lighting-weather.\nAsset type: precisely composition-matched stormy-night layer for a living Motes painting, 1672 by 941 landscape.\n\nImage 1 is the EDIT TARGET: the latest sunset painting with a subtly curved fictional 1980s coupe, muted burgundy paint, CLOSED RECTANGULAR POP-UP HEADLAMP LIDS, simple horizontal bumper lights, five-spoke period wheels, small rear spoiler, visibly open driver's door, jacket and cassette. Preserve THIS EXACT CAR. Its restored retro design is critical.\nImage 2 is NIGHT LIGHTING AND SUBTLE CYBERPUNK guidance ONLY. It contains an unwanted modern car; do not copy, blend with or take any car details from image 2.\n\nEdit only time of day, weather light and material-specific illumination on image 1 to the deep luminous stormy night of image 2. Preserve image 1's full composition and all geometry as closely as possible. Keep the identical retro burgundy car with every body contour, closed pop-up lid, five-spoke wheel, door/window outline, spoiler and ground contact in the same location. Paint remains subdued dark dusty wine red, with cool shadow planes and restrained amber highlights, not bright red. Keep amber cabin, cassette and jacket. Headlights remain closed/off.\n\nRemove the sun and its broad orange reflection. Heavy indigo, violet and petrol-blue storm clouds fill the sky, lit faintly beneath by the city. Keep mountains and tower silhouettes. Retain image 1's subtle cyan/magenta strips and geometric light panels on existing towers, softly luminous at night, with delicate neon reflections on wet concrete and the continuous puddle. Warm tower windows and the red/white highway light ribbon remain visible. Both existing sodium lamps are ON with warm amber pools on wet concrete. Stairwell doorway remains warm. Puddle becomes dark glassy ink reflecting neon, lamp light and tower windows.\n\nPreserve full 1672 by 941 framing, aspect ratio, camera and perspective; every landmark position, skyline contour, palm, parapet, bay line, wheel stop, stairwell edge, lamp post and exact puddle outline. No crop, zoom, movement, car redesign, new scenery or structures. Retain richly textured cosy videogame / anime hand-painted style. Keep the cyberpunk touch subtle and inviting, without giant signs, clutter, holograms or flying vehicles. Luminous readable night without black crush or a uniform filter. No people, rain streaks, lightning bolts, particles, floating dots, text, logos, graphics, UI or watermark. Deliver one complete NIGHT landscape illustration.",
+  "tool": "image_gen.imagegen",
+  "mode": "built-in lighting-weather edit",
+  "source": "Generated with the built-in image generation tool for Motes, 2026-09-29. This night state is an edit of the iteration 4 sunset (not kept), with the iteration 3 night as lighting and subtle cyberpunk guidance only. The committed sunset, top-deck.png, was then relit from this night state. sourceAsset points at that committed sunset because the pair shares one canvas, not because it was this edit's target.",
+  "history": "Four iterations were made in Codex on 2026-09-29; only this final pair is kept in the repository.",
+  "sourceAsset": "public/scenes/top-deck.png",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "generationDate": "2026-09-29",
+  "outputFile": "public/scenes/top-deck-night.png",
+  "outputDimensions": {
+    "width": 1672,
+    "height": 941
+  }
+}

@@ -1,5 +1,5 @@
-import { randomSource } from '../composer/random';
-import type { Chord, Instrument, Mood, Role, ScoreEvent, Section, Track } from '../composer/types';
+import { randomSource } from '../../composer/random';
+import type { Chord, Instrument, Mood, Role, ScoreEvent, Section, Track } from '../../composer/types';
 import { ARPS, FORMS, HOOKS, INTERVALS, LOOPS, type SynthArrangement } from './catalog';
 
 const names: Record<Mood, string[]> = {
@@ -7,6 +7,7 @@ const names: Record<Mood, string[]> = {
   meadow: ['Pastel Skies', 'Satellite Summer', 'Velvet Horizon', 'Daydream Signal'],
   snow: ['Northern Signals', 'Blue Satellite', 'Polar Lights', 'Night Express'],
   coast: ['Ocean Drive', 'Silver Coastline', 'Afterglow FM', 'Beyond the Harbour'],
+  deck: ['Sodium Glow', 'Violet Hour', 'Rooftop Signal', 'Cabin Light'],
 };
 const keys = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
 const roles: Role[] = ['intro', 'head', 'contrast', 'breath', 'return', 'tag'];
@@ -91,5 +92,5 @@ export function composeSynthwave(seed: number, mood: Mood, index: number, a: Syn
   events.sort((x, y) => x.beat - y.beat);
   return { seed: songSeed, index, title: `${names[mood][index % 4]} · ${['after dark', 'soft signal', 'the way home'][Math.floor(random() * 3)]}`,
     bpm: a.bpm, key: keys[a.tonic] + 'm', bars: a.bars, swing: 0, events, harmony, sections,
-    voice: 'electric', form: a.family, mode: 'minor', theme: a.theme, loop: `synth-${a.loop}`, style: 'synthwave', family: a.family };
+    voice: 'electric', form: a.family, mode: 'minor', theme: a.theme, loop: `synth-${a.loop}`, style: 'dreamy', family: a.family };
 }

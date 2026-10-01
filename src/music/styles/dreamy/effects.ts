@@ -1,4 +1,4 @@
-import { randomSource } from '../composer/random';
+import { randomSource } from '../../composer/random';
 
 function room(context: BaseAudioContext, seed: number, seconds: number, gated = false): AudioBuffer {
   const buffer = context.createBuffer(2, Math.ceil(context.sampleRate * seconds), context.sampleRate);

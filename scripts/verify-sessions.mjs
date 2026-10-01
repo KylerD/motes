@@ -18,20 +18,31 @@ try{
     await page.evaluate(seconds=>window.__motes.previewSession(seconds),seconds);
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   };
-  for(const scene of ['rain','meadow','snow','coast']){
+  await page.goto(`${base}/?debug`);
+  const places=await page.evaluate(async()=>(await import('/src/places/index.ts')).PLACES.map(p=>({id:p.id,evening:p.eveningImage.split('/').pop(),kinds:p.draw.map(l=>l.kind).filter(k=>k&&k!=='windows')})));
+  for(const {id:scene,kinds:[kind]} of places){
     await visit(page,scene);await frame(page,0);await page.screenshot({path:`${directory}/${scene}-arrival-desktop.png`});
     await frame(page,3300);assert.ok(await page.evaluate(()=>window.__motes.rendering.session.dusk>.9));
     await page.screenshot({path:`${directory}/${scene}-evening-desktop.png`});
     for(const seconds of [1200,2400]) {
       await frame(page,seconds);await page.screenshot({path:`${directory}/${scene}-${seconds}-desktop.png`});
     }
-    if(scene==='snow'||scene==='coast'){
-      const kind=scene==='snow'?'train':'boat';
+    if(kind){
       const moment=await page.evaluate(kind=>{const event=window.__motes.sessionPlan.events.find(e=>e.kind===kind);return event.start+event.duration*.5;},kind);
       await frame(page,moment);assert.ok(await page.evaluate(kind=>window.__motes.rendering.session.events.some(e=>e.kind===kind),kind));
       await page.screenshot({path:`${directory}/${scene}-${kind}-desktop.png`});
     }
   }report.sceneArcsAndEvents=true;
+  // The storm brings rain; with Still, no flash or raindrop ever changes the held frame.
+  await visit(page,'deck');await frame(page,3300);assert.ok(await page.evaluate(()=>window.__motes.rendering.session.weather>1));
+  await frame(page,2900);await page.click('#mix-toggle');await page.click('#motion');await page.keyboard.press('Escape');
+  const stormChanges=await page.locator('#scene').evaluate(async canvas=>{
+    const next=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    await next();const held=canvas.toDataURL();let changes=0;
+    for(let seconds=2905;seconds<=3300;seconds+=5){window.__motes.previewSession(seconds,true);await next();if(canvas.toDataURL()!==held)changes++;}
+    return changes;
+  });
+  assert.equal(stormChanges,0,'Still holds the storm without lightning or moving rain.');report.stillThroughTheStorm=true;
   await visit(page,'meadow');await page.click('#listen');await page.waitForFunction(()=>window.__motes.radio.playing);
   const environmentStart=await page.evaluate(()=>window.__motes.environment.elapsed);
   await page.click('#next-track');await page.waitForFunction(()=>window.__motes.session.elapsed>200);
@@ -63,7 +74,7 @@ try{
   assert.ok(await page.evaluate(t=>window.__motes.environment.elapsed>t+.4,hiddenStart));
   report.environmentContinuesInBackground=true;
 
-  const eveningFiles={rain:'neon-rain-night.png',meadow:'golden-hour-dusk.png',snow:'last-light-station-night.png',coast:'the-last-chapter-night.png'};
+  const eveningFiles=Object.fromEntries(places.map(p=>[p.id,p.evening]));
   for(const [scene,file] of Object.entries(eveningFiles)) {
     const fallback=await browser.newPage();
     fallback.on('pageerror',error=>errors.push(error.message));
@@ -92,7 +103,7 @@ try{
     await cache.evaluate(scene=>window.__motes.visit('2026-09-18',scene),scene);
     await cache.waitForFunction(()=>window.__motes.rendering.lightingReady);
     const resources=await cache.evaluate(()=>window.__motes.rendering);
-    assert.equal(resources.composites,1);assert.ok(resources.images<=4&&resources.eveningImages<=4);
+    assert.equal(resources.composites,1);assert.ok(resources.images<=places.length&&resources.eveningImages<=places.length);
   }
   assert.equal(requested.length,4,'Revisiting a place reuses both decoded paintings.');
   // Still must hold the new lighting, captions and water at the same instant.
@@ -120,7 +131,7 @@ try{
   await delayed.close();report.navigationDuringEveningLoad=true;
   const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
   phone.on('pageerror',error=>errors.push(error.message));
-  for(const scene of ['rain','meadow','snow','coast']){
+  for(const {id:scene} of places){
     await visit(phone,scene);await frame(phone,3300);
     assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await phone.screenshot({path:`${directory}/${scene}-evening-mobile.png`});

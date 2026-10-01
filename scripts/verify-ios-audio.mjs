@@ -31,7 +31,7 @@ try {
     await page.goto(server.resolvedUrls.local[0]);
     assert.deepEqual(await page.evaluate(() => window.audioStartup), [], 'Loading the page must not claim music playback before Listen.');
     await page.click('#mix-toggle');
-    await page.selectOption('#music-style', 'synthwave');
+    await page.selectOption('#music-style', 'dreamy');
     await page.keyboard.press('Escape');
     await page.click('#listen');
     await page.waitForFunction(() => document.querySelector('#listen-label').textContent === 'Pause');

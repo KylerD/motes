@@ -1,15 +1,18 @@
-import { composeTrack, type Mood, type MusicMode, type MusicStyle, type Track } from './composer';
-import {createSession,composeSessionTrack,sessionAt,type SessionPlan,type MusicSessionPlan} from '../session/session';
+import { composeTrack, type Mood, type MusicMode, type Track } from './composer';
+import {createSession,composeSessionTrack,sessionAt,type SessionPlan} from '../session/session';
 import {EnvironmentClock} from '../session/environment';
-import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, loadPiano, scheduleNote, setSoundMode, startAmbience, stopVoices, type SoundGraph, type PianoBank } from './sound';
+import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, prepareBank, schedule, setSoundMode, startAmbience, stopVoices, type SoundGraph } from './sound';
+import { STYLES, isStyleId, styleOf, type SoundBank, type StyleId } from './styles';
+import { placeById } from '../places';
 export { composeTrack } from './composer';
 export { DEFAULT_MIX } from './sound';
 export type { Mood, MusicMode, Track } from './composer';
 
 // Plan identity distinguishes visits to the same deterministic edition without retaining a history.
-interface PlaybackTrack extends Track {sessionPlan:MusicSessionPlan}
+interface PlaybackTrack extends Track {sessionPlan:SessionPlan}
 interface Segment {track:PlaybackTrack;start:number;cursor:number}
 const clamp=(value:number)=>Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
+const lookahead=(track:PlaybackTrack)=>styleOf(track.style).lookahead;
 
 /** One look-ahead clock for music. It deliberately has no connection to the animation clock. */
 export class RadioAudio {
@@ -25,34 +28,39 @@ export class RadioAudio {
   private volume:number=DEFAULT_MIX.music;
   private ambienceVolume:number=DEFAULT_MIX.ambience;
   private mode:MusicMode='beats';
-  private style:MusicStyle='lofi';
+  private style:StyleId='lofi';
+  private chosen?:StyleId;
   private styleRevision=0;
-  private pianoPending?:Promise<PianoBank>;
   private index=0;
   private track:PlaybackTrack;
-  private plan:MusicSessionPlan;
-  private environmentPlan:SessionPlan;
+  private plan:SessionPlan;
   private weatherLevel=1;
   private beat=0;
   private segments:Segment[]=[];
   private ticks=0;
   private compositions=0;
+  private lastNote=0;
   private environmentClock=new EnvironmentClock();
 
-  constructor(private seed:number,private mood:Mood) {this.environmentPlan=createSession(seed,mood);this.plan=this.environmentPlan;this.track=this.makeTrack();}
+  constructor(private seed:number,private mood:Mood) {this.style=this.styleFor(mood);this.plan=createSession(seed,mood,this.style);this.track=this.makeTrack();}
 
   get playing() {return this.running;}
-  get environment() {return sessionAt(this.environmentPlan,this.environmentClock.seconds(this.context?.currentTime??0));}
+  get environment() {return sessionAt(this.plan,this.environmentClock.seconds(this.context?.currentTime??0));}
   get session() {
-    const {track,beat}=this.position();
-    return sessionAt(this.plan,track.sessionPlan===this.plan&&track.session?track.session.offset+beat*60/track.bpm:0);
+    const {track,beat}=this.position(),elapsed=track.session?track.session.offset+beat*60/track.bpm:0;
+    if(track.sessionPlan===this.plan)return sessionAt(this.plan,elapsed);
+    // A song finishing after a visit keeps its own chapter; the new hour waits at its start.
+    return {...sessionAt(this.plan,0),chapter:sessionAt(track.sessionPlan,elapsed).chapter};
   }
   get current() {
     const {track,beat}=this.position();
-    return {title:track.title,bpm:Math.round(track.bpm),voice:track.voice,style:this.style,family:track.family,progress:Math.min(1,beat/(track.bars*4)),section:track.sections.find(s=>beat/4>=s.startBar&&beat/4<s.endBar)?.name??'Opening'};
+    return {title:track.title,bpm:Math.round(track.bpm),voice:track.voice,style:this.style,family:track.family,label:styleOf(track.style).labels.voice(track),progress:Math.min(1,beat/(track.bars*4)),section:track.sections.find(s=>beat/4>=s.startBar&&beat/4<s.endBar)?.name??'Opening'};
   }
+  get labels() {return styleOf(this.style).labels;}
   get diagnostics() {
-    return {playing:this.running,contextState:this.context?.state??'uninitialized',voices:this.graph?.voices.size??0,scheduledSegments:this.segments.length,ticks:this.ticks,compositions:this.compositions,scheduledThrough:this.segments[this.segments.length-1]?.start??0,currentTime:this.context?.currentTime??0};
+    const now=this.context?.currentTime??0,synth=this.graph?.banks.get('synthwave');
+    return {playing:this.running,contextState:this.context?.state??'uninitialized',voices:this.graph?.voices.size??0,scheduledSegments:this.segments.length,ticks:this.ticks,compositions:this.compositions,scheduledThrough:this.segments[this.segments.length-1]?.start??0,
+      scheduledAhead:this.running?Math.max(0,this.lastNote-now):0,currentTime:now,pump:synth?.pump?.gain.value??1,echo:synth?.echo?.gain.value??1};
   }
 
   async enable():Promise<void> {
@@ -79,10 +87,9 @@ export class RadioAudio {
       try {
         await resume;
         if(this.disposed||this.context!==context)return;
-        if(!this.graph) {
-          this.graph=createGraph(context,new Map(),this.seed);
-        }
-        if(this.style==='lofi')try{await this.ensurePiano();}catch(error){if(this.style==='lofi')throw error;}
+        this.graph??=createGraph(context,this.seed);
+        // Listen needs only the playing style's bank; a newer pick made while it loads wins.
+        for(;;){const style=this.style;try{await this.ensureBank(style);break;}catch(error){if(style===this.style||this.disposed)throw error;}}
         if(!this.wanted||this.disposed){if(context.state!=='closed')await context.suspend();return;}
         if(context.state!=='running')await context.resume();
         if(context.state!=='running')throw new Error('Playback is blocked by the browser. Press play to try again.');
@@ -95,13 +102,13 @@ export class RadioAudio {
         stopVoices(graph,now,0.025);
         this.segments=[this.segment(this.track,now+0.09-this.beat*60/this.track.bpm,this.beat)];
         this.running=true;this.environmentClock.start(now);
-        startAmbience(graph,this.mood,now+0.02);
+        startAmbience(graph,placeById(this.mood),now+0.02);
         holdParameter(graph.output.gain,now);graph.output.gain.linearRampToValueAtTime(1,now+0.35);
         this.tick();
         this.timer=setInterval(()=>this.tick(),250);
       }catch(error){
         this.environmentClock.pause(context.currentTime);
-        this.running=false;this.wanted=false;this.abort?.abort();
+        this.running=false;this.wanted=false;this.abort?.abort();this.abort=undefined;
         if(this.graph){disposeGraph(this.graph);this.graph=undefined;}
         if(context.state!=='closed')await context.close().catch(()=>undefined);
         if(this.context===context)this.context=undefined;
@@ -135,32 +142,48 @@ export class RadioAudio {
   setAmbience(value:number):void {this.ambienceVolume=clamp(value);if(this.graph)this.graph.ambience.gain.setTargetAtTime(this.ambienceVolume*this.weatherLevel,this.graph.context.currentTime,0.1);}
   setMode(mode:MusicMode):void {this.mode=mode;if(this.graph)setSoundMode(this.graph,mode);}
 
-  private ensurePiano():Promise<PianoBank> {
-    if(!this.context||!this.graph)return Promise.reject(new Error('The audio device is not ready.'));
-    if(this.graph.bank.size)return Promise.resolve(this.graph.bank);
-    if(this.pianoPending)return this.pianoPending;
-    const graph=this.graph;
-    this.abort=new AbortController();
-    const pending=loadPiano(this.context,this.abort.signal).then(bank=>{if(!this.disposed&&this.graph===graph)graph.bank=bank;return bank;});
-    this.pianoPending=pending;
-    void pending.finally(()=>{if(this.pianoPending===pending){this.pianoPending=undefined;this.abort=undefined;}}).catch(()=>undefined);
-    return pending;
+  // Until all three styles are offered everywhere, a pick only applies where the place's own music is lofi.
+  private styleFor(mood:Mood):StyleId {const own=placeById(mood).music.style;return own==='lofi'?this.chosen??'lofi':isStyleId(own)?own:'lofi';}
+
+  /** One style's bank, prepared on demand: synths need no download, and only Warm lofi waits for the piano. */
+  private ensureBank(style:StyleId):Promise<SoundBank> {
+    const graph=this.graph;if(!graph)return Promise.reject(new Error('The audio device is not ready.'));
+    const ready=graph.banks.get(style);if(ready)return Promise.resolve(ready);
+    this.abort??=new AbortController();
+    // A bank built mid-session starts in the listener's drum setting.
+    return prepareBank(graph,STYLES[style],this.abort.signal).then(bank=>{bank.setMode(this.mode);return bank;});
   }
 
-  /** Switch music without resetting the scenery or implicitly starting playback. */
-  async setStyle(style:MusicStyle):Promise<void> {
+  /** A listener's pick: switch music without resetting the scenery or starting playback. The latest pick wins. */
+  async setStyle(style:StyleId):Promise<void> {
     if(this.disposed)return;
-    const revision=++this.styleRevision;
-    if(style===this.style)return;
-    if(style==='lofi'&&this.graph) {
-      try{await this.ensurePiano();}catch(error){if(revision===this.styleRevision&&!this.disposed)throw error;return;}
+    const revision=++this.styleRevision,previous=this.chosen;
+    this.chosen=style;
+    const next=this.styleFor(this.mood);
+    if(next===this.style)return;
+    if(this.graph){
+      try{await this.ensureBank(next);}
+      catch(error){
+        if(revision!==this.styleRevision||this.disposed)return;
+        this.chosen=previous;
+        // A place change made while this loaded planned with it; give that place its music back.
+        if(this.style===next)this.replan(this.styleFor(this.mood));
+        throw error;
+      }
       if(revision!==this.styleRevision||this.disposed)return;
     }
+    this.switchTo(next);
+  }
+
+  private replan(style:StyleId):void {
+    this.style=style;this.index=0;this.plan=createSession(this.seed,this.mood,style);
+    if(!this.running){this.track=this.makeTrack();this.beat=0;}
+  }
+
+  private switchTo(style:StyleId):void {
+    // Synths need no samples: wake a waiting Listen rather than finish an obsolete piano download.
+    if(style!=='lofi'&&this.graph?.loading.has('lofi')){this.abort?.abort();this.abort=undefined;}
     this.style=style;this.index=0;this.plan=createSession(this.seed,this.mood,style);this.track=this.makeTrack();this.beat=0;
-    // Synthwave has no sample dependency. Wake activation instead of awaiting an obsolete fetch.
-    if(style==='synthwave'&&this.pending&&this.pianoPending) {
-      const obsolete=this.abort;this.pianoPending=undefined;this.abort=undefined;obsolete?.abort();
-    }
     if(this.running&&this.context&&this.graph) {
       const now=this.context.currentTime,graph=this.graph;
       stopVoices(graph,now,.6);
@@ -170,23 +193,34 @@ export class RadioAudio {
   }
 
   /** Visiting a place changes its atmosphere now; a new edition joins after the current song. */
-  setEdition(seed:number,mood:Mood):void {
-    if(seed===this.seed&&mood===this.mood)return;
-    this.seed=seed;this.mood=mood;this.index=0;this.plan=createSession(seed,mood,this.style);this.environmentPlan=createSession(seed,mood);
+  setEdition(seed:number,mood:Mood):Promise<void> {
+    if(seed===this.seed&&mood===this.mood)return Promise.resolve();
+    const before=this.style;
+    this.seed=seed;this.mood=mood;this.index=0;this.style=this.styleFor(mood);this.plan=createSession(seed,mood,this.style);
     this.environmentClock.reset(this.context?.currentTime??0);
     if(this.running&&this.context&&this.graph) {
       const active=this.activeSegment();
       if(active){
         const ending=active.start+active.track.bars*4*60/active.track.bpm;
         stopVoices(this.graph,this.context.currentTime,0.1,ending);
-        this.segments=[active];
+        this.segments=[active];this.lastNote=Math.min(this.lastNote,ending);
       }
-      startAmbience(this.graph,mood);
+      startAmbience(this.graph,placeById(mood));
     }else{this.track=this.makeTrack();this.beat=0;}
+    if(!this.graph)return Promise.resolve();
+    const plan=this.plan;
+    return this.ensureBank(this.style).then(()=>undefined,error=>{
+      if(this.plan!==plan||this.disposed)return;
+      // Keep the style that was playing before the visit rather than fall silent in this place.
+      if(before!==this.style&&this.graph?.banks.has(before))this.replan(before);
+      throw error;
+    });
   }
 
   next():void {
     if(this.disposed)return;
+    // A place whose bank is still loading keeps its current song; Next would only schedule silence.
+    if(this.graph&&!this.graph.banks.has(this.plan.style))return;
     const active=this.position().track;
     // Look-ahead may already have prepared a successor; skip exactly one audible song.
     this.index=active.sessionPlan===this.plan?active.index+1:0;
@@ -194,7 +228,7 @@ export class RadioAudio {
     if(this.running&&this.context&&this.graph) {
       const now=this.context.currentTime;
       stopVoices(this.graph,now,0.18);
-      this.segments=[this.segment(this.track,now+0.2,0)];
+      this.segments=[this.segment(this.track,now+0.2,0)];this.lastNote=0;
       this.tick();
     }
   }
@@ -229,37 +263,36 @@ export class RadioAudio {
     const now=context.currentTime;
     const weatherLevel=Math.max(.75,Math.min(1.12,this.environment.weather));
     if(Math.abs(weatherLevel-this.weatherLevel)>.005){this.weatherLevel=weatherLevel;graph.ambience.gain.setTargetAtTime(this.ambienceVolume*weatherLevel,now,3);}
-    // Audio remains scheduled through normal background timer throttling. There is exactly one timer.
-    const horizon=now+6;
+    // Audio remains scheduled through normal background timer throttling. There is exactly one timer; each segment looks ahead by its own style's horizon.
     while(this.segments.length>1&&this.segments[1].start<=now)this.segments.shift();
     let segment=this.segments[this.segments.length-1];
     if(!segment)return;
     const end=segment.start+segment.track.bars*4*60/segment.track.bpm;
-    if(end<horizon) {
+    if(end<now+lookahead(segment.track)&&graph.banks.has(this.plan.style)) {
       const next=this.makeTrack();
       segment=this.segment(next,Math.max(end,now+0.05),0);this.segments.push(segment);
     }
     for(const part of this.segments) {
-      const secondsPerBeat=60/part.track.bpm;
+      const secondsPerBeat=60/part.track.bpm,horizon=now+lookahead(part.track);
       while(part.cursor<part.track.events.length) {
         const event=part.track.events[part.cursor],at=part.start+event.beat*secondsPerBeat;
         if(at>horizon)break;
         part.cursor++;
         // Recover from a browser/OS interruption without dumping missed notes into one instant.
         if(at<now-0.03)continue;
-        scheduleNote(graph,event,Math.max(now+0.005,at),secondsPerBeat);
+        this.lastNote=Math.max(now+0.005,at);schedule(graph,event,this.lastNote,secondsPerBeat,part.track);
       }
     }
   }
 }
 
-export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;ambience?:number;sampleRate?:number;standalone?:boolean}={}) {
+export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:StyleId;ambience?:number;sampleRate?:number;standalone?:boolean}={}) {
   const seconds=Math.max(1,Math.min(300,options.seconds??90)),sampleRate=options.sampleRate??44100;
-  const plan=createSession(options.seed??20260917,options.mood??'rain',options.style??'lofi');
+  const plan=createSession(options.seed??20260917,options.mood??'rain',options.style);
   const score=(index:number)=>options.standalone&&plan.style==='lofi'?composeTrack(plan.seed,plan.mood,index):composeSessionTrack(plan,index);
   const track=score(options.index??0);
   const context=new OfflineAudioContext(2,Math.ceil(seconds*sampleRate),sampleRate);
-  const graph=createGraph(context,plan.style==='lofi'?await loadPiano(context):new Map(),plan.seed);
+  const graph=createGraph(context,plan.seed);await prepareBank(graph,STYLES[plan.style]);
   graph.output.gain.setValueAtTime(0,0);graph.output.gain.linearRampToValueAtTime(1,0.3);
   graph.output.gain.setValueAtTime(1,seconds-0.3);graph.output.gain.linearRampToValueAtTime(0,seconds);
   graph.ambience.gain.value=options.ambience??DEFAULT_MIX.ambience;setSoundMode(graph,options.mode??'beats');
@@ -267,12 +300,12 @@ export async function renderPreview(options:{seed?:number;mood?:Mood;index?:numb
     const weather=Math.max(.75,Math.min(1.12,sessionAt(plan,track.session.offset+time).weather));
     graph.ambience.gain.setTargetAtTime((options.ambience??DEFAULT_MIX.ambience)*weather,time,3);
   }
-  startAmbience(graph,options.mood??'rain',0);
+  startAmbience(graph,placeById(options.mood??'rain'),0);
   let song=track,start=0.05,index=options.index??0;
   while(start<seconds) {
     for(const event of song.events) {
       const at=start+event.beat*60/song.bpm;if(at>=seconds)break;
-      scheduleNote(graph,event,at,60/song.bpm);
+      schedule(graph,event,at,60/song.bpm,song);
     }
     start+=song.bars*4*60/song.bpm;
     song=score(++index);

@@ -1,7 +1,6 @@
-export type Mood = 'rain' | 'meadow' | 'snow' | 'coast';
-export type Instrument = 'piano' | 'melody' | 'bass' | 'kick' | 'snare' | 'hat' | 'rim'
-  | 'pad' | 'arp' | 'lead' | 'synth-chord' | 'synth-bass' | 'synth-kick' | 'synth-snare' | 'synth-hat';
-export type MusicStyle = 'lofi' | 'synthwave';
+export type { PlaceId as Mood } from '../../places';
+export type Instrument = 'piano' | 'melody' | 'bass' | 'kick' | 'snare' | 'hat' | 'rim' | 'pad' | 'arp' | 'lead' | 'stab' | 'clap' | 'tom' | 'open' | 'crash'
+  | 'synth-chord' | 'synth-bass' | 'synth-kick' | 'synth-snare' | 'synth-hat';
 export type SynthFamily = 'arpeggio' | 'pulse' | 'drift' | 'lead';
 export type MusicMode = 'beats' | 'ambient';
 export type KeyVoice = 'upright' | 'felt' | 'electric' | 'vibes';
@@ -20,14 +19,15 @@ export interface Arrangement {
   bpm: number; tonic: number; voice: KeyVoice; energy: number; swing: number;
   form: FormName; mode: Mode; loop: string; comp: CompCell; groove: GrooveCell; theme: Theme; stretch: boolean;
 }
-export interface ScoreEvent { beat: number; duration: number; note: number; velocity: number; pan: number; instrument: Instrument; voice?: KeyVoice; brightness?: number }
+export interface ScoreEvent { beat: number; duration: number; note: number; velocity: number; pan: number; instrument: Instrument; voice?: KeyVoice; legato?: boolean; brightness?: number }
 /** A chord starting at `beat` within its bar; `notes` is the rootless piano voicing, `root` belongs to the bass. */
 export interface Chord { root: number; quality: Quality; notes: number[]; beat: number }
+export interface TrackChord { root: number; quality: string; notes: number[]; beat: number }
 export interface Section { name: string; role: Role; startBar: number; endBar: number }
+export interface TrackSection { name: string; role: string; startBar: number; endBar: number }
 export interface Track {
   seed: number; index: number; title: string; bpm: number; key: string; bars: number;
-  swing: number; events: ScoreEvent[]; harmony: Chord[][]; sections: Section[];
-  voice: KeyVoice; form: FormName | SynthFamily; mode: Mode; theme: Theme; loop: string;
-  style?: MusicStyle; family?: SynthFamily;
-  session?: { seed: number; offset: number };
+  swing: number; events: ScoreEvent[]; harmony: TrackChord[][]; sections: TrackSection[];
+  voice: string; form: string; mode: Mode; theme: Theme; loop: string;
+  session?: { seed: number; offset: number }; style?: string; darkness?: number; family?: SynthFamily;
 }

@@ -1,6 +1,11 @@
-import type { ScoreEvent } from '../composer';
-import type { SoundGraph } from '../sound';
+import type { ScoreEvent } from '../../composer';
 import { addSynthEcho } from './effects';
+
+/** The nodes a dreamy voice routes into; the bank owns them. */
+export interface DreamyRoutes {
+  context: BaseAudioContext; synth: GainNode; synthSnare: GainNode; bass: GainNode; drums: GainNode;
+  drumBuffers: Map<string, AudioBuffer>;
+}
 
 export interface SynthVoice {
   source: AudioScheduledSourceNode; auxiliary: AudioScheduledSourceNode[];
@@ -8,7 +13,7 @@ export interface SynthVoice {
 }
 
 /** Every source is returned to the shared lifecycle owner, including detuned partners. */
-export function synthVoice(graph: SoundGraph, event: ScoreEvent, time: number, secondsPerBeat: number): SynthVoice | undefined {
+export function synthVoice(graph: DreamyRoutes, event: ScoreEvent, time: number, secondsPerBeat: number): SynthVoice | undefined {
   const kind = event.instrument;
   if (!['pad', 'arp', 'lead', 'synth-chord', 'synth-bass', 'synth-kick', 'synth-snare', 'synth-hat'].includes(kind)) return;
   const { context } = graph, gain = context.createGain(), pan = context.createStereoPanner();

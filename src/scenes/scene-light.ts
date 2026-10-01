@@ -1,73 +1,24 @@
-import {SCENES,type SceneId} from './edition';
-import {meadowLightAt} from './meadow-light';
+import type {SceneId} from './edition';
+import {placeById,type LightState} from '../places';
 
-const clamp=(x:number)=>Math.max(0,Math.min(1,x));
-const smooth=(x:number)=>{const t=clamp(x);return t*t*(3-2*t);};
 type Regions=readonly [sky:number,distance:number,foreground:number,water:number];
-type Timing=readonly [start:number,duration:number];
-
-const evenings:Record<Exclude<SceneId,'meadow'>,{
-  timing:readonly [Timing,Timing,Timing,Timing];lamps:Timing;
-  captions:readonly string[];subtitles:readonly string[];
-}>={
-  rain:{
-    timing:[[0,2400],[150,2550],[300,2700],[240,2700]],lamps:[600,1800],
-    captions:['Rain on the rooftops','Blue fades from the clouds','Neon in the water','A quieter kind of night'],
-    subtitles:['The rest of the world can wait.','Stay until the shower passes.','A warm window above the city.'],
-  },
-  snow:{
-    timing:[[0,2640],[180,2760],[480,2520],[300,2700]],lamps:[600,1800],
-    captions:['Snowfall at the station','Last pink on the mountains','Blue snow, amber windows','Lamplight along the platform'],
-    subtitles:['Somewhere warm, along the way.','The valley settles into blue.','There is still a light on.'],
-  },
-  coast:{
-    // The sun and its reflection leave together; the sheltered room follows later.
-    timing:[[0,2460],[120,2760],[300,2700],[0,2460]],lamps:[900,1800],
-    captions:['A sea breeze at sunset','The last light on the bay','The harbour turns blue','Lamplight and a silver sea'],
-    subtitles:['An evening with nowhere to go.','Stay while the bay grows quiet.','Enough light for another chapter.'],
-  },
-};
 
 /** Each place has a written lighting arc, held at its final state after an hour. */
-export function sceneLightAt(scene:SceneId,seconds:number) {
+export function sceneLightAt(scene:SceneId,seconds:number):LightState {
   const t=Math.max(0,Number.isFinite(seconds)?seconds:0);
-  if(scene==='meadow') {
-    const light=meadowLightAt(t);
-    return {...light,foreground:light.clearing};
-  }
-  const arc=evenings[scene];
-  const [sky,distance,foreground,water]=arc.timing.map(([start,duration])=>smooth((t-start)/duration));
-  return {sky,distance,foreground,water,lamps:smooth((t-arc.lamps[0])/arc.lamps[1]),
-    caption:arc.captions[Math.min(3,Math.floor(t/900))],
-    subtitle:arc.subtitles[Math.min(2,Math.floor(t/1200))]};
+  return placeById(scene).light(t);
 }
 
 /** Soft regions in original painting coordinates, independent of viewport crops. */
 export function sceneLightWeights(scene:SceneId,u:number,v:number):Regions {
-  const water=SCENES[scene].water;
+  const place=placeById(scene),water=place.water?.outline??[];
   let wet=false;
   for(let i=0,j=water.length-1;i<water.length;j=i++) {
     const [xi,yi]=water[i],[xj,yj]=water[j];
     if((yi>v)!==(yj>v)&&u<(xj-xi)*(v-yi)/(yj-yi)+xi)wet=!wet;
   }
   if(wet)return [0,0,0,1];
-  let near:number,sky:number;
-  if(scene==='meadow') {
-    const frame=Math.max(1-smooth((u-.24)/.15),smooth((u-.83)/.14));
-    near=Math.max(frame,smooth((v-.46)/.22));
-    sky=(1-smooth((v-.19)/.18))*(1-near);
-  } else if(scene==='rain') {
-    near=Math.max(1-smooth((u-.28)/.19),smooth((v-.59)/.18));
-    sky=(1-smooth((v-.20)/.15))*(1-near);
-  } else if(scene==='snow') {
-    near=Math.max(1-smooth((u-.30)/.15),smooth((v-.58)/.22));
-    sky=(1-smooth((v-.20)/.16))*(1-near);
-  } else {
-    const frame=Math.max(1-smooth((u-.30)/.12),smooth((u-.87)/.09));
-    near=Math.max(frame,smooth((v-.65)/.20));
-    sky=(1-smooth((v-.24)/.11))*(1-near);
-  }
-  return [sky,Math.max(0,1-near-sky),near,0];
+  const [sky,distance,near]=place.regions(u,v);return [sky,distance,near,0];
 }
 
 type Painting=HTMLImageElement|HTMLCanvasElement;

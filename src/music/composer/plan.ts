@@ -4,7 +4,7 @@ import { formBars, sectionsFor } from './form';
 import { B_LOOPS, LOOPS, TURNAROUNDS, buildHarmony, loopById } from './harmony';
 import { anchorFor, makeContour } from './melody';
 import { chooser, partSeed, randomSource } from './random';
-import type { Arrangement, Chord, CompCell, FormName, GrooveCell, KeyVoice, Mode, Mood, Section, Theme } from './types';
+import type { Arrangement, Chord, CompCell, FormName, GrooveCell, KeyVoice, Mode, Section, Theme } from './types';
 
 /** Everything a song is, before a single note is written. */
 export interface SongPlan {
@@ -18,13 +18,13 @@ export function makeTheme(random: () => number, cell?: number, contour?: number[
 }
 
 /** A complete arrangement for a song heard outside a session (standalone previews and groove fixtures). */
-export function standaloneArrangement(random: () => number, mood: Mood): Arrangement {
+export function standaloneArrangement(random: () => number, tempo: number): Arrangement {
   const choose = chooser(random);
   const form = choose<FormName>(['beat-tape', 'hook', 'long', 'nocturne']);
   const mode: Mode = form === 'nocturne' || random() < 0.3 ? 'minor' : 'major';
   const loops = LOOPS.filter(l => l.mode === mode && (form !== 'nocturne' || l.nocturne));
   return {
-    bpm: (mood === 'snow' ? 69 : mood === 'meadow' ? 76 : 72) + Math.floor(random() * 10),
+    bpm: tempo + Math.floor(random() * 10),
     tonic: choose([0, 2, 3, 5, 7, 8, 10]), voice: 'upright', energy: 1, swing: 0.075 + random() * 0.045,
     form, mode, loop: choose(loops).id,
     comp: form === 'nocturne' ? 'halves' : choose<CompCell>(mode === 'major' ? ['roll', 'stab', 'push', 'halves', 'charleston'] : ['roll', 'push', 'halves', 'charleston']),

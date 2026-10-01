@@ -10,11 +10,12 @@ try {
   const page = await browser.newPage();
   await page.goto(server.resolvedUrls.local[0]);
   const report = await page.evaluate(async () => {
-    const { createGraph, scheduleNote, stopVoices, disposeGraph } = await import('/src/music/sound.ts');
+    const { createGraph, prepareBank, stopVoices, disposeGraph } = await import('/src/music/sound.ts');
+    const { STYLES } = await import('/src/music/styles/index.ts');
     const { createSession, composeSessionTrack } = await import('/src/session/session.ts');
     const rate = 44100, context = new OfflineAudioContext(2, rate * 5, rate);
-    const graph = createGraph(context, new Map(), 20260928); graph.output.gain.value = 1;
-    scheduleNote(graph, { instrument: 'lead', beat: 0, note: 69, duration: 1, velocity: .7, pan: 0, brightness: .8 }, .05, .6);
+    const graph = createGraph(context, 20260928), bank = await prepareBank(graph, STYLES.dreamy); graph.output.gain.value = 1;
+    bank.schedule({ instrument: 'lead', beat: 0, note: 69, duration: 1, velocity: .7, pan: 0, brightness: .8 }, .05, .6, {});
     const buffer = await context.startRendering();
     const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
     const rms = (from, to, side = false) => {
@@ -38,9 +39,9 @@ try {
     const echoes = [];
     for (const secondsPerBeat of [.5, 60 / 84]) {
       for (const cancelled of [false, true]) {
-        const context = new OfflineAudioContext(2, rate * 4, rate), graph = createGraph(context, new Map(), 7);
-        graph.synth.disconnect(); graph.synth.connect(context.destination);
-        scheduleNote(graph, { instrument: 'arp', beat: 0, note: 76, duration: .08, velocity: .6, pan: 0 }, .05, secondsPerBeat);
+        const context = new OfflineAudioContext(2, rate * 4, rate), graph = createGraph(context, 7), bank = await prepareBank(graph, STYLES.dreamy);
+        bank.synth.disconnect(); bank.synth.connect(context.destination);
+        bank.schedule({ instrument: 'arp', beat: 0, note: 76, duration: .08, velocity: .6, pan: 0 }, .05, secondsPerBeat, {});
         if (cancelled) stopVoices(graph, .27, .02);
         const buffer = await context.startRendering(), dry = measure(buffer, .06, .1);
         const taps = [1, 2, 3, 4].map(n => measure(buffer, .05 + n * .75 * secondsPerBeat + .01, .05 + n * .75 * secondsPerBeat + .05));
@@ -48,10 +49,10 @@ try {
         disposeGraph(graph);
       }
     }
-    const track = composeSessionTrack(createSession(20260928, 'rain', 'synthwave'), 0), beat = 60 / track.bpm;
-    const padContext = new OfflineAudioContext(2, Math.ceil(rate * beat * 26), rate), padGraph = createGraph(padContext, new Map(), 7);
-    padGraph.synth.disconnect(); padGraph.synth.connect(padContext.destination);
-    for (const event of track.events.filter(e => e.instrument === 'pad' && e.beat < 26)) scheduleNote(padGraph, event, .05 + event.beat * beat, beat);
+    const track = composeSessionTrack(createSession(20260928, 'rain', 'dreamy'), 0), beat = 60 / track.bpm;
+    const padContext = new OfflineAudioContext(2, Math.ceil(rate * beat * 26), rate), padGraph = createGraph(padContext, 7), padBank = await prepareBank(padGraph, STYLES.dreamy);
+    padBank.synth.disconnect(); padBank.synth.connect(padContext.destination);
+    for (const event of track.events.filter(e => e.instrument === 'pad' && e.beat < 26)) padBank.schedule(event, .05 + event.beat * beat, beat, {});
     const pads = await padContext.startRendering();
     const joins = [8, 16, 24].map(at => {
       const change = .05 + at * beat, body = measure(pads, change - .8, change - .4);
