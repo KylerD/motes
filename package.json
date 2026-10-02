@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "score": "node scripts/score.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
