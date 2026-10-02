@@ -1,7 +1,7 @@
 import './style.css';
 import { DEFAULT_MIX, RadioAudio } from './music/audio';
 import type {MusicStyle} from './music/composer';
-import { edition,dayLabel,localDay,validDay,isScene,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
+import { edition,dayLabel,localDay,validDay,isScene,placePath,sceneFromPath,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
 import { SceneRenderer } from './scenes/renderer';
 import {createSession,sessionAt} from './session/session';
 import {sceneLightAt} from './scenes/scene-light';
@@ -11,9 +11,10 @@ const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
 const attribute = (id:string,name:string,value:string) => {const element=$(id);if(element.getAttribute(name)!==value)element.setAttribute(name,value);};
 const params = new URLSearchParams(location.search), reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const queryDay = params.get('day'), queryScene = params.get('scene');
-let today = localDay(), current = edition(validDay(queryDay)?queryDay:today,isScene(queryScene)?queryScene:undefined);
-let scenePinned = isScene(queryScene);
+// A place page (/places/<slug>/) pins its place; ?scene= links from before place pages still work.
+const queryDay = params.get('day'), queryScene = params.get('scene'), chosenScene = sceneFromPath(location.pathname)??(isScene(queryScene)?queryScene:undefined);
+let today = localDay(), current = edition(validDay(queryDay)?queryDay:today,chosenScene);
+let scenePinned = chosenScene!==undefined;
 const audio = new RadioAudio(current.seed,current.scene);
 const canvas=$<HTMLCanvasElement>('scene');
 let renderer:SceneRenderer;
@@ -73,8 +74,8 @@ function setQuiet(value:boolean) {
 $('quiet').addEventListener('click',()=>setQuiet(true));$('return-controls').addEventListener('click',()=>setQuiet(false));
 
 function updateUrl() {
-  const url=new URL(location.href);for(const key of ['seed','habitat','view'])url.searchParams.delete(key);
-  if(scenePinned)url.searchParams.set('scene',current.scene);else url.searchParams.delete('scene');
+  const url=new URL(location.href);for(const key of ['seed','habitat','view','scene'])url.searchParams.delete(key);
+  url.pathname=scenePinned?placePath(current.scene):'/';
   if(current.day===localDay())url.searchParams.delete('day');else url.searchParams.set('day',current.day);
   history.replaceState(null,'',url);
 }
@@ -97,7 +98,7 @@ function visit(day:string,scene?:SceneId) {
 for(const id of SCENE_IDS) {
   const place=SCENES[id],button=document.createElement('button');button.className='scene-choice';button.dataset.place=id;
   button.setAttribute('aria-pressed',String(current.scene===id));
-  const image=document.createElement('img');image.src=place.image;image.alt='';image.loading='lazy';image.decoding='async';
+  const image=document.createElement('img');image.src=`/scenes/thumbs/${place.slug}.webp`;image.alt='';image.loading='lazy';image.decoding='async';
   const copy=document.createElement('span'),title=document.createElement('strong'),description=document.createElement('small');
   title.textContent=place.name;description.textContent=place.weather;copy.append(title,description);button.append(image,copy);
   button.insertAdjacentHTML('beforeend','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10"/></svg>');
