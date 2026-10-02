@@ -63,11 +63,12 @@ try{
   assert.ok(await page.evaluate(t=>window.__motes.environment.elapsed>t+.4,hiddenStart));
   report.environmentContinuesInBackground=true;
 
-  const eveningFiles={rain:'neon-rain-night.png',meadow:'golden-hour-dusk.png',snow:'last-light-station-night.png',coast:'the-last-chapter-night.png'};
+  // Paintings arrive as AVIF, WebP or the PNG master; a failed evening must fail in every format.
+  const eveningFiles={rain:'neon-rain-night',meadow:'golden-hour-dusk',snow:'last-light-station-night',coast:'the-last-chapter-night'};
   for(const [scene,file] of Object.entries(eveningFiles)) {
     const fallback=await browser.newPage();
     fallback.on('pageerror',error=>errors.push(error.message));
-    await fallback.route(`**/${file}`,route=>route.abort());
+    await fallback.route(`**/${file}.*`,route=>route.abort());
     await fallback.goto(`${base}/?debug&scene=${scene}`);
     await fallback.waitForFunction(()=>window.__motes?.ready&&window.__motes.rendering.lightingFailed);
     assert.equal(await fallback.locator('#retry-art').isVisible(),true);
@@ -77,7 +78,7 @@ try{
     assert.equal(await fallback.evaluate(()=>window.__motes.failed),false);
     await fallback.evaluate(scene=>window.__motes.visit('2026-09-18',scene),scene);
     assert.equal(await fallback.evaluate(()=>window.__motes.rendering.lightingFailed),true);
-    await fallback.unroute(`**/${file}`);await fallback.click('#retry-art');
+    await fallback.unroute(`**/${file}.*`);await fallback.click('#retry-art');
     await fallback.waitForFunction(()=>window.__motes.rendering.lightingReady&&!window.__motes.failed);
     assert.equal(await fallback.locator('#art-status').isVisible(),false);
     await fallback.close();
@@ -85,7 +86,7 @@ try{
 
   const cache=await browser.newPage({reducedMotion:'reduce'}),requested=[];
   cache.on('pageerror',error=>errors.push(error.message));
-  cache.on('request',request=>{const file=new URL(request.url()).pathname.split('/').pop();if(Object.values(eveningFiles).includes(file))requested.push(file);});
+  cache.on('request',request=>{const file=new URL(request.url()).pathname.split('/').pop().replace(/\.(avif|webp|png)$/,'');if(Object.values(eveningFiles).includes(file))requested.push(file);});
   await visit(cache,'rain');
   assert.deepEqual(requested,[eveningFiles.rain],'Only the visited place loads its evening artwork.');
   for(const scene of ['snow','coast','meadow','rain','snow']) {
@@ -107,12 +108,12 @@ try{
   // Complete an old place's request after a navigation: it must never install
   // that place's lighting over the current scene.
   const delayed=await browser.newPage();let releaseEvening;
-  await delayed.route('**/last-light-station-night.png',route=>{releaseEvening=()=>route.continue();});
+  await delayed.route('**/last-light-station-night.avif',route=>{releaseEvening=()=>route.continue();});
   await delayed.goto(`${base}/?debug&scene=snow`,{waitUntil:'domcontentloaded'});
   await delayed.waitForFunction(()=>window.__motes?.ready);
   await delayed.evaluate(()=>window.__motes.visit('2026-09-18','coast'));
   await delayed.waitForFunction(()=>window.__motes.rendering.lightingReady);
-  const completed=delayed.waitForResponse('**/last-light-station-night.png');
+  const completed=delayed.waitForResponse('**/last-light-station-night.avif');
   await releaseEvening();await completed;
   await delayed.evaluate(()=>window.__motes.visit('2026-09-18','snow'));
   await delayed.waitForFunction(()=>window.__motes.rendering.lightingReady);

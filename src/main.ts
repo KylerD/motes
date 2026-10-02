@@ -5,6 +5,7 @@ import { edition,dayLabel,localDay,validDay,isScene,SCENES,SCENE_IDS,type SceneI
 import { SceneRenderer } from './scenes/renderer';
 import {createSession,sessionAt} from './session/session';
 import {sceneLightAt} from './scenes/scene-light';
+import {frameDelay} from './scenes/frame-budget';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
@@ -41,6 +42,7 @@ $<HTMLSelectElement>('music-mode').value=preferences.mode;
 $<HTMLSelectElement>('music-style').value=preferences.style;
 
 let visualTime=0,last=performance.now(),frame=0,starting=false,listened=false,quiet=false,disposed=false;
+let frameTimer:ReturnType<typeof setTimeout>|undefined;
 let previewSeconds:number|undefined;
 let statusTimer:ReturnType<typeof setTimeout>|undefined;
 let styleRequest=0,switchingStyle=false;
@@ -90,7 +92,7 @@ function updateEdition() {
 }
 function visit(day:string,scene?:SceneId) {
   scenePinned=scene!==undefined;current=edition(day,scene);renderer.setEdition(current);audio.setEdition(current.seed,current.scene);visualTime=0;previewSeconds=undefined;
-  $('new-day').hidden=true;closePanels();updateEdition();
+  $('new-day').hidden=true;closePanels();updateEdition();repaint();
 }
 for(const id of SCENE_IDS) {
   const place=SCENES[id],button=document.createElement('button');button.className='scene-choice';button.dataset.place=id;
@@ -160,17 +162,17 @@ $<HTMLSelectElement>('music-style').addEventListener('change',async e=>{
     say('That music couldn’t load. Your current style is still here. Choose the style again to retry.',true);
   } finally {if(request===styleRequest){switchingStyle=false;updatePlayer();}}
 });
-function setMotion(on:boolean){renderer.motion=on;$('motion').setAttribute('aria-pressed',String(on));$('motion-label').textContent=on?'On':'Still';last=performance.now();}
+function setMotion(on:boolean){renderer.motion=on;$('motion').setAttribute('aria-pressed',String(on));$('motion-label').textContent=on?'On':'Still';last=performance.now();repaint();}
 setMotion(!reduced.matches);$('motion').addEventListener('click',()=>setMotion(!renderer.motion));reduced.addEventListener('change',()=>setMotion(!reduced.matches));
 canvas.addEventListener('pointerup',e=>{const box=canvas.getBoundingClientRect();renderer.ripple(e.clientX-box.left,e.clientY-box.top,visualTime);});
-$('retry-art').addEventListener('click',()=>renderer.retry());
+$('retry-art').addEventListener('click',()=>{renderer.retry();repaint();});
 canvas.addEventListener('contextlost',e=>{e.preventDefault();say('The picture is taking a moment. Your music will keep playing.',true);});
-canvas.addEventListener('contextrestored',()=>{renderer.resize();$('status').hidden=true;});
+canvas.addEventListener('contextrestored',()=>{renderer.resize();$('status').hidden=true;repaint();});
 $('fullscreen').addEventListener('click',async()=>{
   try{if(document.fullscreenElement)await document.exitFullscreen();else await $('experience').requestFullscreen();}
   catch{say('Fullscreen isn’t available here. Hide controls for an uninterrupted view.');}
 });
-document.addEventListener('fullscreenchange',()=>{const label=document.fullscreenElement?'Exit fullscreen':'Enter fullscreen';$('fullscreen').setAttribute('aria-label',label);$('fullscreen').title=label;renderer.resize();});
+document.addEventListener('fullscreenchange',()=>{const label=document.fullscreenElement?'Exit fullscreen':'Enter fullscreen';$('fullscreen').setAttribute('aria-label',label);$('fullscreen').title=label;renderer.resize();repaint();});
 document.addEventListener('keydown',e=>{
   const target=e.target as HTMLElement;
   if(e.key==='Escape'){if(openPanel)closePanels();else if(quiet)setQuiet(false);return;}
@@ -182,31 +184,40 @@ if('mediaSession' in navigator) {
   navigator.mediaSession.setActionHandler('pause',()=>{audio.pause();updatePlayer();});
   navigator.mediaSession.setActionHandler('nexttrack',()=>{audio.next();updatePlayer();});
 }
+function stopPainting() {cancelAnimationFrame(frame);if(frameTimer)clearTimeout(frameTimer);frameTimer=undefined;}
+/** Paint again after the frame budget allows; animation frames still align drawing with the display. */
+function schedulePaint(delay:number) {
+  stopPainting();if(disposed||document.hidden)return;
+  if(delay<=1)frame=requestAnimationFrame(paint);
+  else frameTimer=setTimeout(()=>{frameTimer=undefined;frame=requestAnimationFrame(paint);},delay);
+}
+function repaint() {schedulePaint(0);}
 function paint(now:number) {
   if(disposed)return;
   if(renderer.motion)visualTime+=Math.min(.07,Math.max(0,(now-last)/1000));last=now;
   renderer.draw(visualTime,now,previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds));
   $('art-status').hidden=renderer.ready&&!renderer.failed;$('retry-art').hidden=!renderer.failed;
   $('art-message').textContent=renderer.ready&&renderer.lightingFailed?'The evening light couldn’t load. You can still stay here.':renderer.failed?'The painting couldn’t load. The music is still here.':'Finding a quiet place…';
-  if(!document.hidden)frame=requestAnimationFrame(paint);
+  schedulePaint(frameDelay({motion:renderer.motion,smooth:renderer.smooth,spent:performance.now()-now}));
 }
+renderer.onChange=repaint;
 const uiTimer=setInterval(()=>{updatePlayer();checkDay();},700);
-window.addEventListener('resize',()=>renderer.resize());
+window.addEventListener('resize',()=>{renderer.resize();repaint();});
 document.addEventListener('visibilitychange',()=>{
-  cancelAnimationFrame(frame);last=performance.now();checkDay();
-  if(!document.hidden)frame=requestAnimationFrame(paint);
+  stopPainting();last=performance.now();checkDay();
+  if(!document.hidden)repaint();
   // The radio owns its own audio clock. A hidden tab must never stop the music.
 });
 let cachedPlayback=false;
 window.addEventListener('pagehide',e=>{
-  cancelAnimationFrame(frame);
+  stopPainting();
   if(e.persisted){cachedPlayback=audio.playing;audio.pause();}
   else{disposed=true;clearInterval(uiTimer);if(statusTimer)clearTimeout(statusTimer);audio.dispose();renderer.dispose();}
 });
 window.addEventListener('pageshow',e=>{
-  if(e.persisted){last=performance.now();frame=requestAnimationFrame(paint);if(cachedPlayback)void toggleListening();}
+  if(e.persisted){last=performance.now();repaint();if(cachedPlayback)void toggleListening();}
 });
 if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},get session(){return audio.session;},get environment(){return audio.environment;},get sessionPlan(){return createSession(current.seed,current.scene);},visit,
   previewSession:(seconds:number,preserveMotion=false)=>{previewSeconds=Math.max(0,seconds);if(!preserveMotion)visualTime=seconds;renderer.draw(visualTime,performance.now(),sessionAt(createSession(current.seed,current.scene),previewSeconds));updatePlayer();},
   advance:(seconds:number)=>{visualTime+=seconds;renderer.draw(visualTime);},point:(u:number,v:number)=>renderer.point(u,v)}});
-updateEdition();frame=requestAnimationFrame(paint);
+updateEdition();repaint();

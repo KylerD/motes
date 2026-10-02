@@ -93,9 +93,9 @@ try {
 
   const fallback=await browser.newPage({reducedMotion:'reduce'});
   fallback.on('pageerror',error=>errors.push(error.message));
-  await fallback.route('**/scenes/*.png',route=>route.abort());await fallback.goto(`${base}/?debug`);
+  await fallback.route('**/scenes/*.{png,avif,webp}',route=>route.abort());await fallback.goto(`${base}/?debug`);
   await fallback.waitForFunction(()=>window.__motes?.failed);assert.equal(await fallback.locator('#retry-art').isVisible(),true);
-  await fallback.unroute('**/scenes/*.png');await fallback.click('#retry-art');await ready(fallback);await settle(fallback);
+  await fallback.unroute('**/scenes/*.{png,avif,webp}');await fallback.click('#retry-art');await ready(fallback);await settle(fallback);
   assert.equal(await fallback.locator('#art-status').isVisible(),false);report.artRetry=true;
   const rejected=await browser.newPage({reducedMotion:'reduce'});
   await rejected.addInitScript(()=>{const resume=AudioContext.prototype.resume;let failed=false;AudioContext.prototype.resume=function(){if(!failed){failed=true;return Promise.reject(new Error('Blocked playback'));}return resume.call(this);};});
