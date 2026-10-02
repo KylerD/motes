@@ -35,7 +35,7 @@ On browsers supporting the Audio Session API, Listen requests the music playback
 
 The four paintings are authored assets, not new AI images generated each day. Each date changes the selected place and its seed for music, weather intensity, wind, light and event timing. Water reflections move; rain makes ripples, snow drifts, steam curls above cups, butterflies and distant birds pass through. A tap inside painted water makes a ripple. Reduced-motion preference starts with the scene still, independently of the radio.
 
-The same date and place reproduce the same starting edition. An open session receives a quiet invitation at midnight instead of an abrupt change. Visiting today's edition resets to the daily place; an explicit scene URL pins a chosen place. Examples: `/?day=2026-09-17`, `/?day=2026-09-17&scene=snow`.
+The same date and place reproduce the same starting edition. An open session receives a quiet invitation at midnight instead of an abrupt change. Visiting today's edition resets to the daily place. Choosing a place moves to that place's own page, which pins it and carries its own link preview. Examples: `/?day=2026-09-17`, `/places/last-light-station/?day=2026-09-17`. Older `?scene=snow` links still open the place.
 
 Listening gradually deepens the light, changes the weather and warms windows. A train briefly visits the snowy station, a small boat crosses the bay, birds and butterflies pass through the meadow, and a shower passes over the city. These moments belong to the hour rather than repeating every few seconds. A separate clock counts actual listening time: Pause holds it, Next changes only the music, and Still freezes only the picture. The clock continues during normal background listening and starts fresh on arrival in another edition, while the current song finishes naturally. After the hour, the scene stays in its evening state.
 
@@ -48,7 +48,9 @@ Every place has a matched evening painting. Over roughly fifty minutes, the sky,
 
 Water animation samples the changing painting, so reflections follow the sky. Local lamps and scene captions follow each place's lighting arc. These are four original compositions with four additional lighting states, not eight separate places. Paintings load when their place is visited; revisits reuse the decoded images, and only the active place keeps a full-size composite. If evening artwork fails, the original remains visible with a retry action.
 
-Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. If an image fails, sound and controls remain available with a retry action.
+Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. Each browser receives AVIF, WebP or the original PNG, whichever is the lightest it can decode. The evening painting waits until the arrival painting has loaded. If an image fails, sound and controls remain available with a retry action. After changing a painting, run `node scripts/encode-scenes.mjs` to rebuild its AVIF/WebP copies, the place thumbnail, the link-preview card and the app icons.
+
+The scene paints at a steady 30 frames a second, 60 during crossfades and ripples. A still picture is redrawn only when something about it changes, so a tab left open for hours stays light.
 
 ## Code
 
@@ -56,6 +58,9 @@ Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWO
 | --- | --- |
 | `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
+| `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
+| `src/scenes/painting-source.ts` | AVIF → WebP → PNG painting fallback |
+| `src/share/pages.ts`, `vite.config.ts` | Per-place pages and link previews, built beside the home page |
 | `src/scenes/session-effects.ts` | Gradual evening light, train, boat, birds, butterflies and fireflies |
 | `src/scenes/scene-light.ts` | Lighting arcs and spatial masks for all four places; cached painting compositing |
 | `src/scenes/meadow-light.ts` | Meadow timing for sunlight, lantern light and fireflies |
@@ -84,6 +89,8 @@ node scripts/verify-synthwave-sound.mjs
 node scripts/verify-sessions.mjs
 node scripts/render-music-preview.mjs
 ```
+
+`npm run score` scores a change against the gates in [GOAL.md](GOAL.md): CPU against a YouTube lofi stream, first load on a slow phone, accessibility and link previews. `npm run score -- --full` also runs every check above. The CPU gate opens visible Chrome windows; installed Chrome is preferred.
 
 Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
 

@@ -51,20 +51,29 @@ These must not get worse while we climb:
 
 ## The offline score Claude climbs between releases
 
-Online numbers move slowly and need traffic. Between releases, every change is scored on a branch against `main`. `npm run score` will run all of this; building it is Phase 0.
+Online numbers move slowly and need traffic. Between releases, every change is scored on a branch against `main`:
+
+- `npm run score` runs the build, unit tests and gates G2, G3, G5 and G6 in about five minutes.
+- `npm run score -- --full` adds the browser and audio verify suite (G1, G4).
+- `--detail` splits CPU between the picture and the music.
+- `--strict` exits non-zero when a gate fails.
+
+Results go to `captures/score.json`. The YouTube reference is cached per machine for 14 days, and only ad-free ten-second windows count, because ads cost more and would flatter Motes.
 
 ### Gates
 
 A change can ship only if every gate passes.
 
-| Gate | Pass when | Baseline (2 Oct 2026) |
-| --- | --- | --- |
-| G1 Correctness | `npm test`, `npm run build` and the verify scripts in README.md pass | Passing |
-| G2 Lightness | CPU while listening ≤ a YouTube lofi live tab, measured in the same run on the same machine (ratio ≤ 1.0) | **≈1.8× at 60 fps; ≈3.4× on a 240 Hz display.** Motes 105% of a core vs YouTube 28–33%. Audio alone is about 35 points. |
-| G3 First load | First painting on a phone ≤ 350 KB; Lighthouse mobile LCP ≤ 2.5 s | **2.4–2.8 MB PNG per painting** |
-| G4 Audio health | Existing mix and synthwave checks pass, true peak ≤ −1 dBTP, no dropouts, voices bounded | Passing |
-| G5 Accessibility | Zero serious accessibility violations; focus visible on every control | Not yet automated |
-| G6 Shareable | Each place has its own preview page and card; a working share action; clip export makes a valid 15 s vertical video | **0 of 3** |
+| Gate | Pass when | Before (`main`, 2 Oct 2026) | Now (`feat/hillclimb-phase-0`) |
+| --- | --- | --- | --- |
+| G1 Correctness | `npm test`, `npm run build` and the verify scripts in README.md pass | Passing | **Pass** |
+| G2 Lightness | CPU while listening ≤ a YouTube lofi live tab on the same machine (ratio ≤ 1.0) | 94% of a core at 240 fps vs YouTube 33%, **ratio ≈2.8** | 36–40% at 30 fps, **ratio 1.08–1.2: fail.** About 21 points are the music, about 12 the picture. |
+| G3 First load | First painting ≤ 350 KB, on screen within 2.5 s on a phone with slow 4G and a 4× slower CPU | 2.4–2.8 MB PNG per painting | 204–223 KB AVIF, on screen at 2.0–2.3 s: **pass** |
+| G4 Audio health | Existing mix and synthwave checks pass, true peak ≤ −1 dBTP, no dropouts, voices bounded | Passing | **Pass** (5/5) |
+| G5 Accessibility | Zero serious or critical axe violations on desktop and phone, with every panel open | Not automated | **Pass** |
+| G6 Shareable | Every page has a preview card; a working share action; clip export makes a valid 15 s vertical video | 0 of 3 | Preview cards 5/5 pages; share action and clip export to come: **fail** |
+
+Measured on a Ryzen 9 9950X with Chrome 154 and a 240 Hz display, at a 1280×720 window with sound muted. G3 uses its own marker (`motes:painting`) because LCP can't see a canvas.
 
 ### Judged dimensions
 
@@ -118,9 +127,12 @@ The instinct is right: GPU rendering opens up dynamic light, weather, camera mov
   The authored evening paintings stay as keyframes. Painted-in sun direction can't be moved convincingly with procedural light.
 - **Test 3D cheaply first.** Build one experimental stylised-3D or Gaussian-splat place before committing. Move to WebGPU only when we need GPU compute.
 - **Lightness comes first, before any migration.**
-  - Cap rendering at 30 fps, going to 60 only during transitions. Stop drawing while Still is on or nothing is moving. The paint loop in `src/main.ts` currently redraws on every display refresh, even while Still is on.
-  - Convert the paintings to AVIF/WebP.
-  - Profile the audio graph. At about 35% of a core it becomes most of the cost once frames are capped, so a new renderer alone won't beat YouTube.
+  - Done in Phase 0:
+    - the 30 fps frame budget (`src/scenes/frame-budget.ts`), with Still and unchanged pictures left undrawn;
+    - AVIF/WebP paintings.
+
+    Together these took CPU from about 94% to about 37% of a core.
+  - Next: profile the audio graph. It is now the larger share, about 21 points against the picture's 12, so a new renderer alone won't beat YouTube.
 
 ### Assets: artist-led, AI-produced, openly credited
 
@@ -166,7 +178,7 @@ Mods are how Motes gets staying power without a big team. In a GameDiscoverCo st
 
 | Phase | When | Build | Exit |
 | --- | --- | --- | --- |
-| **0 Measure** | Oct 2026 | <ul><li>Analytics with milestone events and `ref` links</li><li>`npm run score` (gates first)</li><li>30 fps cap and idle stop</li><li>AVIF/WebP</li><li>A preview page and card per place</li><li>Licence files</li><li>"How Motes is made" page</li></ul> | <ul><li>WEL baseline measured</li><li>G3 and G6 preview cards passing</li><li>CPU ratio ≤ 1.5</li></ul> |
+| **0 Measure** | Oct 2026 | Done: <ul><li>`npm run score` (gates G1–G6)</li><li>30 fps budget and idle stop</li><li>AVIF/WebP</li><li>A preview page and card per place</li><li>Web manifest</li></ul> Waiting on decisions: <ul><li>Analytics with milestone events and `ref` links</li><li>Licence files</li><li>"How Motes is made" page</li></ul> | <ul><li>WEL baseline measured</li><li>G3 and G6 preview cards passing ✓</li><li>CPU ratio ≤ 1.5 ✓</li></ul> |
 | **1 Spread** | Oct–Nov 2026 | <ul><li>Arrival-to-evening clip export</li><li>Numbered edition postcard</li><li>Stream/OBS mode with a free-with-credit licence</li><li>Picture-in-picture</li><li>Halloween edition</li><li>Launch on TikTok/Reels/Shorts (one clip per daily edition), Reddit, Show HN and Product Hunt</li></ul> | <ul><li>K measured</li><li>`ref=share` arrivals measured</li><li>G6 fully passing</li></ul> |
 | **2 Craft** | Nov 2026–Jan 2027 | <ul><li>three.js compositor behind a flag</li><li>Place-pack v1</li><li>Audio graph optimisation</li><li>Style bible commission</li><li>A winter place for exams and the holidays</li><li>Composer package released under MIT</li></ul> | <ul><li>CPU ratio ≤ 1.0 (G2)</li><li>New place shipped through the pack format</li></ul> |
 | **3 Cadence** | Q1 2027 | <ul><li>Monthly new place</li><li>Local mods</li><li>Motes 24/7 YouTube stream for discovery</li><li>Decide on a Steam wishlist page from retention data</li></ul> | W4 ≥ 15% |

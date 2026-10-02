@@ -1,5 +1,13 @@
 # Original scene paintings
 
+The PNG files are the masters. Every other image here is made from them by `scripts/encode-scenes.mjs`, with no generation step:
+
+- the `.avif` and `.webp` copies served to browsers;
+- `thumbs/` for the place list;
+- `og/`, the link-preview cards, which blend each arrival painting into its evening painting from left to right and add the Motes wordmark.
+
+Rebuild them whenever a master changes.
+
 Four original paintings generated with the built-in image generation tool for Motes: the rooftop and meadow on 6 September 2026, the station and reading room on 17 September 2026. The user's supplied screenshots served as mood and style references, not runtime assets. All finished paintings are local project assets. Water, weather, local light and small environmental events are drawn separately at runtime. The exact original prompts below and in the JSON sidecars are retained as provenance; the earlier prompts' cellular-light concept has since been removed from the application.
 
 ## Neon rain
