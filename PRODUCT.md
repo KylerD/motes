@@ -12,6 +12,8 @@ On 28 September they asked for a fifth place, Top deck, whose music is synthwave
 
 On 1 October they asked to keep both synthwaves and offer all three styles in every place, with Top deck opening on its own driving synthwave until the listener picks a style.
 
+On 3 October they asked for a way back from a pick: **Each place’s own**, the first Music style option, so every place plays its own music again. They also shortened the two synthwave names to **Dreamy** and **Drive**.
+
 The interface should feel warm, cosy and like a safe place. A distinct Motes logo and clear, welcoming controls support that identity while the illustrated scene remains the focus.
 
 ## Experience

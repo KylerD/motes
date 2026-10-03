@@ -120,23 +120,24 @@ try {
   await piano.route('**/audio/piano/*.mp3',route=>route.abort());await piano.goto(`${base}/?debug&scene=deck`);await ready(piano);
   await piano.click('#listen');await piano.waitForFunction(()=>window.__motes.radio.playing);
   assert.ok(['Analog synths','Soft pulse','Glass bells','Darksynth'].includes(await piano.evaluate(()=>window.__motes.track.label)));
-  // Warm lofi at Top deck fails visibly: the select returns to the synths that keep playing.
+  // Warm lofi at Top deck fails visibly: the select returns to Each place’s own, whose synths keep playing.
   await piano.click('#mix-toggle');await piano.selectOption('#music-style','lofi');
   await piano.waitForFunction(()=>!document.querySelector('#status').hidden);
-  assert.equal(await piano.locator('#music-style').inputValue(),'driving');
+  assert.equal(await piano.locator('#music-style').inputValue(),'own');
   assert.equal(await piano.evaluate(()=>window.__motes.track.style),'driving');
   assert.match(await piano.locator('#status').textContent(),/couldn’t load\. Your current style is still here/);
   await piano.keyboard.press('Escape');report.lofiPickFailsAtTheDeck=true;
-  // A lofi place keeps the synths playing and names both styles. The visit plans lofi, so wait for the music, select and message to come back.
+  // A lofi place keeps the synths playing, names both styles and shows them in the select. The visit plans lofi, so wait for the music, select and message to come back.
   await piano.click('#scenes-toggle');await piano.click('[data-place="rain"]');
   await piano.waitForFunction(()=>window.__motes.track.style==='driving'&&document.querySelector('#music-style').value==='driving'&&/stays on/.test(document.querySelector('#status').textContent));
   assert.equal(await piano.evaluate(()=>window.__motes.radio.playing),true);
   assert.equal(await piano.locator('#status').isVisible(),true);
-  assert.equal(await piano.locator('#status').textContent(),'Warm lofi couldn’t load here, so Driving synthwave stays on. Choose Warm lofi in Sound & motion to try again.');
+  assert.equal(await piano.locator('#status').textContent(),'Warm lofi couldn’t load here, so Drive stays on. Choose Each place’s own in Sound & motion to try again.');
   await piano.unroute('**/audio/piano/*.mp3');report.pianoFailureKeepsSynths=true;
-  // Choosing Warm lofi again retries the piano, and the music playing retires the message.
-  await piano.click('#mix-toggle');await piano.selectOption('#music-style','lofi');
-  await piano.waitForFunction(()=>window.__motes.track.style==='lofi'&&document.querySelector('#status').hidden);report.pianoRetryAfterMove=true;
+  // Each place’s own retries the piano without saving a pick, and the music playing retires the message.
+  await piano.click('#mix-toggle');await piano.selectOption('#music-style','own');
+  await piano.waitForFunction(()=>window.__motes.track.style==='lofi'&&document.querySelector('#status').hidden&&document.querySelector('#music-style').value==='own');
+  assert.equal(await piano.evaluate(()=>'styleChoice' in JSON.parse(localStorage.getItem('motes-listening'))),false);report.pianoRetryAfterMove=true;
   const calendar=await browser.newPage({reducedMotion:'reduce'});
   await calendar.addInitScript(()=>{
     const OriginalDate=Date;window.__calendarNow=new OriginalDate(2026,8,17,23,59).getTime();

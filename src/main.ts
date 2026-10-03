@@ -1,6 +1,6 @@
 import './style.css';
 import { DEFAULT_MIX, RadioAudio } from './music/audio';
-import {isStyleId,type StyleId} from './music/styles';
+import {isStyleId,playingStyle,type StyleId} from './music/styles';
 import { edition,dayLabel,localDay,validDay,isScene,SCENES,type SceneId } from './scenes/edition';
 import { PLACES } from './places';
 import { SceneRenderer } from './scenes/renderer';
@@ -48,8 +48,9 @@ let statusTimer:ReturnType<typeof setTimeout>|undefined;
 let styleRequest=0,switchingStyle=false,styleNotice=false;
 const styleError='That music couldn’t load. Your current style is still here. Choose the style again to retry.';
 const styleName=(style:string)=>$('music-style').querySelector(`[value="${style}"]`)?.textContent??style;
-/** A place whose music fails keeps the style it had, playing or paused, so name both and the way back. */
-const placeError=(failed:string,kept:string)=>failed===kept?styleError:`${styleName(failed)} couldn’t load here, so ${styleName(kept)} stays on. Choose ${styleName(failed)} in Sound & motion to try again.`;
+/** A place whose music fails keeps the style it had, playing or paused, so name both. Only Warm lofi can fail, so this
+ * arises with nothing picked, and choosing Each place’s own retries without saving a pick. */
+const placeError=(failed:string,kept:string)=>failed===kept?styleError:`${styleName(failed)} couldn’t load here, so ${styleName(kept)} stays on. Choose ${styleName('own')} in Sound & motion to try again.`;
 const panelIds=['mix','scenes','edition'] as const;
 type PanelId=typeof panelIds[number];
 let openPanel:PanelId|null=null;
@@ -143,7 +144,9 @@ function updatePlayer() {
   attribute('listen-path','d',playing?'M8 5v14M16 5v14':'m9 5 11 7-11 7Z');
   text('listen-label',starting?'Tuning in…':playing?'Pause':listened?'Resume':'Listen');
   text('track-title',track.title);
-  const styleSelect=$<HTMLSelectElement>('music-style');if(!switchingStyle&&styleSelect.value!==track.style)styleSelect.value=track.style;
+  // The select shows the setting. With nothing picked, a place whose own music failed shows what stayed on, so Each place’s own retries.
+  const styleSelect=$<HTMLSelectElement>('music-style'),shownStyle=preferences.styleChoice??(track.style===playingStyle(SCENES[current.scene])?'own':track.style);
+  if(!switchingStyle&&styleSelect.value!==shownStyle)styleSelect.value=shownStyle;
   text('track-detail',switchingStyle?'Tuning into your music…':starting?audio.labels.preparing:!listened?'An hour, unfolding here':`${track.label} · ${session.chapter}`);
   attribute('track-detail','title',`${track.label} · ${session.chapter}${preferences.mode==='ambient'?' · Without drums':''}`);
   const environment=previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds);
@@ -164,8 +167,8 @@ $<HTMLInputElement>('music-volume').addEventListener('input',e=>{const value=Num
 $<HTMLInputElement>('ambience-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.ambience=value/100;audio.setAmbience(preferences.ambience);$('ambience-level').textContent=`${value}%`;$('ambience-volume').style.setProperty('--level',`${value}%`);savePreferences();});
 $<HTMLSelectElement>('music-mode').addEventListener('change',e=>{preferences.mode=(e.target as HTMLSelectElement).value==='ambient'?'ambient':'beats';audio.setMode(preferences.mode);savePreferences();updatePlayer();});
 $<HTMLSelectElement>('music-style').addEventListener('change',async e=>{
-  const select=e.target as HTMLSelectElement;if(!isStyleId(select.value))return;
-  const style=select.value,request=++styleRequest;switchingStyle=true;updatePlayer();
+  // Each place’s own is no pick, so every place plays its own music again.
+  const value=(e.target as HTMLSelectElement).value,style=isStyleId(value)?value:undefined,request=++styleRequest;switchingStyle=true;updatePlayer();
   try {
     await audio.setStyle(style);
     if(request!==styleRequest)return;

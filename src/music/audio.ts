@@ -159,8 +159,8 @@ export class RadioAudio {
     return prepareBank(graph,STYLES[style],this.abort.signal).then(bank=>{bank.setMode(this.mode);if(style===this.style)this.ready=style;return bank;});
   }
 
-  /** A listener's pick: switch music without resetting the scenery or starting playback. The latest pick wins. */
-  async setStyle(style:StyleId):Promise<void> {
+  /** A listener's pick, or none for each place's own: switch music without resetting the scenery or starting playback. The latest pick wins. */
+  async setStyle(style?:StyleId):Promise<void> {
     if(this.disposed)return;
     const revision=++this.styleRevision,previous=this.chosen;
     this.chosen=style;

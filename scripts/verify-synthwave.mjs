@@ -24,10 +24,17 @@ try {
   const failure = await page.evaluate(() => window.radio.setStyle('lofi').then(() => '', e => e.message));
   assert.match(failure, /piano could not load/);
   assert.equal(await page.evaluate(() => window.radio.current.style), 'dreamy', 'A failed switch leaves the playing style intact.');
+  // Each place’s own fails the same way: the pick that is playing stays.
+  assert.match(await page.evaluate(() => window.radio.setStyle(undefined).then(() => '', e => e.message)), /piano could not load/);
+  assert.equal(await page.evaluate(() => window.radio.current.style), 'dreamy', 'A failed Each place’s own keeps the pick playing.');
+  assert.equal(await page.evaluate(() => window.radio.chosen), 'dreamy', 'A failed Each place’s own keeps the pick.');
   failedPiano = false;
   await page.evaluate(() => window.radio.setStyle('lofi'));
   assert.equal(await page.evaluate(() => window.radio.current.style), 'lofi');
   assert.ok(await page.evaluate(t => window.radio.environment.elapsed >= t, before));
+  // Each place’s own clears a pick while playing: rain plays its own Warm lofi again.
+  await page.evaluate(async () => { await window.radio.setStyle('dreamy'); await window.radio.setStyle(undefined); });
+  assert.equal(await page.evaluate(() => window.radio.current.style), 'lofi', 'No pick plays the place’s own style.');
   results.push('synth starts without samples; failed lofi switch is retryable and preserves audio/environment');
   for (let i = 0; i < 9; i++) await page.evaluate(i => window.radio.setStyle(['lofi', 'dreamy', 'driving'][i % 3]), i);
   await page.evaluate(() => window.radio.setStyle('dreamy'));
@@ -45,13 +52,14 @@ try {
   const paused = await page.evaluate(() => window.radio.environment.elapsed);
   await page.evaluate(() => window.radio.setStyle('lofi'));
   await page.evaluate(() => window.radio.setStyle('dreamy'));
+  await page.evaluate(() => window.radio.setStyle(undefined));
   assert.equal(await page.evaluate(() => window.radio.playing), false);
   assert.equal(await page.evaluate(() => window.radio.environment.elapsed), paused);
   await page.evaluate(() => window.radio.enable());
   await page.waitForTimeout(200);
   assert.ok(await page.evaluate(t => window.radio.environment.elapsed > t, paused));
   await page.evaluate(() => { window.radio.setEdition(84, 'snow'); });
-  await page.evaluate(() => window.radio.setStyle('lofi'));
+  await page.evaluate(() => window.radio.setStyle('dreamy'));
   assert.ok(await page.evaluate(() => window.radio.environment.elapsed < 1));
   await page.evaluate(() => window.radio.dispose());
   await page.waitForTimeout(200);
@@ -142,6 +150,7 @@ try {
   assert.equal(await page.locator('#music-mode').inputValue(), 'ambient');
   await page.selectOption('#music-style', 'lofi');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).styleChoice === 'lofi');
+  assert.equal(await page.evaluate(() => 'style' in JSON.parse(localStorage.getItem('motes-listening'))), false, 'A save drops main’s style key, so its migration cannot bring a pick back.');
   assert.equal(await page.locator('#music-mode').inputValue(), 'ambient');
   await page.selectOption('#music-style', 'dreamy');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).styleChoice === 'dreamy');
@@ -152,25 +161,31 @@ try {
   await page.click('#listen');
   await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ mode: 'ambient', style: 'invalid' })));
   await page.reload();
-  assert.equal(await page.locator('#music-style').inputValue(), 'lofi');
+  assert.equal(await page.locator('#music-style').inputValue(), 'own');
   assert.equal(await page.locator('#music-mode').inputValue(), 'ambient');
   await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ mode: 'ambient' })));
   await page.reload();
-  assert.equal(await page.locator('#music-style').inputValue(), 'lofi');
-  assert.deepEqual(await page.locator('#music-style option').evaluateAll(o => o.map(x => x.value)), ['lofi', 'dreamy', 'driving']);
+  assert.equal(await page.locator('#music-style').inputValue(), 'own');
+  assert.deepEqual(await page.locator('#music-style option').evaluateAll(o => o.map(x => x.value)), ['own', 'lofi', 'dreamy', 'driving']);
   // Main saved `style: 'lofi'` with any change; Top deck still opens on its own music and keeps the volume.
   await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ volume: .5, style: 'lofi' })));
   await page.goto(server.resolvedUrls.local[0] + '?scene=deck');
-  assert.equal(await page.locator('#music-style').inputValue(), 'driving');
+  assert.equal(await page.locator('#music-style').inputValue(), 'own');
   assert.equal(await page.locator('#music-volume').inputValue(), '50');
   // A pick applies in every place and survives a reload.
   await page.click('#mix-toggle'); await page.selectOption('#music-style', 'dreamy');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('motes-listening')).styleChoice === 'dreamy');
   await page.goto(server.resolvedUrls.local[0] + '?scene=rain');
   assert.equal(await page.locator('#music-style').inputValue(), 'dreamy');
+  // Each place’s own forgets the pick, so Top deck plays its own music again.
+  await page.click('#mix-toggle'); await page.selectOption('#music-style', 'own');
+  await page.waitForFunction(() => !('styleChoice' in JSON.parse(localStorage.getItem('motes-listening'))));
+  await page.goto(server.resolvedUrls.local[0] + '?debug&scene=deck');
+  assert.equal(await page.locator('#music-style').inputValue(), 'own');
+  assert.equal(await page.evaluate(() => window.__motes.track.style), 'driving');
   await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ styleChoice: 'bogus' })));
   await page.goto(server.resolvedUrls.local[0] + '?scene=deck');
-  assert.equal(await page.locator('#music-style').inputValue(), 'driving');
+  assert.equal(await page.locator('#music-style').inputValue(), 'own');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.click('#mix-toggle');
   await page.locator('#music-style').scrollIntoViewIfNeeded();
@@ -182,7 +197,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.screenshot({ path: 'captures-synthwave/desktop-controls.png' });
   assert.deepEqual(errors, []);
-  results.push('remembered style, old/invalid preferences, independent drums and phone controls');
+  results.push('remembered style, Each place’s own, old/invalid preferences, independent drums and phone controls');
   mkdirSync('captures-synthwave', { recursive: true });
   writeFileSync('captures-synthwave/lifecycle.json', JSON.stringify(results, null, 2));
   console.log(JSON.stringify(results, null, 2));
