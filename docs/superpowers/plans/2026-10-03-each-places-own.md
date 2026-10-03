@@ -50,7 +50,7 @@ Each place’s own during a pending pick needs no new test: it takes the same re
 - Modify: `index.html:49`
 - Modify: `src/music/audio.ts:162-163`
 - Modify: `src/main.ts:3`, `src/main.ts:51-52`, `src/main.ts:146`, `src/main.ts:166-168`
-- Modify: `scripts/verify-synthwave.mjs` (audio section near lines 22-31 and 45-48, preferences section lines 143-173)
+- Modify: `scripts/verify-synthwave.mjs` (audio section near lines 22-31 and 45-48, preferences section lines 143-185)
 - Modify: `scripts/verify-scenes.mjs:123-139`
 - Modify: `README.md:18`, `DESIGN.md:180`, `PRODUCT.md:13`, `CLAUDE.md:7`, `AGENTS.md:7`
 
@@ -68,6 +68,7 @@ After the existing failed-lofi assertion (`'A failed switch leaves the playing s
   // Each place’s own fails the same way: the pick that is playing stays.
   assert.match(await page.evaluate(() => window.radio.setStyle(undefined).then(() => '', e => e.message)), /piano could not load/);
   assert.equal(await page.evaluate(() => window.radio.current.style), 'dreamy', 'A failed Each place’s own keeps the pick playing.');
+  assert.equal(await page.evaluate(() => window.radio.chosen), 'dreamy', 'A failed Each place’s own keeps the pick.');
 ```
 
 After `assert.ok(await page.evaluate(t => window.radio.environment.elapsed >= t, before));` and before the `results.push('synth starts …')` line, insert:
@@ -93,6 +94,20 @@ with:
   await page.evaluate(() => window.radio.setStyle('dreamy'));
   await page.evaluate(() => window.radio.setStyle(undefined));
   assert.equal(await page.evaluate(() => window.radio.playing), false);
+```
+
+A few lines further on, the edition check still needs a real switch after the place change. With no pick left, `setStyle('lofi')` at snow would do nothing, so replace:
+
+```js
+  await page.evaluate(() => { window.radio.setEdition(84, 'snow'); });
+  await page.evaluate(() => window.radio.setStyle('lofi'));
+```
+
+with:
+
+```js
+  await page.evaluate(() => { window.radio.setEdition(84, 'snow'); });
+  await page.evaluate(() => window.radio.setStyle('dreamy'));
 ```
 
 - [ ] **Step 2: Update `scripts/verify-synthwave.mjs`’s preferences section**
