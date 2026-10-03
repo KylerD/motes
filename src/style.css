@@ -60,7 +60,8 @@ svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.65;strok
 .scenes-button>svg:first-child{color:var(--amber);width:19px;height:19px}
 .scenes-button .chevron{width:13px;height:13px;color:var(--muted)}
 .track-progress{position:absolute;bottom:0;left:20px;right:20px;height:2px;overflow:hidden;background:#eab5740a}
-#track-progress{height:100%;background:#eab574a6;transform:scaleX(0);transform-origin:left;transition:transform 650ms linear}
+/* No transition: animating sub-pixel steps kept the compositor at display rate all session. */
+#track-progress{height:100%;background:#eab574a6;transform:scaleX(0);transform-origin:left}
 
 /* Cream panels behave like a small, welcoming control book. */
 .panel{position:absolute;z-index:5;padding:27px;color:var(--paper-text);background:var(--paper);color-scheme:light;border-radius:16px;box-shadow:0 18px 60px #110e0b59;max-width:calc(100vw - 40px);max-height:calc(100dvh - 180px);overflow:auto;scrollbar-width:thin;scrollbar-color:#b59b7b var(--paper);animation:panel-arrive 240ms var(--ease)}
