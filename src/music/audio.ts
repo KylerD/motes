@@ -38,10 +38,13 @@ export class RadioAudio {
   private ticks=0;
   private compositions=0;
   private environmentClock=new EnvironmentClock();
+  /** Every second of playback on this page, never reset by visiting another place. */
+  private listeningClock=new EnvironmentClock();
 
   constructor(private seed:number,private mood:Mood) {this.environmentPlan=createSession(seed,mood);this.plan=this.environmentPlan;this.track=this.makeTrack();}
 
   get playing() {return this.running;}
+  get listenedSeconds() {return this.listeningClock.seconds(this.context?.currentTime??0);}
   get environment() {return sessionAt(this.environmentPlan,this.environmentClock.seconds(this.context?.currentTime??0));}
   get session() {
     const {track,beat}=this.position();
@@ -94,13 +97,13 @@ export class RadioAudio {
         const now=context.currentTime;
         stopVoices(graph,now,0.025);
         this.segments=[this.segment(this.track,now+0.09-this.beat*60/this.track.bpm,this.beat)];
-        this.running=true;this.environmentClock.start(now);
+        this.running=true;this.environmentClock.start(now);this.listeningClock.start(now);
         startAmbience(graph,this.mood,now+0.02);
         holdParameter(graph.output.gain,now);graph.output.gain.linearRampToValueAtTime(1,now+0.35);
         this.tick();
         this.timer=setInterval(()=>this.tick(),250);
       }catch(error){
-        this.environmentClock.pause(context.currentTime);
+        this.environmentClock.pause(context.currentTime);this.listeningClock.pause(context.currentTime);
         this.running=false;this.wanted=false;this.abort?.abort();
         if(this.graph){disposeGraph(this.graph);this.graph=undefined;}
         if(context.state!=='closed')await context.close().catch(()=>undefined);
@@ -115,7 +118,7 @@ export class RadioAudio {
     this.wanted=false;
     if(!this.running)return;
     const position=this.position();this.track=position.track;this.beat=position.beat;
-    this.environmentClock.pause(this.context?.currentTime??0);
+    this.environmentClock.pause(this.context?.currentTime??0);this.listeningClock.pause(this.context?.currentTime??0);
     // Pausing discards look-ahead segments; recreate the immediate successor on resume.
     this.index=this.track.sessionPlan===this.plan?this.track.index+1:0;
     this.running=false;

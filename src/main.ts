@@ -7,6 +7,8 @@ import {createSession,sessionAt} from './session/session';
 import {sceneLightAt} from './scenes/scene-light';
 import {frameDelay} from './scenes/frame-budget';
 import {shareLink,shareMessage} from './share/link';
+import {measuring,track} from './measure/analytics';
+import {addListening,crossed,parseWeek,weekOf,weeksSinceFirst,type WeekRecord} from './measure/listening';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
@@ -14,6 +16,7 @@ const attribute = (id:string,name:string,value:string) => {const element=$(id);i
 const params = new URLSearchParams(location.search), reduced = matchMedia('(prefers-reduced-motion: reduce)');
 // A place page (/places/<slug>/) pins its place; ?scene= links from before place pages still work.
 const queryDay = params.get('day'), queryScene = params.get('scene'), chosenScene = sceneFromPath(location.pathname)??(isScene(queryScene)?queryScene:undefined);
+const arrivalRef = /^[\w-]{1,32}$/.test(params.get('ref')??'') ? params.get('ref')! : undefined;
 let today = localDay(), current = edition(validDay(queryDay)?queryDay:today,chosenScene);
 let scenePinned = chosenScene!==undefined;
 const audio = new RadioAudio(current.seed,current.scene);
@@ -75,7 +78,7 @@ function setQuiet(value:boolean) {
 $('quiet').addEventListener('click',()=>setQuiet(true));$('return-controls').addEventListener('click',()=>setQuiet(false));
 
 function updateUrl() {
-  const url=new URL(location.href);for(const key of ['seed','habitat','view','scene'])url.searchParams.delete(key);
+  const url=new URL(location.href);for(const key of ['seed','habitat','view','scene','ref'])url.searchParams.delete(key);
   url.pathname=scenePinned?placePath(current.scene):'/';
   if(current.day===localDay())url.searchParams.delete('day');else url.searchParams.set('day',current.day);
   history.replaceState(null,'',url);
@@ -119,7 +122,7 @@ async function toggleListening() {
   if(starting)return;
   if(audio.playing){audio.pause();updatePlayer();return;}
   starting=true;$('status').hidden=true;updatePlayer();
-  try { await audio.enable();listened=true; }
+  try { await audio.enable();if(!listened)track('listen_start',{place:current.scene,style:preferences.style,returning:storedWeek!==undefined});listened=true; }
   catch { say('The music couldn’t start. Check your connection, then press Listen to try again.',true); }
   finally { starting=false;updatePlayer(); }
 }
@@ -149,12 +152,13 @@ function updatePlayer() {
 $('listen').addEventListener('click',()=>void toggleListening());
 async function share() {
   const url=shareLink(location.origin,current.scene,current.day,localDay());
+  const shared=(method:string)=>track('share',{method,place:current.scene});
   if(navigator.share) {
-    try{await navigator.share({...shareMessage(current.scene),url});return;}
+    try{await navigator.share({...shareMessage(current.scene),url});shared('sheet');return;}
     catch(error){if(error instanceof DOMException&&error.name==='AbortError')return;}
   }
-  try{await navigator.clipboard.writeText(url);say('Link copied. Pass this place on to someone who needs a quiet hour.');}
-  catch{say(`Copy this link to share the place: ${url}`,true);}
+  try{await navigator.clipboard.writeText(url);shared('copy');say('Link copied. Pass this place on to someone who needs a quiet hour.');}
+  catch{shared('shown');say(`Copy this link to share the place: ${url}`,true);}
 }
 $('share').addEventListener('click',()=>void share());
 $('next-track').addEventListener('click',()=>{audio.next();updatePlayer();});
@@ -213,7 +217,23 @@ function paint(now:number) {
   schedulePaint(frameDelay({motion:renderer.motion,smooth:renderer.smooth,spent:performance.now()-now}));
 }
 renderer.onChange=repaint;
-const uiTimer=setInterval(()=>{updatePlayer();checkDay();},700);
+// Weekly engaged listening (GOAL.md): only this week's audible minutes and the first week are kept.
+let storedWeek:WeekRecord|undefined,visitMinutes=0,countedSeconds=0;
+if(measuring)try{storedWeek=parseWeek(localStorage.getItem('motes-week'));}catch{/* Storage may be unavailable. */}
+function measureListening() {
+  if(!measuring)return;
+  const seconds=audio.listenedSeconds,minutes=(seconds-countedSeconds)/60;countedSeconds=seconds;
+  if(minutes<=0||preferences.volume<=0)return;
+  const before=visitMinutes;visitMinutes+=minutes;
+  const step=addListening(storedWeek,weekOf(new Date()),minutes),weeks=weeksSinceFirst(step.record);
+  for(const mark of crossed(before,visitMinutes))track('listened',{minutes:mark,place:current.scene,style:preferences.style,weeks_since_first:weeks});
+  if(step.engaged)track('engaged_week',{weeks_since_first:weeks});
+  // Write roughly once a minute; a lost fraction of a minute doesn't change who counts.
+  if(step.engaged||Math.floor(step.record.minutes)!==Math.floor(storedWeek?.minutes??-1))try{localStorage.setItem('motes-week',JSON.stringify(step.record));}catch{/* Private browsing may disable persistence. */}
+  storedWeek=step.record;
+}
+track('$pageview',{ref:arrivalRef,$referrer:document.referrer||undefined,place:current.scene,pinned:scenePinned});
+const uiTimer=setInterval(()=>{updatePlayer();checkDay();measureListening();},700);
 window.addEventListener('resize',()=>{renderer.resize();repaint();});
 document.addEventListener('visibilitychange',()=>{
   stopPainting();last=performance.now();checkDay();

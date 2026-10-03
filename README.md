@@ -11,7 +11,9 @@ npm ci
 npm run dev -- --host 127.0.0.1 --port 5175
 ```
 
-`npm run build` produces a static `dist/` site. There is no backend, account, runtime npm dependency, API key or daily content-generation job. Fonts, illustrations and piano samples are bundled locally; the page makes no font-service requests.
+`npm run build` produces a static `dist/` site. There is no backend, account, runtime npm dependency or daily content-generation job.
+
+Analytics are off unless the build sets `VITE_POSTHOG_KEY` (the PostHog project token) and `VITE_POSTHOG_HOST` (a proxy path such as `/ingest` on motes.sh, or PostHog's own host). The PostHog project needs **Cookieless tracking** turned on under Settings › Web analytics, or it discards the events. Motes then sends a handful of anonymous events: arrival (with its `ref`), the first Listen, 5, 20 and 60 audible minutes, one `engaged_week` per week, and shares. Nothing identifying is sent; PostHog derives a daily, salted visitor hash on its servers. The browser keeps only this week's audible minutes and the week it first listened, and sends nothing when Global Privacy Control or Do Not Track is on. Fonts, illustrations and piano samples are bundled locally; the page makes no font-service requests.
 
 ## Listen
 
@@ -61,6 +63,8 @@ The scene paints at a steady 30 frames a second, 60 during crossfades and ripple
 | `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
 | `src/scenes/painting-source.ts` | AVIF → WebP → PNG painting fallback |
 | `src/share/pages.ts`, `vite.config.ts` | Per-place pages and link previews, built beside the home page |
+| `src/share/link.ts` | Share links and messages for the current place |
+| `src/measure/` | Weekly engaged listening, visit milestones and cookieless PostHog events |
 | `src/scenes/session-effects.ts` | Gradual evening light, train, boat, birds, butterflies and fireflies |
 | `src/scenes/scene-light.ts` | Lighting arcs and spatial masks for all four places; cached painting compositing |
 | `src/scenes/meadow-light.ts` | Meadow timing for sunlight, lantern light and fireflies |
