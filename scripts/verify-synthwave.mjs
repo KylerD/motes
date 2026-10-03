@@ -61,6 +61,9 @@ try {
   await page.evaluate(() => { window.radio.setEdition(84, 'snow'); });
   await page.evaluate(() => window.radio.setStyle('dreamy'));
   assert.ok(await page.evaluate(() => window.radio.environment.elapsed < 1));
+  // A visit while Each place’s own awaits its bank must not switch the new place to the old place’s style.
+  await page.evaluate(async () => { const own = window.radio.setStyle(undefined); window.radio.setEdition(85, 'deck'); await own; });
+  assert.equal(await page.evaluate(() => window.radio.current.style), 'driving');
   await page.evaluate(() => window.radio.dispose());
   await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => window.radio.diagnostics.voices), 0);
@@ -87,19 +90,6 @@ try {
   await page.waitForTimeout(200);
   assert.deepEqual(errors, []);
   results.push('late loading cannot override the latest style or resume a pause');
-
-  // A visit away while Each place’s own waits on the bank must not switch the new place to the old place’s style.
-  await page.reload();
-  await page.evaluate(async () => {
-    const { RadioAudio } = await import('/src/music/audio.ts');
-    window.radio = new RadioAudio(61, 'rain'); await window.radio.setStyle('dreamy'); await window.radio.enable();
-    window.ownSwitch = window.radio.setStyle(undefined); window.radio.setEdition(62, 'deck');
-    await window.ownSwitch;
-  });
-  assert.equal(await page.evaluate(() => window.radio.current.style), 'driving');
-  assert.equal(await page.evaluate(() => window.radio.chosen), undefined);
-  await page.evaluate(() => window.radio.dispose());
-  await page.waitForTimeout(200);
 
   await page.evaluate(async () => {
     const { RadioAudio } = await import('/src/music/audio.ts');
@@ -140,15 +130,8 @@ try {
     await Promise.all([pick, window.radio.setEdition(73, 'rain').catch(() => {})]);
   });
   assert.equal(await page.evaluate(() => window.radio.current.style), 'driving', 'A failed pick during a place change keeps the synths that were playing.');
-  await page.evaluate(() => window.radio.dispose());
-  await page.waitForTimeout(200);
-  // The same race during a failed piano load must not revert Each place’s own at the new place either.
-  await page.evaluate(async () => {
-    const { RadioAudio } = await import('/src/music/audio.ts');
-    window.radio = new RadioAudio(79, 'rain'); await window.radio.setStyle('dreamy'); await window.radio.enable();
-    window.ownSwitch = window.radio.setStyle(undefined); window.radio.setEdition(80, 'deck');
-    await window.ownSwitch;
-  });
+  // The same race during a failed piano load must not revert Each place’s own at the new place either. This radio is at rain, playing the synths.
+  await page.evaluate(async () => { await window.radio.setStyle('dreamy'); const own = window.radio.setStyle(undefined); window.radio.setEdition(80, 'deck'); await own; });
   assert.equal(await page.evaluate(() => window.radio.current.style), 'driving');
   assert.equal(await page.evaluate(() => window.radio.chosen), undefined);
   await page.evaluate(() => window.radio.dispose());

@@ -166,16 +166,10 @@ export class RadioAudio {
     this.chosen=style;
     const next=this.styleFor(this.mood);
     if(next===this.style)return;
-    if(this.graph){
-      // A visit while the bank loads has already planned its place for this choice.
-      const moved=()=>revision!==this.styleRevision||this.disposed||this.styleFor(this.mood)!==next;
-      try{await this.ensureBank(next);}
-      catch(error){
-        if(moved())return;
-        this.chosen=previous;this.fallBack();throw error;
-      }
-      if(moved())return;
-    }
+    let failure:{error:unknown}|undefined;try{if(this.graph)await this.ensureBank(next);}catch(error){failure={error};}
+    // A newer pick, or a visit that resolves this choice to another style, has already settled it.
+    if(revision!==this.styleRevision||this.disposed||this.styleFor(this.mood)!==next)return;
+    if(failure){this.chosen=previous;this.fallBack();throw failure.error;}
     this.switchTo(next);
   }
 
