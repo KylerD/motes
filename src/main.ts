@@ -6,6 +6,7 @@ import { SceneRenderer } from './scenes/renderer';
 import {createSession,sessionAt} from './session/session';
 import {sceneLightAt} from './scenes/scene-light';
 import {frameDelay} from './scenes/frame-budget';
+import {shareLink,shareMessage} from './share/link';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
@@ -146,6 +147,16 @@ function updatePlayer() {
   }
 }
 $('listen').addEventListener('click',()=>void toggleListening());
+async function share() {
+  const url=shareLink(location.origin,current.scene,current.day,localDay());
+  if(navigator.share) {
+    try{await navigator.share({...shareMessage(current.scene),url});return;}
+    catch(error){if(error instanceof DOMException&&error.name==='AbortError')return;}
+  }
+  try{await navigator.clipboard.writeText(url);say('Link copied. Pass this place on to someone who needs a quiet hour.');}
+  catch{say(`Copy this link to share the place: ${url}`,true);}
+}
+$('share').addEventListener('click',()=>void share());
 $('next-track').addEventListener('click',()=>{audio.next();updatePlayer();});
 $<HTMLInputElement>('music-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.volume=value/100;audio.setVolume(preferences.volume);$('music-level').textContent=`${value}%`;$('music-volume').style.setProperty('--level',`${value}%`);savePreferences();});
 $<HTMLInputElement>('ambience-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.ambience=value/100;audio.setAmbience(preferences.ambience);$('ambience-level').textContent=`${value}%`;$('ambience-volume').style.setProperty('--level',`${value}%`);savePreferences();});

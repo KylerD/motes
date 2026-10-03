@@ -18,7 +18,7 @@ The first hour has an arc: eighteen connected arrangements move through six chap
 
 All four places visibly develop through matched evening artwork and independently paced sky, distance, foreground and water transitions. The meadow loses its sunlight and pollen as lantern light and fireflies appear. The city deepens into indigo and neon reflections; the snowy station settles into blue mountains and amber platform light; the coastal reading room overlooks a silver-blue bay after the sun and its reflection fade. The aim is calm moment to moment but unmistakably different after twenty minutes. Each evening is fully settled after roughly fifty minutes and remains through after hours.
 
-Only useful listening controls remain: playback, next track, independent sound levels, no-drums mode, scene selection, date revisiting, motion and hide controls. No onboarding, account, dashboard, progress goals, scores, organisms, experiments or daily repository routine.
+Only useful listening controls remain: playback, next track, independent sound levels, no-drums mode, scene selection, date revisiting, motion and hide controls, and sharing. On 3 October the user chose to let Motes grow by being passed on: Share sends a link to the current place (and a revisited day), and a short arrival-to-evening clip export comes next. Sharing never nags or rewards. No onboarding, account, dashboard, progress goals, scores, organisms, experiments or daily repository routine.
 
 ## Truth and constraints
 

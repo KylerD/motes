@@ -126,7 +126,7 @@ input[type=date]{display:block;width:100%;min-height:48px;background:#fff9ef;col
  .header-actions{gap:6px;padding-top:0}
  #edition-label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
  #edition-short-label{display:inline}#edition-toggle{padding-inline:10px;gap:6px;font-size:11px}#edition-toggle svg{width:15px;height:15px}
- #fullscreen,#quiet span{display:none}#quiet{width:42px;padding:10px}
+ #fullscreen,#quiet span,#share span{display:none}#quiet,#share{width:42px;padding:10px}
  .scene-caption{left:22px;right:22px;bottom:207px}.scene-caption h2{font-size:38px}.scene-caption p{font-size:13px;max-width:32ch}
  .player{bottom:18px}.player::before{bottom:-18px}.player-inner{flex-direction:column;align-items:stretch;gap:13px;padding:14px 14px 12px}
  .listening{display:grid;grid-template-columns:auto minmax(0,1fr) 34px;gap:12px;width:100%}
