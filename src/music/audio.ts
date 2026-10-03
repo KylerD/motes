@@ -167,12 +167,14 @@ export class RadioAudio {
     const next=this.styleFor(this.mood);
     if(next===this.style)return;
     if(this.graph){
+      // A visit while the bank loads has already planned its place for this choice.
+      const moved=()=>revision!==this.styleRevision||this.disposed||this.styleFor(this.mood)!==next;
       try{await this.ensureBank(next);}
       catch(error){
-        if(revision!==this.styleRevision||this.disposed)return;
+        if(moved())return;
         this.chosen=previous;this.fallBack();throw error;
       }
-      if(revision!==this.styleRevision||this.disposed)return;
+      if(moved())return;
     }
     this.switchTo(next);
   }
