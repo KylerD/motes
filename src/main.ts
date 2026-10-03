@@ -45,18 +45,22 @@ $<HTMLSelectElement>('music-mode').value=preferences.mode;
 let visualTime=0,last=performance.now(),frame=0,starting=false,listened=false,quiet=false,disposed=false;
 let previewSeconds:number|undefined;
 let statusTimer:ReturnType<typeof setTimeout>|undefined;
-let styleRequest=0,switchingStyle=false;
+let styleRequest=0,switchingStyle=false,styleNotice=false;
 const styleError='That music couldn’t load. Your current style is still here. Choose the style again to retry.';
+const styleName=(style:string)=>$('music-style').querySelector(`[value="${style}"]`)?.textContent??style;
+/** A place whose music fails keeps the style it had, playing or paused, so name both and the way back. */
+const placeError=(failed:string,kept:string)=>failed===kept?styleError:`${styleName(failed)} couldn’t load here, so ${styleName(kept)} stays on. Choose ${styleName(failed)} in Sound & motion to try again.`;
 const panelIds=['mix','scenes','edition'] as const;
 type PanelId=typeof panelIds[number];
 let openPanel:PanelId|null=null;
 function say(message:string,persistent=false) {
   if(statusTimer)clearTimeout(statusTimer);
-  $('status').textContent=message;$('status').hidden=false;
+  $('status').textContent=message;$('status').hidden=false;styleNotice=false;
   if(!persistent)statusTimer=setTimeout(()=>{$('status').hidden=true;},5500);
 }
-/** Music that plays again retires the style error, and only that message. */
-const clearStyleError=()=>{if($('status').textContent===styleError)$('status').hidden=true;};
+const showStyleError=(message:string)=>{say(message,true);styleNotice=true;};
+/** Music that plays again retires a style message, and only that message. */
+const clearStyleError=()=>{if(styleNotice){styleNotice=false;$('status').hidden=true;}};
 function closePanels(focus=true) {
   const previous=openPanel;
   for(const id of panelIds){$(`${id}-panel`).hidden=true;$(`${id}-toggle`).setAttribute('aria-expanded','false');}
@@ -64,7 +68,10 @@ function closePanels(focus=true) {
 }
 function togglePanel(id:PanelId) {
   const shouldOpen=openPanel!==id;closePanels(false);
-  if(shouldOpen){openPanel=id;$(`${id}-panel`).hidden=false;$(`${id}-toggle`).setAttribute('aria-expanded','true');$(`${id}-panel`).querySelector<HTMLElement>('input,button,select')?.focus();}
+  if(!shouldOpen)return;
+  const panel=$(`${id}-panel`);openPanel=id;panel.hidden=false;$(`${id}-toggle`).setAttribute('aria-expanded','true');
+  // Find a place opens on the current place, which scrolls it into view on short screens.
+  (panel.querySelector<HTMLElement>('[data-place][aria-pressed=true]')??panel.querySelector<HTMLElement>('input,button,select'))?.focus();
 }
 for(const id of panelIds)$(`${id}-toggle`).addEventListener('click',()=>togglePanel(id));
 document.querySelectorAll('.close-panel').forEach(el=>el.addEventListener('click',()=>closePanels()));
@@ -83,8 +90,7 @@ function updateUrl() {
 }
 function updateEdition() {
   const place=SCENES[current.scene];
-  $('experience').dataset.scene=current.scene;$('scene-title').textContent=place.title;$('scene-subtitle').textContent=sceneLightAt(current.scene,0).subtitle;
-  $('atmosphere-description').textContent=current.light;
+  $('experience').dataset.scene=current.scene;$('scene-title').textContent=place.title;
   $('edition-label').textContent=`${current.day===localDay()?'Today · ':''}${dayLabel(current.day)}`;
   $('edition-short-label').textContent=new Date(`${current.day}T12:00:00`).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   $('edition-toggle').title=`Revisit a day · ${dayLabel(current.day)}`;
@@ -97,7 +103,8 @@ function visit(day:string,scene?:SceneId) {
   // A pick still loading may yet fail on its own, so only a visit made with none pending clears the style error.
   const settled=!switchingStyle,request=styleRequest;
   scenePinned=scene!==undefined;current=edition(day,scene);renderer.setEdition(current);
-  void audio.setEdition(current.seed,current.scene).then(()=>{if(settled&&request===styleRequest)clearStyleError();},()=>{say(styleError,true);updatePlayer();});visualTime=0;previewSeconds=undefined;
+  const music=audio.setEdition(current.seed,current.scene),planned=audio.current.style;
+  void music.then(()=>{if(settled&&request===styleRequest)clearStyleError();},()=>{showStyleError(placeError(planned,audio.current.style));updatePlayer();});visualTime=0;previewSeconds=undefined;
   $('new-day').hidden=true;closePanels();updateEdition();
 }
 for(const place of PLACES) {
@@ -107,7 +114,8 @@ for(const place of PLACES) {
   const copy=document.createElement('span'),title=document.createElement('strong'),description=document.createElement('small');
   title.textContent=place.name;description.textContent=place.weather;copy.append(title,description);button.append(image,copy);
   button.insertAdjacentHTML('beforeend','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10"/></svg>');
-  button.addEventListener('click',()=>visit(current.day,id));$('scene-list').append(button);
+  // The place you are on stays as it is: choosing it again only makes its link shareable.
+  button.addEventListener('click',()=>{if(id!==current.scene)visit(current.day,id);else{scenePinned=true;updateUrl();closePanels();}});$('scene-list').append(button);
 }
 $<HTMLInputElement>('edition-date').addEventListener('change',e=>{
   const date=(e.currentTarget as HTMLInputElement).value;
@@ -135,7 +143,7 @@ function updatePlayer() {
   attribute('listen-path','d',playing?'M8 5v14M16 5v14':'m9 5 11 7-11 7Z');
   text('listen-label',starting?'Tuning in…':playing?'Pause':listened?'Resume':'Listen');
   text('track-title',track.title);
-  const styleSelect=$<HTMLSelectElement>('music-style');if(!switchingStyle&&styleSelect.value!==audio.current.style)styleSelect.value=audio.current.style;
+  const styleSelect=$<HTMLSelectElement>('music-style');if(!switchingStyle&&styleSelect.value!==track.style)styleSelect.value=track.style;
   text('track-detail',switchingStyle?'Tuning into your music…':starting?audio.labels.preparing:!listened?'An hour, unfolding here':`${track.label} · ${session.chapter}`);
   attribute('track-detail','title',`${track.label} · ${session.chapter}${preferences.mode==='ambient'?' · Without drums':''}`);
   const environment=previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds);
@@ -164,7 +172,7 @@ $<HTMLSelectElement>('music-style').addEventListener('change',async e=>{
     preferences.styleChoice=style;savePreferences();clearStyleError();
   } catch {
     if(request!==styleRequest)return;
-    select.value=audio.current.style;say(styleError,true);
+    showStyleError(styleError);
   } finally {if(request===styleRequest){switchingStyle=false;updatePlayer();}}
 });
 function setMotion(on:boolean){renderer.motion=on;$('motion').setAttribute('aria-pressed',String(on));$('motion-label').textContent=on?'On':'Still';last=performance.now();}

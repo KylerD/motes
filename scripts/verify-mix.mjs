@@ -19,19 +19,19 @@ try {
   await page.goto(server.resolvedUrls.local[0]+'__mix_test');
   const report=await page.evaluate(async(runs)=>{
     const {DEFAULT_MIX,createGraph,prepareBank,schedule,setSoundMode,startAmbience,disposeGraph}=await import('/src/music/sound.ts');
-    const {STYLES,atmosphereLevel}=await import('/src/music/styles/index.ts');
+    const {STYLES}=await import('/src/music/styles/index.ts');
     const {placeById}=await import('/src/places/index.ts');
     const {createSession,composeSessionTrack}=await import('/src/session/session.ts');
     const {edition}=await import('/src/scenes/edition.ts');
     const sampleRate=44100;
     const render=async(seed,mood,runStyle,mode,layer,index=0,seconds=48)=>{
       const context=new OfflineAudioContext(2,seconds*sampleRate,sampleRate);
-      const graph=createGraph(context,seed),track=composeSessionTrack(createSession(seed,mood,runStyle),index);
+      const graph=createGraph(context,seed),plan=createSession(seed,mood,runStyle),track=composeSessionTrack(plan,index);
       await prepareBank(graph,STYLES[track.style??'lofi']);
       graph.output.gain.value=1;
       graph.music.gain.value=layer==='atmosphere'?0:DEFAULT_MIX.music;
       // Exercise the loudest weather level the live scheduler permits, at the player's level for this style here.
-      graph.ambience.gain.value=layer==='music'?0:DEFAULT_MIX.ambience*1.12*atmosphereLevel(placeById(mood),runStyle);
+      graph.ambience.gain.value=layer==='music'?0:DEFAULT_MIX.ambience*1.12*plan.atmosphere;
       setSoundMode(graph,mode);
       if(layer!=='music')startAmbience(graph,placeById(mood),0);
       let rendered;

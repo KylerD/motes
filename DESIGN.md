@@ -151,7 +151,7 @@ Serif captions, panel headings, track names and place names sit alongside rounde
 
 The painting occupies `100dvh`, with a 400px minimum height and clipped overflow. The masthead anchors the logo left and date/view actions right. A caption sits 156px above the bottom. The radio is inset from the page edges, 24px above the bottom, with playback left and Sound & motion / Find a place right. Its desktop layout is one row, with a 2px session-progress strip along its bottom edge.
 
-Only one settings panel opens at a time. Sound & motion is 382px wide at bottom-left; places is 422px wide at bottom-right; both sit 132px above the bottom. Editions is 366px wide at top-right, 98px from the top. Panels scroll internally, with a desktop height cap of viewport minus 180px.
+Only one settings panel opens at a time. Sound & motion is 382px wide at bottom-left; places is 422px wide at bottom-right; both sit 132px above the bottom. Editions is 366px wide at top-right, 98px from the top. Panels scroll internally, with a paper fade marking more below and a desktop height cap of viewport minus 180px; Find a place opens on the selected place.
 
 Responsive behavior follows the actual CSS breakpoints:
 

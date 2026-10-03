@@ -121,7 +121,17 @@ try {
   assert.equal(await page.evaluate(() => window.radio.current.style), 'driving', 'A failed pick during a place change keeps the synths that were playing.');
   await page.evaluate(() => window.radio.dispose());
   await page.waitForTimeout(200);
-  results.push('switching to synthwave abandons stalled initial piano loading; a failed pick during a place change keeps the synths');
+  // Two quick visits from Top deck to lofi places, then the 503: the second visit must not settle on the first visit's unready plan.
+  await page.evaluate(async () => {
+    const { RadioAudio } = await import('/src/music/audio.ts');
+    window.radio = new RadioAudio(74, 'deck'); await window.radio.enable();
+    const first = window.radio.setEdition(75, 'rain').catch(() => {}), second = window.radio.setEdition(76, 'meadow').catch(() => {});
+    await Promise.all([first, second]);
+  });
+  assert.equal(await page.evaluate(() => window.radio.current.style), 'driving', 'Quick visits during a failed piano load keep the synths that were playing.');
+  await page.evaluate(() => window.radio.dispose());
+  await page.waitForTimeout(200);
+  results.push('switching to synthwave abandons stalled initial piano loading; a failed pick or quick visits during a place change keep the synths');
 
   await page.unroute('**/audio/piano/*.mp3');
   await page.evaluate(() => localStorage.setItem('motes-listening', JSON.stringify({ volume: .6, ambience: .2, mode: 'ambient', style: 'synthwave' })));

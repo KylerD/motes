@@ -1,5 +1,5 @@
 import {LOOPS,MELODY_CELLS,composeTrack,formBars,makeTheme,type Arrangement,type CompCell,type FormName,type GrooveCell,type KeyVoice,type Mode,type Mood,type Theme} from '../../composer';
-import {pick,randomSource} from '../../composer/random';
+import {pick,pickFewest,randomSource} from '../../composer/random';
 import type {MusicStyle} from '../index';
 import {lofiBank} from './sound';
 
@@ -38,8 +38,7 @@ export default {
       // The opening (and so the final return) starts on its tonic, so the hour's first bar says where home is.
       const candidates=LOOPS.filter(l=>l.mode===mode&&(form!=='nocturne'||l.nocturne)&&(i!==0||l.bars[0][0][0]===0)).map(l=>l.id);
       // Spread the loop library across the hour: the least-heard loops come first.
-      const uses=(id:string)=>loops.filter(l=>l===id).length,fewest=Math.min(...candidates.filter(id=>id!==loops[i-1]).map(uses));
-      loops.push(i===17?loops[0]:pick(random,candidates.filter(id=>uses(id)===fewest),[loops[i-1]]));
+      loops.push(i===17?loops[0]:pickFewest(random,loops,candidates,loops[i-1]));
       const nextIsNocturne=sequence[i+1]==='nocturne';
       // Charleston songs spend half their phrases in halves, so the two never sit side by side.
       const previous=comps[i-1],cousin:CompCell|undefined=previous==='charleston'?'halves':previous==='halves'?'charleston':undefined;

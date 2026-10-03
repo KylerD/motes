@@ -8,6 +8,8 @@ export function holdParameter(parameter:AudioParam,time:number):void {
   if(typeof parameter.cancelAndHoldAtTime==='function')parameter.cancelAndHoldAtTime(time);
   else {const value=parameter.value;parameter.cancelScheduledValues(time);parameter.setValueAtTime(value,time);}
 }
+/** Fade a gain to silence from `at`. An envelope starting at or after `now` is cut outright: a hold would capture the node's default of 1, not its fade-in. */
+function silence(gain:AudioParam,start:number,now:number,at:number,fade:number){if(start>=now){gain.cancelScheduledValues(at);gain.setValueAtTime(0,at);}else{holdParameter(gain,at);gain.linearRampToValueAtTime(0,at+fade);}}
 export interface Voice { start: number; end: number; gain: GainNode; source: AudioScheduledSourceNode; auxiliary: AudioScheduledSourceNode[]; nodes: AudioNode[] }
 export interface SoundGraph {
   context: BaseAudioContext; output: GainNode; music: GainNode; ambience: GainNode; reverb: ConvolverNode;
@@ -89,10 +91,8 @@ export function startAmbience(graph:SoundGraph,place:Place,at=graph.context.curr
   const gain=context.createGain();gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(trim,at+0.6);
   source.connect(gain);gain.connect(graph.ambience);
   for(const old of graph.ambienceSources) {
-    // An ambience still to start would hold its gain node's default of 1, not its fade-in. Judge by now rather than `at`,
-    // since the fallback hold reads the value now.
-    if(old.start>=context.currentTime){old.gain.gain.cancelScheduledValues(at);old.gain.gain.setValueAtTime(0,at);}
-    else{holdParameter(old.gain.gain,at);old.gain.gain.linearRampToValueAtTime(0,at+0.6);}
+    // Judge by now rather than `at`, since the fallback hold reads the value now.
+    silence(old.gain.gain,old.start,context.currentTime,at,.6);
     try{old.source.stop(at+0.65);}catch{/* Already ended. */}
   }
   graph.ambienceSources=[{source,gain,start:at}];
@@ -104,10 +104,8 @@ export function startAmbience(graph:SoundGraph,place:Place,at=graph.context.curr
 export function stopVoices(graph:SoundGraph,at:number,fade=0.12,from=-Infinity) {
   for(const voice of graph.voices) {
     if(voice.start<from)continue;
-    // `at` is the current time, so a note starting at or after it has not sounded yet. Its hold would capture the gain
-    // node's default of 1, not its envelope, and it would play at full level within the fade.
-    if(voice.start>=at){voice.gain.gain.cancelScheduledValues(at);voice.gain.gain.setValueAtTime(0,at);}
-    else{holdParameter(voice.gain.gain,at);voice.gain.gain.linearRampToValueAtTime(0,at+fade);}
+    // `at` is the current time, so a note starting at or after it has not sounded yet.
+    silence(voice.gain.gain,voice.start,at,at,fade);
     try{voice.source.stop(at+fade+0.01);}catch{/* A completed source needs no further stop. */}
     for(const extra of voice.auxiliary){try{extra.stop(at+fade+.01);}catch{/* Already stopped. */}}
   }

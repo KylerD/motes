@@ -16,15 +16,14 @@ export interface MusicStyle {
   limits:{bpm:readonly [number,number];grid:2|4;perBar:number;meanPerBar:number;perTrack:number};
   planHour(random:()=>number,place:Place,seed:number):Slot[];
   compose(seed:number,place:Place,slot:Slot,index:number):Track;
-  labels:{preparing:string;voice(track:Pick<Track,'voice'|'darkness'|'family'>):string};
+  labels:{preparing:string;voice(track:Pick<Track,'voice'|'family'>):string};
   bank(graph:SoundGraph,signal?:AbortSignal):Promise<SoundBank>;
 }
 export const STYLES={lofi,dreamy,driving} satisfies Record<string,MusicStyle>;
 export type StyleId=keyof typeof STYLES;
-// Not `in` (which accepts inherited keys) or Object.hasOwn (ES2022; this project targets ES2020).
-export const isStyleId=(value:unknown):value is StyleId=>typeof value==='string'&&Object.keys(STYLES).includes(value);
+// Own keys only, built once: not `in` (which accepts inherited keys) or Object.hasOwn (ES2022; this project targets ES2020).
+const STYLE_IDS=new Set(Object.keys(STYLES));
+export const isStyleId=(value:unknown):value is StyleId=>typeof value==='string'&&STYLE_IDS.has(value);
 export const styleOf=(style:string|undefined):MusicStyle=>isStyleId(style)?STYLES[style]:STYLES.lofi;
 /** What plays here: the listener's pick if they made one, otherwise the place's own music. */
 export const playingStyle=(place:Place,chosen?:StyleId):StyleId=>chosen??(isStyleId(place.music.style)?place.music.style:'lofi');
-/** The atmosphere gain under a style here: its `away` level, except in its home place. */
-export const atmosphereLevel=(place:Place,style:StyleId):number=>style===playingStyle(place)?1:styleOf(style).away??1;

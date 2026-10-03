@@ -85,7 +85,8 @@ try {
   assert.deepEqual((await phone.evaluate(()=>window.__motes.rendering)).bitmap,[780,1688]);report.lateViewportChange=true;
   for(const panel of ['mix','scenes','edition']) {
     await phone.click(`#${panel}-toggle`);const box=await phone.locator(`#${panel}-panel`).boundingBox();
-    if(panel==='scenes'){await thumbnails(phone);await settle(phone);}
+    // Find a place opens on the selected place, scrolled into view.
+    if(panel==='scenes'){await thumbnails(phone);await settle(phone);assert.ok(await phone.evaluate(()=>{const row=document.activeElement.getBoundingClientRect(),box=document.querySelector('#scenes-panel').getBoundingClientRect();return document.activeElement.matches('[data-place][aria-pressed=true]')&&row.top>=box.top&&row.bottom<=box.bottom;}));}
     assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=391&&box.y+box.height<=845);
     await phone.screenshot({path:`captures-scenes/${panel}-mobile.png`});await phone.keyboard.press('Escape');
     assert.equal(await phone.locator(`#${panel}-toggle`).evaluate(el=>el===document.activeElement),true);
@@ -126,12 +127,12 @@ try {
   assert.equal(await piano.evaluate(()=>window.__motes.track.style),'driving');
   assert.match(await piano.locator('#status').textContent(),/couldn’t load\. Your current style is still here/);
   await piano.keyboard.press('Escape');report.lofiPickFailsAtTheDeck=true;
-  // A lofi place keeps the synths playing and says why. The visit plans lofi, so wait for the music and select to come back.
+  // A lofi place keeps the synths playing and names both styles. The visit plans lofi, so wait for the music, select and message to come back.
   await piano.click('#scenes-toggle');await piano.click('[data-place="rain"]');
-  await piano.waitForFunction(()=>window.__motes.track.style==='driving'&&document.querySelector('#music-style').value==='driving');
+  await piano.waitForFunction(()=>window.__motes.track.style==='driving'&&document.querySelector('#music-style').value==='driving'&&/stays on/.test(document.querySelector('#status').textContent));
   assert.equal(await piano.evaluate(()=>window.__motes.radio.playing),true);
   assert.equal(await piano.locator('#status').isVisible(),true);
-  assert.match(await piano.locator('#status').textContent(),/couldn’t load\. Your current style is still here/);
+  assert.equal(await piano.locator('#status').textContent(),'Warm lofi couldn’t load here, so Driving synthwave stays on. Choose Warm lofi in Sound & motion to try again.');
   await piano.unroute('**/audio/piano/*.mp3');report.pianoFailureKeepsSynths=true;
   // Choosing Warm lofi again retries the piano, and the music playing retires the message.
   await piano.click('#mix-toggle');await piano.selectOption('#music-style','lofi');

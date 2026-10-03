@@ -63,7 +63,9 @@ svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.65;strok
 #track-progress{height:100%;background:#eab574a6;transform:scaleX(0);transform-origin:left;transition:transform 650ms linear}
 
 /* Cream panels behave like a small, welcoming control book. */
-.panel{position:absolute;z-index:5;padding:27px;color:var(--paper-text);background:var(--paper);color-scheme:light;border-radius:16px;box-shadow:0 18px 60px #110e0b59;max-width:calc(100vw - 40px);max-height:calc(100dvh - 180px);overflow:auto;scrollbar-width:thin;scrollbar-color:#b59b7b var(--paper);animation:panel-arrive 240ms var(--ease)}
+.panel{--pad:27px;position:absolute;z-index:5;padding:var(--pad);scroll-padding-bottom:var(--pad);color:var(--paper-text);background:var(--paper);color-scheme:light;border-radius:16px;box-shadow:0 18px 60px #110e0b59;max-width:calc(100vw - 40px);max-height:calc(100dvh - 180px);overflow:auto;scrollbar-width:thin;scrollbar-color:#b59b7b var(--paper);animation:panel-arrive 240ms var(--ease)}
+/* A paper fade over a cut row says there is more below. Scrolled to the end it rests in the padding, clear for 12px to spare the links' -6px overhang and focus ring. */
+.panel::after{content:'';position:sticky;bottom:calc(-1 * var(--pad));display:block;height:var(--pad);margin:0 calc(-1 * var(--pad)) calc(-1 * var(--pad));background:linear-gradient(transparent 12px,var(--paper));pointer-events:none}
 @keyframes panel-arrive{from{transform:translateY(6px);opacity:.8}to{transform:translateY(0);opacity:1}}
 .panel :is(button,input,select):focus-visible{outline-color:#956038;outline-offset:3px}
 .panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:13px}
@@ -134,7 +136,7 @@ input[type=date]{display:block;width:100%;min-height:48px;background:#fff9ef;col
  #next-track{width:34px;padding:7px}.place-controls{justify-content:space-between;gap:8px;padding-top:9px;border-top:1px solid var(--line)}
  #mix-toggle{font-size:12px;gap:8px;padding:8px;min-height:42px}#mix-toggle svg{width:17px;height:17px}
  .scenes-button{min-height:42px;font-size:12px;padding-inline:11px;gap:10px}.scenes-button .chevron{width:12px}.track-progress{left:15px;right:15px}
- .panel{padding:24px;max-width:calc(100vw - 36px);max-height:calc(100dvh - 286px)}.panel h2{font-size:30px}
+ .panel{--pad:24px;max-width:calc(100vw - 36px);max-height:calc(100dvh - 286px)}.panel h2{font-size:30px}
  .mix-panel,.scenes-panel{left:18px;right:18px;bottom:185px;width:auto}
  .edition-panel{right:18px;top:99px;width:350px;max-height:calc(100dvh - 135px)}
  .slider-row{grid-template-columns:91px minmax(0,1fr) 32px;gap:10px}
@@ -143,7 +145,7 @@ input[type=date]{display:block;width:100%;min-height:48px;background:#fff9ef;col
 }
 @media(max-width:360px){
  .brand-logo{width:132px}.identity p{font-size:9px}#edition-toggle{padding-inline:8px}
- .player-inner{padding-inline:12px}.listen-button{min-width:86px;padding-inline:9px}.listening{gap:9px}.panel{padding:20px}
+ .player-inner{padding-inline:12px}.listen-button{min-width:86px;padding-inline:9px}.listening{gap:9px}.panel{--pad:20px}
  .slider-row{grid-template-columns:87px minmax(0,1fr) 30px;gap:8px}select{max-width:165px}
  #mix-toggle{gap:6px;padding-inline:5px;font-size:11px}.scenes-button{padding-inline:9px;font-size:11px}
 }

@@ -1,8 +1,6 @@
 import type { ActiveEvent, SessionState } from '../session/session';
 import type { Layer, LayerInput, LightState, Place, Point, Position, Space } from '../places';
-
-const clamp=(value:number)=>Math.max(0,Math.min(1,value));
-const smooth=(value:number)=>{const t=clamp(value);return t*t*(3-2*t);};
+import {clamp,smooth} from '../places/light';
 
 export function polygon(ctx:CanvasRenderingContext2D,points:Position[],color:string):void {
   ctx.fillStyle=color;ctx.beginPath();
@@ -74,6 +72,6 @@ export function during(kind:string,draw:(ctx:CanvasRenderingContext2D,event:Acti
 export function drawSessionEffects(ctx:CanvasRenderingContext2D,place:Place,state:SessionState,time:number,space:Space,authoredLight:boolean,light:LightState,motion:boolean,seed:number):void {
   ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   if(!authoredLight&&place.fallback)evening(ctx,place.fallback,state,space);
-  for(const layer of place.draw)layer(ctx,{state,time,space,light,motion,seed});
+  const input={state,time,space,light,motion,seed};for(const layer of place.draw)layer(ctx,input);
   ctx.restore();
 }

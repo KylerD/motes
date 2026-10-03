@@ -1,22 +1,23 @@
 import {randomSource,type Mood,type Track} from '../music/composer';
-import {isStyleId,styleOf,type Slot,type StyleId} from '../music/styles';
+import {isStyleId,playingStyle,styleOf,type Slot,type StyleId} from '../music/styles';
 import {placeById} from '../places';
 import {clamp,smooth} from '../places/light';
 
 export interface SessionEvent {kind:string;start:number;duration:number}
 export interface ActiveEvent {kind:string;progress:number;strength:number}
-export interface SessionPlan {seed:number;mood:Mood;style:StyleId;duration:number;slots:Slot[];events:SessionEvent[]}
+/** `atmosphere` is the ambience gain under this music here: its style's `away` level, except in its home place. */
+export interface SessionPlan {seed:number;mood:Mood;style:StyleId;atmosphere:number;duration:number;slots:Slot[];events:SessionEvent[]}
 export interface SessionState {elapsed:number;progress:number;chapter:string;dusk:number;warmth:number;weather:number;lamps:number;events:ActiveEvent[]}
 
 /** A written hour. The place's own style times the scenery; the selected style, which may differ, writes the music. */
 export function createSession(seed:number,mood:Mood,style?:string):SessionPlan {
-  const place=placeById(mood),own:StyleId=isStyleId(place.music.style)?place.music.style:'lofi',random=randomSource(seed^0x527a91);
+  const place=placeById(mood),own=playingStyle(place),random=randomSource(seed^0x527a91);
   const home=styleOf(own).planHour(random,place,seed);
   const events:SessionEvent[]=place.environment.events.map(({kind,slot,duration,beats})=>({kind,start:home[slot].start+(beats!==undefined?beats*60/home[slot].arrangement.bpm:35)+random()*(beats!==undefined?5:25),duration}));
   const chosen=isStyleId(style)?style:own;
   // Another style plans from a fresh stream, so the scenery never depends on the music.
   const slots=chosen===own?home:styleOf(chosen).planHour(randomSource(seed^0x527a91),place,seed);
-  return {seed,mood,style:chosen,duration:3600,slots,events};
+  return {seed,mood,style:chosen,atmosphere:chosen===own?1:styleOf(chosen).away??1,duration:3600,slots,events};
 }
 
 /** After the hour, the style continues each slot's shape with fresh material, so nothing replays. */
