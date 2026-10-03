@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a first Music style option, “Each place’s own”, that forgets the saved pick so every place plays its own music again.
+**Goal:** Add a first Music style option, “Each place’s own”, that forgets the saved pick so every place plays its own music again, and shorten two option names to Dreamy and Drive.
 
 **Architecture:** The pick already flows through one function, `playingStyle(place, chosen)`, which returns the place’s own style when nothing is chosen. So `RadioAudio.setStyle` only needs to accept no style, and the page maps the new option to no pick, stops saving `styleChoice`, and shows the setting in the select instead of the playing style. The one exception: with nothing picked, a place whose own music failed to load shows the style that stayed on, and the failure message points at Each place’s own to retry.
 
@@ -16,6 +16,7 @@
 - No em dashes (U+2014) in any added text: docs, comments or commit messages. Use a full stop or rewrite the sentence.
 - UI copy uses the curly apostrophe: `Each place’s own` (U+2019), as in `couldn’t` and `today’s`.
 - The option value is `own`. It is not a style id and never reaches `setStyle` or storage.
+- Option labels, in order: `Each place’s own`, `Warm lofi`, `Dreamy`, `Drive`. Ids (`lofi`, `dreamy`, `driving`), saved preferences and track details do not change.
 - `CLAUDE.md` and `AGENTS.md` stay byte-identical (`cmp CLAUDE.md AGENTS.md`).
 - Keep it lean: about 10 lines of source and about 15 lines of checks. No new test files or scripts.
 - Scores, audio and scenery do not change. The six PCM renders stay within 4 LSB (lofi) and 16 LSB (dreamy, driving) of `captures-baseline/`, and the eight lofi scene captures stay byte-identical to `captures-baseline/scenes/`.
@@ -35,12 +36,12 @@ Each place’s own during a pending pick needs no new test: it takes the same re
 
 | Path | Change |
 | --- | --- |
-| `index.html` | The new first option in `#music-style`. |
+| `index.html` | The new first option in `#music-style`, and the labels Dreamy and Drive. |
 | `src/music/audio.ts` | `setStyle(style?: StyleId)`. Type and doc comment only. |
 | `src/main.ts` | Import `playingStyle`; the failure message; the select line in `updatePlayer`; the change handler. |
 | `scripts/verify-synthwave.mjs` | Audio-section pins and the preferences section. |
 | `scripts/verify-scenes.mjs` | The deck piano check. |
-| `README.md`, `DESIGN.md`, `PRODUCT.md`, `CLAUDE.md`, `AGENTS.md` | One sentence each. |
+| `README.md`, `DESIGN.md`, `PRODUCT.md`, `CLAUDE.md`, `AGENTS.md` | The two new style names, and one sentence each. |
 
 ---
 
@@ -164,7 +165,7 @@ Replace lines 123-139 (from the `// Warm lofi at Top deck fails visibly` comment
   await piano.waitForFunction(()=>window.__motes.track.style==='driving'&&document.querySelector('#music-style').value==='driving'&&/stays on/.test(document.querySelector('#status').textContent));
   assert.equal(await piano.evaluate(()=>window.__motes.radio.playing),true);
   assert.equal(await piano.locator('#status').isVisible(),true);
-  assert.equal(await piano.locator('#status').textContent(),'Warm lofi couldn’t load here, so Driving synthwave stays on. Choose Each place’s own in Sound & motion to try again.');
+  assert.equal(await piano.locator('#status').textContent(),'Warm lofi couldn’t load here, so Drive stays on. Choose Each place’s own in Sound & motion to try again.');
   await piano.unroute('**/audio/piano/*.mp3');report.pianoFailureKeepsSynths=true;
   // Each place’s own retries the piano without saving a pick, and the music playing retires the message.
   await piano.click('#mix-toggle');await piano.selectOption('#music-style','own');
@@ -186,10 +187,10 @@ Expected: `verify-synthwave` fails in the preferences section with `'lofi' !== '
 
 - [ ] **Step 5: Implement**
 
-`index.html` line 49, make the new option first:
+`index.html` line 49, make the new option first and shorten the two synthwave labels:
 
 ```html
-      <div class="mix-options"><label for="music-style">Music style</label><select id="music-style"><option value="own">Each place’s own</option><option value="lofi">Warm lofi</option><option value="dreamy">Dreamy synthwave</option><option value="driving">Driving synthwave</option></select></div>
+      <div class="mix-options"><label for="music-style">Music style</label><select id="music-style"><option value="own">Each place’s own</option><option value="lofi">Warm lofi</option><option value="dreamy">Dreamy</option><option value="driving">Drive</option></select></div>
 ```
 
 `src/music/audio.ts` lines 162-163:
@@ -254,10 +255,20 @@ Expected: both exit 0. `verify-scenes` prints a report with `lofiPickFailsAtTheD
 
 - [ ] **Step 8: Update the docs**
 
-`README.md` line 18. Replace `A pick is remembered and applies everywhere; with none, each place plays its own music, so Top deck opens on Driving synthwave.` with:
+First the new names, wherever README, DESIGN.md and CLAUDE.md name a style. Two README sentences start with a name and need their own wording, so they go first:
+
+```bash
+sed -i '' -e 's/Dreamy synthwave has its own composer:/Dreamy is a synthwave with its own composer:/' -e "s/Driving synthwave, Top deck's own music,/Drive, Top deck's own synthwave,/" README.md
+sed -i '' -e 's/Dreamy synthwave/Dreamy/g' -e 's/Driving synthwave/Drive/g' README.md DESIGN.md CLAUDE.md
+grep -n 'Dreamy synthwave\|Driving synthwave' README.md DESIGN.md CLAUDE.md   # prints nothing
+```
+
+Leave lowercase descriptions such as “the dreamy synthwave sound” and “Each driving synthwave song”, the code comments, and the dated specs and plans as they are.
+
+Then the option itself. `README.md` line 18. Replace `A pick is remembered and applies everywhere; with none, each place plays its own music, so Top deck opens on Drive.` with:
 
 ```
-A pick is remembered and applies everywhere. **Each place’s own**, the first option, forgets it, so each place plays its own music again and Top deck opens on Driving synthwave.
+A pick is remembered and applies everywhere. **Each place’s own**, the first option, forgets it, so each place plays its own music again and Top deck opens on Drive.
 ```
 
 In the same line, replace `If a switch to lofi cannot load its piano, the current music continues and selecting lofi again retries.` with:
@@ -266,16 +277,16 @@ In the same line, replace `If a switch to lofi cannot load its piano, the curren
 If a switch to lofi cannot load its piano, the current music continues and selecting lofi again retries. If a place’s own Warm lofi cannot load, the music already playing stays on, the select names it, and choosing Each place’s own retries.
 ```
 
-`DESIGN.md` line 180. Replace `**Music style** (Warm lofi / Dreamy synthwave / Driving synthwave)` with `**Music style** (Each place’s own / Warm lofi / Dreamy synthwave / Driving synthwave)`, and replace `A pick is remembered and applies in every place; with none, each place plays its own music, so Top deck opens on Driving synthwave.` with:
+`DESIGN.md` line 180. Replace `**Music style** (Warm lofi / Dreamy / Drive)` with `**Music style** (Each place’s own / Warm lofi / Dreamy / Drive)`, and replace `A pick is remembered and applies in every place; with none, each place plays its own music, so Top deck opens on Drive.` with:
 
 ```
-A pick is remembered and applies in every place. Each place’s own, the default, forgets it, so each place plays its own music and Top deck opens on Driving synthwave. The select shows the setting rather than the song, except when a place’s own music cannot load: then it names the style that stayed on.
+A pick is remembered and applies in every place. Each place’s own, the default, forgets it, so each place plays its own music and Top deck opens on Drive. The select shows the setting rather than the song, except when a place’s own music cannot load: then it names the style that stayed on.
 ```
 
 `PRODUCT.md`, after line 13 (the 1 October paragraph), add a blank line and:
 
 ```
-On 3 October they asked for a way back from a pick: **Each place’s own**, the first Music style option, so every place plays its own music again.
+On 3 October they asked for a way back from a pick: **Each place’s own**, the first Music style option, so every place plays its own music again. They also shortened the two synthwave names to **Dreamy** and **Drive**.
 ```
 
 `CLAUDE.md` line 7. Replace `a pick from Music style is remembered once and applies everywhere, and with no pick each place plays its own` with `a pick from Music style is remembered once and applies everywhere until Each place’s own clears it, and with no pick each place plays its own`. Then `cp CLAUDE.md AGENTS.md`.
@@ -315,7 +326,7 @@ Expected: every script exits 0 and all eight lines print `same`. Known flakes un
 
 - [ ] **Step 10: Look at the panel and run the design detector**
 
-Read `captures-scenes/mix-desktop.png`, `captures-scenes/mix-mobile.png`, `captures-scenes/mix-320.png`, `captures-synthwave/desktop-controls.png` and `captures-synthwave/phone-controls.png`. Confirm the Music style select is fully visible, keeps its width and its label, and nothing in the panel overflows.
+Read `captures-scenes/mix-desktop.png`, `captures-scenes/mix-mobile.png`, `captures-scenes/mix-320.png`, `captures-synthwave/desktop-controls.png` and `captures-synthwave/phone-controls.png`. Confirm the Music style select is fully visible, reads Each place’s own, Warm lofi, Dreamy or Drive, keeps its label, and nothing in the panel overflows. It narrows to about 143 px, because its width follows its widest option, now Each place’s own.
 
 ```bash
 /Users/shannonholgate/.claude/skills/impeccable/scripts/impeccable detect --json index.html
@@ -329,11 +340,12 @@ Expected: exit 0 with only the existing `design-system-color` advisory for the c
 git add index.html src/music/audio.ts src/main.ts scripts/verify-synthwave.mjs scripts/verify-scenes.mjs README.md DESIGN.md PRODUCT.md CLAUDE.md AGENTS.md
 git status --short   # only these files; no captures
 git commit -F - <<'EOF'
-feat: add Each place’s own to Music style
+feat: add Each place’s own and shorter style names
 
 A first Music style option forgets the saved pick, so every place plays
-its own music again and Top deck returns to Driving synthwave. The
-select now shows the listener's setting. With nothing picked, a place
+its own music again and Top deck returns to Drive. The two synthwaves
+are now named Dreamy and Drive. The select shows the listener's
+setting. With nothing picked, a place
 whose own music cannot load shows the style that stayed on, and its
 message points at Each place's own, which retries without saving a
 pick.
