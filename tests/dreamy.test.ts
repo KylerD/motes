@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PLACES } from '../src/places';
 import { composeSessionTrack, createSession, sessionAt } from '../src/session/session';
 
 describe('dreamy synthwave sessions', () => {
@@ -74,7 +75,7 @@ describe('dreamy synthwave sessions', () => {
   });
 
   it('keeps notes bounded, hook returns identical and after hours fresh', () => {
-    for (const mood of ['rain', 'meadow', 'snow', 'coast', 'deck'] as const) {
+    for (const { id: mood } of PLACES) {
       const plan = createSession(34, mood, 'dreamy');
       for (const index of [0, 1, 2, 3, 10, 16, 17, 18, 35]) {
         const track = composeSessionTrack(plan, index);

@@ -24,6 +24,6 @@ export default {
     const arrangement=index>=18?{...written,energy:Math.min(.56,written.energy),theme:synthTheme(randomSource(seed^Math.imul(index+1,0x2545f491)))}:written;
     return composeSynthwave(seed,place.id as Mood,index,arrangement);
   },
-  labels:{preparing:'Warming up the synths…',voice:t=>FAMILIES[t.family??'arpeggio']??FAMILIES.arpeggio},
+  labels:{name:'Dreamy',preparing:'Warming up the synths…',voice:t=>FAMILIES[t.family??'arpeggio']??FAMILIES.arpeggio},
   bank:dreamyBank,
 } satisfies MusicStyle;

@@ -59,6 +59,6 @@ export default {
     const arrangement=index>=18?{...written,energy:Math.min(.66,written.energy),stretch:false,theme:makeTheme(randomSource(seed^Math.imul(index+1,0x2545f491)))}:written;
     return {...composeTrack(seed,place.id as Mood,index,arrangement),style:'lofi'};
   },
-  labels:{preparing:'Preparing the piano…',voice:t=>({upright:'Upright piano',felt:'Felt piano',electric:'Electric keys',vibes:'Soft mallets'} as Record<string,string>)[t.voice]??'Upright piano'},
+  labels:{name:'Warm lofi',preparing:'Preparing the piano…',voice:t=>({upright:'Upright piano',felt:'Felt piano',electric:'Electric keys',vibes:'Soft mallets'} as Record<string,string>)[t.voice]??'Upright piano'},
   bank:lofiBank,
 } satisfies MusicStyle;

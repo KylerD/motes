@@ -1,6 +1,6 @@
 import './style.css';
 import { DEFAULT_MIX, RadioAudio } from './music/audio';
-import {isStyleId,playingStyle,type StyleId} from './music/styles';
+import {isStyleId,playingStyle,STYLES,type StyleId} from './music/styles';
 import { edition,dayLabel,localDay,validDay,isScene,SCENES,type SceneId } from './scenes/edition';
 import { PLACES } from './places';
 import { SceneRenderer } from './scenes/renderer';
@@ -118,6 +118,8 @@ for(const place of PLACES) {
   // The place you are on stays as it is: choosing it again only makes its link shareable.
   button.addEventListener('click',()=>{if(id!==current.scene)visit(current.day,id);else{scenePinned=true;updateUrl();closePanels();}});$('scene-list').append(button);
 }
+// Music style lists every registered style after Each place’s own.
+for(const [id,style] of Object.entries(STYLES))$('music-style').append(new Option(style.labels.name,id));
 $<HTMLInputElement>('edition-date').addEventListener('change',e=>{
   const date=(e.currentTarget as HTMLInputElement).value;
   if(validDay(date))visit(date);else say('Choose a valid date between 2000 and 2100.');

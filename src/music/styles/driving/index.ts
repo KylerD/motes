@@ -63,6 +63,6 @@ export default {
     const arrangement=index>=18?afterHours(written,slot.index,randomSource(seed^Math.imul(index+1,0x2545f491))):written;
     return {...composeSynthSong(arrangement,songSeed,title),index};
   },
-  labels:{preparing:'Warming up the synths…',voice:t=>LABELS[t.voice as SynthPatch]??LABELS.analog},
+  labels:{name:'Drive',preparing:'Warming up the synths…',voice:t=>LABELS[t.voice as SynthPatch]??LABELS.analog},
   bank:synthBank,
 } satisfies MusicStyle;

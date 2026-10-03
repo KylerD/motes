@@ -16,7 +16,7 @@ export interface MusicStyle {
   limits:{bpm:readonly [number,number];grid:2|4;perBar:number;meanPerBar:number;perTrack:number};
   planHour(random:()=>number,place:Place,seed:number):Slot[];
   compose(seed:number,place:Place,slot:Slot,index:number):Track;
-  labels:{preparing:string;voice(track:Pick<Track,'voice'|'family'>):string};
+  labels:{name:string;preparing:string;voice(track:Pick<Track,'voice'|'family'>):string};
   bank(graph:SoundGraph,signal?:AbortSignal):Promise<SoundBank>;
 }
 export const STYLES={lofi,dreamy,driving} satisfies Record<string,MusicStyle>;
