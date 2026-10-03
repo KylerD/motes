@@ -102,4 +102,11 @@ The synthwave sound builds from wide detuned pads into a rolling sixteenth-note 
 
 The mix check renders isolated music and atmosphere stems for all four scenes, with and without drums, across all four instrumental colours and the quietest late-session arrangements. At default levels and maximum weather gain, atmosphere must stay at least 18 dB below both the quiet opening and the theme in these fixtures. Scene-specific attenuation applies beneath the slider, so saved preferences receive the same calibration. Player and offline previews share the same defaults.
 
-Original application code: CC0 / public domain. Illustration prompts and piano provenance accompany their assets.
+## Licences
+
+- **Application code:** [AGPL-3.0](LICENSE). Code published up to and including commit `abf0a44` was dedicated to the public domain (CC0) and remains so.
+- **Music engine** (`src/music/`): [MIT](src/music/LICENSE), so radio can be embedded elsewhere with a credit line.
+- **Paintings, masks, evening arcs and the Motes identity** (`public/scenes/`, `public/brand/`): all rights reserved, to the extent rights exist. The Motes name and logo are covered by [TRADEMARKS.md](TRADEMARKS.md).
+- **Third-party assets keep their own licences:** the piano recordings are CC0 ([provenance](public/audio/README.md)) and the fonts use the SIL Open Font License ([sources](public/fonts/README.md)).
+
+Contributions need a contributor licence agreement; see [CONTRIBUTING.md](CONTRIBUTING.md). Illustration prompts and piano provenance accompany their assets.
