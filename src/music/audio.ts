@@ -1,4 +1,4 @@
-import { composeTrack, type Mood, type MusicMode, type MusicStyle, type Track } from './composer';
+import { composeTrack, type Mood, type MusicMode, type MusicStyle, type ScoreEvent, type Track } from './composer';
 import {createSession,composeSessionTrack,sessionAt,type SessionPlan,type MusicSessionPlan} from '../session/session';
 import {EnvironmentClock} from '../session/environment';
 import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, loadPiano, scheduleNote, setSoundMode, startAmbience, stopVoices, type SoundGraph, type PianoBank } from './sound';
@@ -256,15 +256,19 @@ export class RadioAudio {
   }
 }
 
-export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;ambience?:number;sampleRate?:number;standalone?:boolean;fromBeat?:number;fadeOut?:number}={}) {
+/** The events a song plays when it starts at beat `from`. Humanisation can perform a downbeat up to a few thousandths
+ *  of a beat early, so a start partway in keeps events within 0.05 beats before it (far short of any written pickup). */
+export const eventsFrom=(events:readonly ScoreEvent[],from:number)=>{const early=from>0?.05:0;return events.filter(event=>event.beat>=from-early);};
+
+export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;ambience?:number;sampleRate?:number;standalone?:boolean;fromBeat?:number;fadeIn?:number;fadeOut?:number}={}) {
   const seconds=Math.max(1,Math.min(300,options.seconds??90)),sampleRate=options.sampleRate??44100;
   const plan=createSession(options.seed??20260917,options.mood??'rain',options.style??'lofi');
   const score=(index:number)=>options.standalone&&plan.style==='lofi'?composeTrack(plan.seed,plan.mood,index):composeSessionTrack(plan,index);
   const track=score(options.index??0);
   const context=new OfflineAudioContext(2,Math.ceil(seconds*sampleRate),sampleRate);
   const graph=createGraph(context,plan.style==='lofi'?await loadPiano(context):new Map(),plan.seed);
-  graph.output.gain.setValueAtTime(0,0);graph.output.gain.linearRampToValueAtTime(1,0.3);
-  const fadeOut=Math.max(.05,options.fadeOut??.3);
+  const fadeIn=Math.max(.05,options.fadeIn??.3),fadeOut=Math.max(.05,options.fadeOut??.3);
+  graph.output.gain.setValueAtTime(0,0);graph.output.gain.linearRampToValueAtTime(1,fadeIn);
   graph.output.gain.setValueAtTime(1,seconds-fadeOut);graph.output.gain.linearRampToValueAtTime(0,seconds);
   graph.ambience.gain.value=options.ambience??DEFAULT_MIX.ambience;setSoundMode(graph,options.mode??'beats');
   if(track.session)for(let time=0;time<seconds;time+=.25){
@@ -275,9 +279,8 @@ export async function renderPreview(options:{seed?:number;mood?:Mood;index?:numb
   // `fromBeat` starts the first song partway in, as a clip starts at its theme.
   let song=track,start=0.05,index=options.index??0,from=Math.max(0,options.fromBeat??0);
   while(start<seconds) {
-    for(const event of song.events) {
-      if(event.beat<from)continue;
-      const at=start+(event.beat-from)*60/song.bpm;if(at>=seconds)break;
+    for(const event of eventsFrom(song.events,from)) {
+      const at=Math.max(0,start+(event.beat-from)*60/song.bpm);if(at>=seconds)break;
       scheduleNote(graph,event,at,60/song.bpm);
     }
     start+=(song.bars*4-from)*60/song.bpm;from=0;

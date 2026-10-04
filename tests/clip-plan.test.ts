@@ -1,5 +1,6 @@
 import {describe,expect,it} from 'vitest';
 import {CLIP,FRAMES,clipFrame,clipName,clipSession,loudnessGain,musicStartBeat} from '../src/clip/plan';
+import {eventsFrom} from '../src/music/audio';
 import {SCENE_IDS,edition} from '../src/scenes/edition';
 import {createSession,composeSessionTrack} from '../src/session/session';
 
@@ -52,6 +53,21 @@ describe('clip music and files',()=>{
     const head=track.sections.find(section=>section.role==='head')!;
     expect(musicStartBeat(track)).toBe(head.startBar*4);
     expect(musicStartBeat(track)).toBeGreaterThan(0);
+  });
+  it('keeps the first downbeat of the theme when humanisation sets it a hair early',()=>{
+    const track=composeSessionTrack(createSession(edition('2026-09-17','snow').seed,'snow'),0),from=musicStartBeat(track);
+    // This opening's head downbeat really is performed early, so a plain cut at the head would drop it.
+    expect(track.events.some(event=>event.beat<from&&event.beat>from-.01)).toBe(true);
+    const kept=eventsFrom(track.events,from),downbeat=(instrument:string)=>kept.some(event=>event.instrument===instrument&&Math.abs(event.beat-from)<.01);
+    for(const instrument of ['bass','kick'])expect(downbeat(instrument),`${instrument} on the head downbeat`).toBe(true);
+    // The intro, and anything else clearly before the head, still stays out.
+    expect(track.sections.find(section=>section.role==='intro')?.endBar).toBe(from/4);
+    expect(track.events.some(event=>event.beat<from-.05)).toBe(true);
+    expect(kept.filter(event=>event.beat<from-.05)).toEqual([]);
+  });
+  it.each(['lofi','synthwave'] as const)('plays a %s song from the top exactly as before',style=>{
+    const track=composeSessionTrack(createSession(20260917,'rain',style),0);
+    expect(eventsFrom(track.events,0)).toEqual(track.events.filter(event=>!(event.beat<0)));
   });
   it('starts at the top when a song has no theme section',()=>{
     expect(musicStartBeat({sections:[{name:'Tag',role:'tag',startBar:0,endBar:8}]})).toBe(0);
