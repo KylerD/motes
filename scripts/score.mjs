@@ -138,7 +138,7 @@ try {
   for(const viewport of [{width:1280,height:800},{width:390,height:844}]) {
     const context=await browser.newContext({viewport,reducedMotion:'reduce'}),page=await context.newPage();
     await page.goto(`${base}/?day=2026-09-17`);await page.waitForFunction(()=>performance.getEntriesByName('motes:painting').length>0);
-    for(const panel of [null,'mix','scenes','edition']) {
+    for(const panel of [null,'mix','scenes','edition','share']) {
       if(panel)await page.click(`#${panel}-toggle`);
       const found=(await new AxeBuilder({page}).analyze()).violations.filter(v=>v.impact==='serious'||v.impact==='critical');
       violations.push(...found.map(v=>`${viewport.width}px${panel?` ${panel} panel`:''}: ${v.id} (${v.nodes.length})`));

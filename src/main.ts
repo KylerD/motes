@@ -7,6 +7,7 @@ import {createSession,sessionAt} from './session/session';
 import {sceneLightAt} from './scenes/scene-light';
 import {frameDelay} from './scenes/frame-budget';
 import {shareLink,shareMessage} from './share/link';
+import {canMakeClips} from './clip/support';
 import {measuring,track} from './measure/analytics';
 import {addListening,crossed,parseWeek,weekOf,weeksSinceFirst,type WeekRecord} from './measure/listening';
 
@@ -51,7 +52,7 @@ let frameTimer:ReturnType<typeof setTimeout>|undefined;
 let previewSeconds:number|undefined;
 let statusTimer:ReturnType<typeof setTimeout>|undefined;
 let styleRequest=0,switchingStyle=false;
-const panelIds=['mix','scenes','edition'] as const;
+const panelIds=['mix','scenes','edition','share'] as const;
 type PanelId=typeof panelIds[number];
 let openPanel:PanelId|null=null;
 function say(message:string,persistent=false) {
@@ -60,13 +61,14 @@ function say(message:string,persistent=false) {
   if(!persistent)statusTimer=setTimeout(()=>{$('status').hidden=true;},5500);
 }
 function closePanels(focus=true) {
-  const previous=openPanel;
+  cancelClip();const previous=openPanel;
   for(const id of panelIds){$(`${id}-panel`).hidden=true;$(`${id}-toggle`).setAttribute('aria-expanded','false');}
   openPanel=null;if(focus&&previous)$(`${previous}-toggle`).focus();
 }
 function togglePanel(id:PanelId) {
   const shouldOpen=openPanel!==id;closePanels(false);
   if(shouldOpen){openPanel=id;$(`${id}-panel`).hidden=false;$(`${id}-toggle`).setAttribute('aria-expanded','true');$(`${id}-panel`).querySelector<HTMLElement>('input,button,select')?.focus();}
+  if(shouldOpen&&id==='share')void checkClipSupport();
 }
 for(const id of panelIds)$(`${id}-toggle`).addEventListener('click',()=>togglePanel(id));
 document.querySelectorAll('.close-panel').forEach(el=>el.addEventListener('click',()=>closePanels()));
@@ -152,7 +154,7 @@ function updatePlayer() {
 $('listen').addEventListener('click',()=>void toggleListening());
 async function share() {
   const url=shareLink(location.origin,current.scene,current.day,localDay());
-  const shared=(method:string)=>track('share',{method,place:current.scene});
+  const shared=(method:string)=>{track('share',{method,place:current.scene});closePanels();};
   if(navigator.share) {
     try{await navigator.share({...shareMessage(current.scene),url});shared('sheet');return;}
     catch(error){if(error instanceof DOMException&&error.name==='AbortError')return;}
@@ -160,7 +162,58 @@ async function share() {
   try{await navigator.clipboard.writeText(url);shared('copy');say('Link copied. Pass this place on to someone who needs a quiet hour.');}
   catch{shared('shown');say(`Copy this link to share the place: ${url}`,true);}
 }
-$('share').addEventListener('click',()=>void share());
+$('share-link').addEventListener('click',()=>void share());
+// Clips: the renderer and encoder (src/clip/export.ts) load only when someone makes one.
+let clipJob:AbortController|undefined,readyClip:File|undefined,clipSupport:Promise<boolean>|undefined;
+function clipState(state:'idle'|'working'|'ready'|'failed',message='') {
+  $('clip-progress').hidden=state!=='working';$('make-clip').hidden=state==='ready';$('clip-deliver').hidden=state!=='ready';
+  // Never re-enable the action in a browser that can't encode video.
+  if(state==='working')$<HTMLButtonElement>('make-clip').disabled=true;
+  else if(clipSupport)void clipSupport.then(supported=>{$<HTMLButtonElement>('make-clip').disabled=!supported;});
+  text('clip-make-label',state==='failed'?'Try again':'Make a 15-second clip');text('clip-status',message);
+}
+/** Closing the panel, or anything that closes it, abandons the clip. */
+function cancelClip() {clipJob?.abort();clipJob=undefined;readyClip=undefined;clipState('idle');}
+async function checkClipSupport() {
+  clipSupport??=canMakeClips();const supported=await clipSupport;
+  $<HTMLButtonElement>('make-clip').disabled=!supported;$('clip-unsupported').hidden=supported;
+}
+const sharesClip=(file:File)=>matchMedia('(pointer: coarse)').matches&&!!navigator.canShare?.({files:[file]});
+async function startClip() {
+  if(clipJob)return;
+  const job=new AbortController(),place=current,style=preferences.style;clipJob=job;readyClip=undefined;
+  clipState('working','Preparing the painting…');$<HTMLProgressElement>('clip-bar').value=0;
+  try {
+    const {makeClip}=await import('./clip/export');
+    const file=await makeClip(place,style,preferences.mode,{signal:job.signal,onProgress:(stage,fraction)=>{
+      if(job.signal.aborted)return;
+      const overall=stage==='frames'?.1+.9*fraction:stage==='music'?.05:0;
+      $<HTMLProgressElement>('clip-bar').value=Math.round(overall*100);
+      text('clip-status',stage==='frames'?`Painting the evening… ${Math.round(overall*100)}%`:stage==='music'?'Recording the music…':'Preparing the painting…');
+    }});
+    if(job.signal.aborted)return;
+    readyClip=file;clipState('ready','Your clip is ready.');
+    text('clip-deliver-label',sharesClip(file)?'Share clip':'Save clip');$('clip-deliver').focus();
+  } catch(error) {
+    if(job.signal.aborted)return;
+    clipState('failed',error instanceof Error&&error.name==='ClipPaintingError'?'The painting couldn’t load for the clip. Check your connection and try again.':'The clip couldn’t be made this time.');
+  } finally {if(clipJob===job)clipJob=undefined;}
+}
+/** A second tap: share sheets need a fresh gesture, which a long export outlives. */
+async function deliverClip() {
+  const file=readyClip;if(!file)return;
+  const done=(method:'sheet'|'download',message:string)=>{track('clip',{method,place:current.scene,style:preferences.style});text('clip-status',message);};
+  if(sharesClip(file)) {
+    try{await navigator.share({files:[file],...shareMessage(current.scene)});done('sheet','Shared. Thank you for passing it on.');return;}
+    catch(error){if(error instanceof DOMException&&error.name==='AbortError')return;}
+  }
+  const url=URL.createObjectURL(file),link=document.createElement('a');
+  link.href=url;link.download=file.name;document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  done('download','Saved to your downloads.');
+}
+$('make-clip').addEventListener('click',()=>void startClip());
+$('clip-deliver').addEventListener('click',()=>void deliverClip());
 $('next-track').addEventListener('click',()=>{audio.next();updatePlayer();});
 $<HTMLInputElement>('music-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.volume=value/100;audio.setVolume(preferences.volume);$('music-level').textContent=`${value}%`;$('music-volume').style.setProperty('--level',`${value}%`);savePreferences();});
 $<HTMLInputElement>('ambience-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.ambience=value/100;audio.setAmbience(preferences.ambience);$('ambience-level').textContent=`${value}%`;$('ambience-volume').style.setProperty('--level',`${value}%`);savePreferences();});
@@ -249,7 +302,7 @@ window.addEventListener('pagehide',e=>{
 window.addEventListener('pageshow',e=>{
   if(e.persisted){last=performance.now();repaint();if(cachedPlayback)void toggleListening();}
 });
-if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},get session(){return audio.session;},get environment(){return audio.environment;},get sessionPlan(){return createSession(current.seed,current.scene);},visit,
+if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},get session(){return audio.session;},get environment(){return audio.environment;},get clip(){return clipJob?'working':readyClip?'ready':'idle';},get sessionPlan(){return createSession(current.seed,current.scene);},visit,
   previewSession:(seconds:number,preserveMotion=false)=>{previewSeconds=Math.max(0,seconds);if(!preserveMotion)visualTime=seconds;renderer.draw(visualTime,performance.now(),sessionAt(createSession(current.seed,current.scene),previewSeconds));updatePlayer();},
   advance:(seconds:number)=>{visualTime+=seconds;renderer.draw(visualTime);},point:(u:number,v:number)=>renderer.point(u,v)}});
 updateEdition();repaint();

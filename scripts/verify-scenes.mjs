@@ -70,7 +70,7 @@ try {
     assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await phone.screenshot({path:`captures-scenes/${scene}-mobile.png`});
   }
-  for(const panel of ['mix','scenes','edition']) {
+  for(const panel of ['mix','scenes','edition','share']) {
     await phone.click(`#${panel}-toggle`);const box=await phone.locator(`#${panel}-panel`).boundingBox();
     if(panel==='scenes'){await thumbnails(phone);await settle(phone);}
     assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=391&&box.y+box.height<=845);
@@ -81,7 +81,7 @@ try {
   for(const viewport of [{width:320,height:568},{width:844,height:390}]) {
     await phone.setViewportSize(viewport);await settle(phone);
     assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-    for(const panel of ['mix','scenes','edition']) {
+    for(const panel of ['mix','scenes','edition','share']) {
       await phone.click(`#${panel}-toggle`);
       const box=await phone.locator(`#${panel}-panel`).boundingBox();
       assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=viewport.width+1&&box.y+box.height<=viewport.height+1);

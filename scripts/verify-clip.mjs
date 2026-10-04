@@ -30,6 +30,90 @@ try {
     assert.ok(clip.loudness>-30,`${scene} is too quiet (${clip.loudness} LUFS)`);
     report.clips[scene]={name,kb:Math.round(bytes.length/1024),...clip};
   }
+  // The Share panel: save on desktop, share on phones with a fresh gesture, cancel, stale and repeated clips, unsupported browsers.
+  const ready=page=>page.waitForFunction(()=>window.__motes?.ready&&window.__motes.rendering.lightingReady,null,{timeout:60000});
+  const openShare=async page=>{await page.click('#share-toggle');await page.waitForSelector('#share-panel:not([hidden])');};
+  const finished=page=>page.waitForFunction(()=>window.__motes.clip==='ready',null,{timeout:180000});
+  const desktop=await browser.newPage({viewport:{width:1280,height:800}});desktop.on('pageerror',error=>errors.push(error.message));
+  await desktop.addInitScript(()=>{window.__longest=0;new PerformanceObserver(list=>{for(const entry of list.getEntries())window.__longest=Math.max(window.__longest,entry.duration);}).observe({type:'longtask',buffered:false});});
+  await desktop.goto(`${base}/places/neon-rain/?day=${day}&debug`);await ready(desktop);
+  await desktop.click('#listen');await desktop.waitForFunction(()=>window.__motes.radio.playing);
+  await openShare(desktop);
+  assert.equal(await desktop.isEnabled('#make-clip'),true);assert.equal(await desktop.isHidden('#clip-unsupported'),true);
+  const ticks=await desktop.evaluate(()=>window.__motes.radio.ticks);
+  await desktop.evaluate(()=>{window.__longest=0;});
+  await desktop.click('#make-clip');await finished(desktop);
+  assert.ok(await desktop.evaluate(t=>window.__motes.radio.playing&&window.__motes.radio.ticks>t+8,ticks),'the radio keeps scheduling during an export');
+  const longest=await desktop.evaluate(()=>window.__longest);assert.ok(longest<250,`longest task during export ${longest}ms`);
+  assert.equal((await desktop.textContent('#clip-deliver-label')).trim(),'Save clip');
+  const [download]=await Promise.all([desktop.waitForEvent('download'),desktop.click('#clip-deliver')]);
+  assert.equal(download.suggestedFilename(),`motes-neon-rain-${day}.mp4`);
+  await download.saveAs(`captures/clips/panel-${download.suggestedFilename()}`);
+  const saved=await inspectClip(`captures/clips/panel-${download.suggestedFilename()}`);
+  assert.ok(Math.abs(saved.duration-15)<=.05&&saved.frames===450,'the panel saves a full clip');
+  report.panelSave=true;report.longestTaskMs=Math.round(longest);
+
+  // Repeat: a second clip in the same visit works, and the live picture keeps one composite.
+  await desktop.keyboard.press('Escape');await openShare(desktop);
+  await desktop.click('#make-clip');await finished(desktop);
+  assert.equal(await desktop.evaluate(()=>window.__motes.rendering.composites),1);report.repeat=true;
+
+  // Cancel: Escape mid-export stops the work and returns focus to Share.
+  await desktop.keyboard.press('Escape');await openShare(desktop);
+  await desktop.click('#make-clip');
+  await desktop.waitForFunction(()=>Number(document.querySelector('#clip-bar').value)>5,null,{timeout:60000});
+  await desktop.keyboard.press('Escape');
+  assert.equal(await desktop.evaluate(()=>document.activeElement?.id),'share-toggle');
+  assert.equal(await desktop.evaluate(()=>window.__motes.clip),'idle');
+  await desktop.waitForTimeout(1500);
+  await openShare(desktop);
+  assert.equal(await desktop.isVisible('#make-clip'),true);assert.equal(await desktop.isHidden('#clip-deliver'),true);
+  assert.equal((await desktop.textContent('#clip-status')).trim(),'');report.cancel=true;
+
+  // Stale: a ready clip doesn't survive a change of place.
+  await desktop.click('#make-clip');await finished(desktop);
+  await desktop.click('#scenes-toggle');await desktop.click('[data-place="snow"]');await ready(desktop);
+  await openShare(desktop);
+  assert.equal(await desktop.evaluate(()=>window.__motes.clip),'idle');assert.equal(await desktop.isHidden('#clip-deliver'),true);
+  report.stale=true;await desktop.close();
+
+  // Phone: share the file itself, from a fresh tap.
+  const phone=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:3});
+  phone.on('pageerror',error=>errors.push(error.message));
+  // Touch emulation alone doesn't always report a coarse pointer; set it explicitly.
+  await (await phone.context().newCDPSession(phone)).send('Emulation.setEmulatedMedia',{features:[{name:'pointer',value:'coarse'}]});
+  await phone.addInitScript(()=>{navigator.canShare=()=>true;navigator.share=async data=>{window.__sharedClip={active:navigator.userActivation.isActive,files:(data.files??[]).map(f=>({name:f.name,type:f.type,size:f.size}))};};});
+  await phone.goto(`${base}/places/the-last-chapter/?day=${day}&debug`);await ready(phone);
+  await openShare(phone);
+  const box=await phone.locator('#share-panel').boundingBox();
+  assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=391&&box.y+box.height<=845,'the panel fits the phone');
+  await phone.click('#make-clip');await finished(phone);
+  assert.equal((await phone.textContent('#clip-deliver-label')).trim(),'Share clip');
+  await phone.click('#clip-deliver');
+  const shared=await phone.evaluate(()=>window.__sharedClip);
+  assert.equal(shared.active,true,'the share sheet opens from a fresh gesture');
+  assert.deepEqual(shared.files.map(f=>[f.name,f.type]),[[`motes-the-last-chapter-${day}.mp4`,'video/mp4']]);
+  assert.ok(shared.files[0].size>1e6);report.phoneShare=true;await phone.close();
+
+  // Unsupported: no H.264 encoder means a clear, disabled action.
+  const old=await browser.newPage();old.on('pageerror',error=>errors.push(error.message));
+  await old.addInitScript(()=>{delete window.VideoEncoder;});
+  await old.goto(`${base}/?day=${day}&debug`);await ready(old);await openShare(old);
+  await old.waitForSelector('#clip-unsupported:not([hidden])');
+  assert.equal(await old.isDisabled('#make-clip'),true);
+  assert.match(await old.textContent('#clip-unsupported'),/Clips need a browser that can make video, such as Chrome, Edge or Safari\./);
+  report.unsupported=true;await old.close();
+
+  // A failed evening painting says so and offers Try again.
+  const offline=await browser.newPage();offline.on('pageerror',error=>errors.push(error.message));
+  await offline.route(/neon-rain-night\.(avif|webp|png)$/,route=>route.fulfill({status:503,body:''}));
+  await offline.goto(`${base}/places/neon-rain/?day=${day}&debug`);
+  await offline.waitForFunction(()=>window.__motes?.ready&&window.__motes.rendering.lightingFailed,null,{timeout:60000});
+  await openShare(offline);await offline.click('#make-clip');
+  await offline.waitForFunction(()=>document.querySelector('#clip-make-label')?.textContent==='Try again',null,{timeout:60000});
+  assert.match(await offline.textContent('#clip-status'),/painting couldn’t load for the clip/);
+  assert.equal(await offline.isEnabled('#make-clip'),true);
+  report.paintingFailure=true;await offline.close();
 } finally {await browser.close();await server.close();}
 report.errors=errors;
 console.log(JSON.stringify(report,null,1));

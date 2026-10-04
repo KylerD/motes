@@ -39,7 +39,7 @@
       <div class="identity"><h1><img class="brand-logo" src="/brand/motes-logo.svg" alt="Motes" width="486" height="114" /></h1><p>your quiet corner of the world.</p></div>
       <div class="header-actions">
         <button id="edition-toggle" class="text-button header-button" aria-expanded="false" aria-controls="edition-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="15" rx="2"/><path d="M8 3v6m8-6v6M4 12h16"/></svg><span id="edition-label">Today’s edition</span><span id="edition-short-label" aria-hidden="true">Today</span></button>
-        <button id="share" class="text-button header-button" data-share aria-label="Share this place" title="Share this place"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Share</span></button>
+        <button id="share-toggle" class="text-button header-button" aria-expanded="false" aria-controls="share-panel" aria-label="Share this place" title="Share this place"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Share</span></button>
         <button id="fullscreen" class="icon-button header-button" aria-label="Enter fullscreen" title="Enter fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m8 0h4v-4"/></svg></button>
         <button id="quiet" class="text-button header-button" aria-label="Hide controls" title="Hide controls · Escape to return"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10 10a3 3 0 0 0 4 4M9 5a13 13 0 0 1 3-.4c6 0 10 7.4 10 7.4a20 20 0 0 1-4 4M6 6a23 23 0 0 0-4 6s4 7.4 10 7.4a12 12 0 0 0 5-1"/></svg><span>Just the scene</span></button>
       </div>
@@ -78,6 +78,16 @@
       <div class="panel-heading"><h2 id="edition-title">A day worth returning to.</h2><button class="icon-button close-panel" aria-label="Close editions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <p>Each day brings a different place, light, weather and musical arrangement. Nothing to keep up with.</p>
       <label for="edition-date">Visit a day</label><input id="edition-date" type="date" min="2000-01-01" max="2100-12-31" /><button id="today" class="text-button">Come back to today</button>
+    </aside>
+    <aside id="share-panel" class="panel share-panel" aria-labelledby="share-title" hidden>
+      <div class="panel-heading"><h2 id="share-title">Pass this place on.</h2><button class="icon-button close-panel" aria-label="Close sharing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <p class="panel-intro">Send someone a quiet corner of their own.</p>
+      <button id="share-link" class="share-action" data-share><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span>Send a link<small>To this place, just as it is today.</small></span></button>
+      <button id="make-clip" class="share-action" data-clip><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="m10 9 5 3-5 3Z"/></svg><span><span id="clip-make-label">Make a 15-second clip</span><small>Arrival to evening, with its music. Vertical, for Reels, TikTok and Shorts.</small></span></button>
+      <div id="clip-progress" class="clip-progress" hidden><progress id="clip-bar" max="100" value="0" aria-label="Clip progress"></progress></div>
+      <button id="clip-deliver" class="clip-deliver" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span id="clip-deliver-label">Save clip</span></button>
+      <p id="clip-status" class="clip-status" role="status" aria-live="polite"></p>
+      <p id="clip-unsupported" class="panel-note" hidden>Clips need a browser that can make video, such as Chrome, Edge or Safari.</p>
     </aside>
     <button id="return-controls" class="return-controls" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11a8 8 0 0 1 16 0v9M3 20h18"/><circle cx="12" cy="12" r="2"/></svg>Show controls</button>
     <div id="art-status" class="art-status" role="status"><p id="art-message">Finding a quiet place…</p><button id="retry-art" class="small-button" hidden>Try again</button></div>
