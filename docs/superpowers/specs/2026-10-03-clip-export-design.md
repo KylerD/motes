@@ -7,7 +7,7 @@ User approved the design on 2026-10-03, choosing a slow pan for framing and a Sh
 Share now opens a cream panel, "Pass this place on.", with two actions:
 
 - **Send a link:** the existing share-sheet, copy or show-link behaviour.
-- **Make a 15-second clip:** with the line "Arrival to evening, with its music. Vertical, for Reels, TikTok and Shorts." It shows progress while it works ("Painting the evening… 40%"). When the clip is ready, a browser that can share files opens the share sheet with the video; otherwise the MP4 downloads. Either way the panel confirms quietly.
+- **Make a 15-second clip:** with the line "Arrival to evening, with its music. Vertical, for Reels, TikTok and Shorts." It shows progress while it works ("Painting the evening… 40%"). When the clip is ready, a second tap shares it: phones and tablets that can share files get "Share clip" (a share sheet needs a fresh gesture, which a long export outlives); everyone else gets "Save clip", which downloads the MP4. Either way the panel confirms quietly.
 
 The panel follows the other panels: labelled, scrollable on short screens, closed by Escape or its close button with focus returned to Share. Closing it cancels a clip in progress. The music keeps playing throughout, and the clip never changes the live picture, clocks or preferences.
 
