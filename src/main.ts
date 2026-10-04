@@ -167,10 +167,13 @@ $('share-link').addEventListener('click',()=>void share());
 let clipJob:AbortController|undefined,readyClip:File|undefined,clipSupport:Promise<boolean>|undefined;
 function clipState(state:'idle'|'working'|'ready'|'failed',message='') {
   $('clip-progress').hidden=state!=='working';$('make-clip').hidden=state==='ready';$('clip-deliver').hidden=state!=='ready';
-  // Never re-enable the action in a browser that can't encode video.
-  if(state==='working')$<HTMLButtonElement>('make-clip').disabled=true;
-  else if(clipSupport)void clipSupport.then(supported=>{$<HTMLButtonElement>('make-clip').disabled=!supported;});
-  text('clip-make-label',state==='failed'?'Try again':'Make a 15-second clip');text('clip-status',message);
+  // Working keeps the action focusable, so focus never drops to the page, where Space would pause the music.
+  // `disabled` is left to checkClipSupport, for browsers that can't encode video.
+  attribute('make-clip','aria-disabled',String(state==='working'));
+  text('clip-make-label',state==='failed'?'Try again':'Make a 15-second clip');text('clip-status',message);text('clip-percent','');
+  // Failure hands focus to Try again, unless the listener has moved on outside the panel.
+  const focused=document.activeElement;
+  if(state==='failed'&&(!focused||focused===document.body||$('share-panel').contains(focused)))$('make-clip').focus();
 }
 /** Closing the panel, or anything that closes it, abandons the clip. */
 function cancelClip() {clipJob?.abort();clipJob=undefined;readyClip=undefined;clipState('idle');}
@@ -189,7 +192,9 @@ async function startClip() {
       if(job.signal.aborted)return;
       const overall=stage==='frames'?.1+.9*fraction:stage==='music'?.05:0;
       $<HTMLProgressElement>('clip-bar').value=Math.round(overall*100);
-      text('clip-status',stage==='frames'?`Painting the evening… ${Math.round(overall*100)}%`:stage==='music'?'Recording the music…':'Preparing the painting…');
+      // The live region announces each stage once; the percentage is for the eye, and the progress bar carries it for assistive tech.
+      text('clip-status',stage==='frames'?'Painting the evening…':stage==='music'?'Recording the music…':'Preparing the painting…');
+      text('clip-percent',stage==='frames'?`${Math.round(overall*100)}%`:'');
     }});
     if(job.signal.aborted)return;
     readyClip=file;clipState('ready','Your clip is ready.');

@@ -42,8 +42,18 @@ try {
   assert.equal(await desktop.isEnabled('#make-clip'),true);assert.equal(await desktop.isHidden('#clip-unsupported'),true);
   const ticks=await desktop.evaluate(()=>window.__motes.radio.ticks);
   await desktop.evaluate(()=>{window.__longest=0;});
-  await desktop.click('#make-clip');await finished(desktop);
+  // Screen readers hear each stage once: record every change to the live region's text.
+  await desktop.evaluate(()=>{window.__announced=[];new MutationObserver(records=>{for(const record of records)window.__announced.push(record.type==='characterData'?record.target.textContent:[...record.addedNodes].map(node=>node.textContent).join(''));}).observe(document.querySelector('#clip-status'),{childList:true,characterData:true,subtree:true});});
+  await desktop.click('#make-clip');
+  await desktop.waitForFunction(()=>/^Painting the evening… \d+%$/.test(document.querySelector('.clip-status').innerText.trim()),null,{timeout:60000});
+  // Working keeps focus on the action, so Space can't reach the page and pause the music.
+  assert.deepEqual(await desktop.evaluate(()=>[document.activeElement?.id,document.activeElement?.getAttribute('aria-disabled')]),['make-clip','true']);
+  await desktop.keyboard.press('Space');
+  await finished(desktop);
   assert.ok(await desktop.evaluate(t=>window.__motes.radio.playing&&window.__motes.radio.ticks>t+8,ticks),'the radio keeps scheduling during an export');
+  const announced=await desktop.evaluate(()=>window.__announced);
+  assert.deepEqual(announced,['Preparing the painting…','Recording the music…','Painting the evening…','Your clip is ready.']);
+  report.announcements=announced.length;
   const longest=await desktop.evaluate(()=>window.__longest);assert.ok(longest<250,`longest task during export ${longest}ms`);
   assert.equal((await desktop.textContent('#clip-deliver-label')).trim(),'Save clip');
   const [download]=await Promise.all([desktop.waitForEvent('download'),desktop.click('#clip-deliver')]);
@@ -109,10 +119,11 @@ try {
   await offline.route(/neon-rain-night\.(avif|webp|png)$/,route=>route.fulfill({status:503,body:''}));
   await offline.goto(`${base}/places/neon-rain/?day=${day}&debug`);
   await offline.waitForFunction(()=>window.__motes?.ready&&window.__motes.rendering.lightingFailed,null,{timeout:60000});
-  await openShare(offline);await offline.click('#make-clip');
+  await openShare(offline);await offline.focus('#make-clip');await offline.keyboard.press('Enter');
   await offline.waitForFunction(()=>document.querySelector('#clip-make-label')?.textContent==='Try again',null,{timeout:60000});
   assert.match(await offline.textContent('#clip-status'),/painting couldn’t load for the clip/);
   assert.equal(await offline.isEnabled('#make-clip'),true);
+  assert.equal(await offline.evaluate(()=>document.activeElement?.id),'make-clip','focus returns to Try again');
   report.paintingFailure=true;await offline.close();
 } finally {await browser.close();await server.close();}
 report.errors=errors;
