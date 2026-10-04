@@ -1,5 +1,6 @@
 import {describe,expect,it} from 'vitest';
-import {CLIP,FRAMES,clipFrame,clipName,loudnessGain,musicStartBeat} from '../src/clip/plan';
+import {CLIP,FRAMES,clipFrame,clipName,clipSession,loudnessGain,musicStartBeat} from '../src/clip/plan';
+import {SCENE_IDS,edition} from '../src/scenes/edition';
 import {createSession,composeSessionTrack} from '../src/session/session';
 
 describe('the clip timeline',()=>{
@@ -26,6 +27,22 @@ describe('the clip timeline',()=>{
     expect(clipFrame(12*30+12).title).toBeGreaterThan(0);
     expect(clipFrame(12*30+12).title).toBeLessThan(1);
     expect(clipFrame(13*30).title).toBe(1);
+  });
+});
+
+describe('the clip scenery',()=>{
+  // 2026-09-17 and 2026-10-03 put the rain's shower inside the clip's 200× evening, where it would surge for half a second.
+  it.each(['2026-09-17','2026-10-03','2026-10-04','2026-12-24'])('changes its weather smoothly from frame to frame on %s, with no session events',day=>{
+    for(const scene of SCENE_IDS) {
+      const plan=createSession(edition(day,scene).seed,scene);
+      let previous=clipSession(plan,clipFrame(0).listening).weather,jump=0;
+      for(let i=1;i<FRAMES;i++) {
+        const state=clipSession(plan,clipFrame(i).listening);
+        expect(state.events).toEqual([]);
+        jump=Math.max(jump,Math.abs(state.weather-previous));previous=state.weather;
+      }
+      expect(jump,`${scene}'s largest weather step between frames`).toBeLessThan(.02);
+    }
   });
 });
 

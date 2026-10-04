@@ -1,11 +1,11 @@
 import type {MusicMode,MusicStyle} from '../music/composer';
 import {SCENES,type Edition} from '../scenes/edition';
 import {SceneRenderer} from '../scenes/renderer';
-import {createSession,sessionAt} from '../session/session';
+import {createSession} from '../session/session';
 import {encodeClip} from './encode';
 import {renderClipMusic} from './music';
 import {drawOverlay} from './overlay';
-import {CLIP,clipFrame,clipName} from './plan';
+import {CLIP,clipFrame,clipName,clipSession} from './plan';
 
 export type ClipStage='painting'|'music'|'frames';
 export class ClipPaintingError extends Error {name='ClipPaintingError';}
@@ -45,8 +45,7 @@ export async function makeClip(edition:Edition,style:MusicStyle,mode:MusicMode,
     const blob=await encodeClip(canvas,music,index=>{
       const frame=clipFrame(index);
       renderer.setPan(frame.pan);
-      // Session events would flicker past at 200×, so the clip leaves them out.
-      renderer.draw(frame.time,performance.now(),{...sessionAt(plan,frame.listening),events:[]});
+      renderer.draw(frame.time,performance.now(),clipSession(plan,frame.listening));
       drawOverlay(ctx,frame,{logo,title});
     },{signal,onProgress:fraction=>onProgress?.('frames',fraction)});
     return new File([blob],clipName(SCENES[edition.scene].slug,edition.day),{type:'video/mp4'});

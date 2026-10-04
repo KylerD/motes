@@ -1,4 +1,5 @@
 import type {Track} from '../music/composer';
+import {sessionAt,type MusicSessionPlan,type SessionState} from '../session/session';
 
 /** Everything that defines a Motes clip (docs/superpowers/specs/2026-10-03-clip-export-design.md). */
 export const CLIP={
@@ -25,6 +26,10 @@ export function clipFrame(index:number):ClipFrame {
   return {time,listening:CLIP.evening*smooth(time/CLIP.settleBy),pan:from+(to-from)*smooth(time/CLIP.seconds),
     title:smooth((time-CLIP.titleFrom)/CLIP.titleFade)};
 }
+
+/** The scenery's session at a frame's listening time. Session events would flicker past at 200×, so the clip samples
+ *  a plan without them: emptying `events` afterwards would still leave the rain's shower surging through `weather`. */
+export const clipSession=(plan:MusicSessionPlan,listening:number):SessionState=>sessionAt({...plan,events:[]},listening);
 
 /** The clip's music starts where the song first states its theme, not in the sparse intro. */
 export function musicStartBeat(track:Pick<Track,'sections'>):number {
