@@ -25,9 +25,12 @@ export async function encodeClip(canvas:HTMLCanvasElement,music:AudioBuffer,draw
     }
     signal?.throwIfAborted();
     await output.finalize();
+    // Mediabunny ignores cancel() while finalizing, so a late cancel must still discard the file.
+    signal?.throwIfAborted();
     return new Blob([output.target.buffer!],{type:'video/mp4'});
   } catch(error) {
     if(output.state!=='canceled'&&output.state!=='finalized')await output.cancel().catch(()=>undefined);
-    throw error;
+    // A cancel surfaces inside Mediabunny as its own error; callers should see why they stopped.
+    throw signal?.aborted?signal.reason:error;
   } finally {signal?.removeEventListener('abort',stop);}
 }
