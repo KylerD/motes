@@ -11,13 +11,15 @@ npm ci
 npm run dev -- --host 127.0.0.1 --port 5175
 ```
 
-`npm run build` produces a static `dist/` site. There is no backend, account, runtime npm dependency, API key or daily content-generation job. Fonts, illustrations and piano samples are bundled locally; the page makes no font-service requests.
+`npm run build` produces a static `dist/` site. There is no backend, account or daily content-generation job. The only runtime dependencies, Mediabunny and its AAC encoder extension (both MPL-2.0), load only when someone makes a clip.
+
+Analytics are off unless the build sets `VITE_POSTHOG_KEY` (the PostHog project token) and `VITE_POSTHOG_HOST` (a proxy path such as `/ingest` on motes.sh, or PostHog's own host). The PostHog project needs **Cookieless tracking** turned on under Settings › Web analytics, or it discards the events. Motes then sends a handful of anonymous events: arrival (with its `ref`), the first Listen, 5, 20 and 60 audible minutes, one `engaged_week` per week, and shares. Nothing identifying is sent; PostHog derives a daily, salted visitor hash on its servers. The browser keeps only this week's audible minutes and the week it first listened, and sends nothing when Global Privacy Control or Do Not Track is on. Fonts, illustrations and piano samples are bundled locally; the page makes no font-service requests.
 
 ## Listen
 
 Choose **Warm lofi** or **Dreamy synthwave** under **Sound & motion → Music style**. **Drums** is a separate On/Off choice for either style. Both preferences are remembered. Switching styles gently fades to a new musical hour while the scenery keeps its place in the evening; changing styles while paused stays paused. Synthwave starts without downloading piano samples. If a switch to lofi cannot load its piano, the current music continues and selecting lofi again retries.
 
-**Listen** starts the radio. **Next track** moves to another arrangement. **Sound & motion** controls music and scene sounds separately, offers a version without drums, and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. **Just the scene** hides the controls; Escape restores them.
+**Listen** starts the radio. **Next track** moves to another arrangement. **Sound & motion** controls music and scene sounds separately, offers a version without drums, and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. **Share** passes the current place on: send a link, or make a 15-second vertical clip of its arrival-to-evening light with its music. **Just the scene** hides the controls; Escape restores them.
 
 The shelter-and-mote logo, warm brown radio, amber playback button and cream settings panels give every place the same welcoming interface. Original SVG brand masters live in [public/brand](public/brand/README.md); the self-hosted Nunito Sans and EB Garamond fonts retain their [licenses and sources](public/fonts/README.md). Desktop, phone and short landscape layouts keep the listening controls within reach.
 
@@ -35,7 +37,7 @@ On browsers supporting the Audio Session API, Listen requests the music playback
 
 The four paintings are authored assets, not new AI images generated each day. Each date changes the selected place and its seed for music, weather intensity, wind, light and event timing. Water reflections move; rain makes ripples, snow drifts, steam curls above cups, butterflies and distant birds pass through. A tap inside painted water makes a ripple. Reduced-motion preference starts with the scene still, independently of the radio.
 
-The same date and place reproduce the same starting edition. An open session receives a quiet invitation at midnight instead of an abrupt change. Visiting today's edition resets to the daily place; an explicit scene URL pins a chosen place. Examples: `/?day=2026-09-17`, `/?day=2026-09-17&scene=snow`.
+The same date and place reproduce the same starting edition. An open session receives a quiet invitation at midnight instead of an abrupt change. Visiting today's edition resets to the daily place. Choosing a place moves to that place's own page, which pins it and carries its own link preview. Examples: `/?day=2026-09-17`, `/places/last-light-station/?day=2026-09-17`. Older `?scene=snow` links still open the place.
 
 Listening gradually deepens the light, changes the weather and warms windows. A train briefly visits the snowy station, a small boat crosses the bay, birds and butterflies pass through the meadow, and a shower passes over the city. These moments belong to the hour rather than repeating every few seconds. A separate clock counts actual listening time: Pause holds it, Next changes only the music, and Still freezes only the picture. The clock continues during normal background listening and starts fresh on arrival in another edition, while the current song finishes naturally. After the hour, the scene stays in its evening state.
 
@@ -48,7 +50,9 @@ Every place has a matched evening painting. Over roughly fifty minutes, the sky,
 
 Water animation samples the changing painting, so reflections follow the sky. Local lamps and scene captions follow each place's lighting arc. These are four original compositions with four additional lighting states, not eight separate places. Paintings load when their place is visited; revisits reuse the decoded images, and only the active place keeps a full-size composite. If evening artwork fails, the original remains visible with a retry action.
 
-Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. If an image fails, sound and controls remain available with a retry action.
+Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. Each browser receives AVIF, WebP or the original PNG, whichever is the lightest it can decode. The evening painting waits until the arrival painting has loaded. If an image fails, sound and controls remain available with a retry action. After changing a painting, run `node scripts/encode-scenes.mjs` to rebuild its AVIF/WebP copies, the place thumbnail, the link-preview card and the app icons.
+
+The scene paints at a steady 30 frames a second, 60 during crossfades and ripples. A still picture is redrawn only when something about it changes, so a tab left open for hours stays light.
 
 ## Code
 
@@ -56,6 +60,12 @@ Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWO
 | --- | --- |
 | `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
+| `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
+| `src/scenes/painting-source.ts` | AVIF → WebP → PNG painting fallback |
+| `src/share/pages.ts`, `vite.config.ts` | Per-place pages and link previews, built beside the home page |
+| `src/share/link.ts` | Share links and messages for the current place |
+| `src/clip/` | Clip timeline, offline music, overlays, H.264/AAC encoding and the export job |
+| `src/measure/` | Weekly engaged listening, visit milestones and cookieless PostHog events |
 | `src/scenes/session-effects.ts` | Gradual evening light, train, boat, birds, butterflies and fireflies |
 | `src/scenes/scene-light.ts` | Lighting arcs and spatial masks for all four places; cached painting compositing |
 | `src/scenes/meadow-light.ts` | Meadow timing for sunlight, lantern light and fireflies |
@@ -82,8 +92,14 @@ node scripts/verify-mix.mjs synthwave
 node scripts/verify-synthwave.mjs
 node scripts/verify-synthwave-sound.mjs
 node scripts/verify-sessions.mjs
+node scripts/verify-clip.mjs
+node scripts/render-clip.mjs [day] [place] [style]
 node scripts/render-music-preview.mjs
 ```
+
+The two clip scripts need installed Chrome and ffmpeg/ffprobe on the PATH; clips land in `captures/clips/`.
+
+`npm run score` scores a change against the gates in [GOAL.md](GOAL.md): CPU against a YouTube lofi stream, first load on a slow phone, accessibility and link previews. `npm run score -- --full` also runs every check above. The CPU gate opens visible Chrome windows; installed Chrome is preferred.
 
 Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, canvas sizing after a late viewport change with no window resize, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
 
@@ -95,4 +111,12 @@ The synthwave sound builds from wide detuned pads into a rolling sixteenth-note 
 
 The mix check renders isolated music and atmosphere stems for all four scenes, with and without drums, across all four instrumental colours and the quietest late-session arrangements. At default levels and maximum weather gain, atmosphere must stay at least 18 dB below both the quiet opening and the theme in these fixtures. Scene-specific attenuation applies beneath the slider, so saved preferences receive the same calibration. Player and offline previews share the same defaults.
 
-Original application code: CC0 / public domain. Illustration prompts and piano provenance accompany their assets.
+## Licences
+
+- **Application code:** [AGPL-3.0](LICENSE). Code published up to and including commit `abf0a44` was dedicated to the public domain (CC0) and remains so.
+- **Music engine** (`src/music/`): [MIT](src/music/LICENSE), so radio can be embedded elsewhere with a credit line.
+- **Paintings, masks, evening arcs and the Motes identity** (`public/scenes/`, `public/brand/`): all rights reserved, to the extent rights exist. The Motes name and logo are covered by [TRADEMARKS.md](TRADEMARKS.md).
+- **The clip encoder uses Mediabunny (MPL-2.0)** and, where a browser lacks native AAC, `@mediabunny/aac-encoder` (MPL-2.0, a WebAssembly build of FFmpeg's LGPL AAC encoder).
+- **Third-party assets keep their own licences:** the piano recordings are CC0 ([provenance](public/audio/README.md)) and the fonts use the SIL Open Font License ([sources](public/fonts/README.md)).
+
+Contributions need a contributor licence agreement; see [CONTRIBUTING.md](CONTRIBUTING.md). Illustration prompts and piano provenance accompany their assets.

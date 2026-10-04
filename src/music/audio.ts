@@ -1,4 +1,4 @@
-import { composeTrack, type Mood, type MusicMode, type MusicStyle, type Track } from './composer';
+import { composeTrack, type Mood, type MusicMode, type MusicStyle, type ScoreEvent, type Track } from './composer';
 import {createSession,composeSessionTrack,sessionAt,type SessionPlan,type MusicSessionPlan} from '../session/session';
 import {EnvironmentClock} from '../session/environment';
 import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, loadPiano, scheduleNote, setSoundMode, startAmbience, stopVoices, type SoundGraph, type PianoBank } from './sound';
@@ -38,10 +38,13 @@ export class RadioAudio {
   private ticks=0;
   private compositions=0;
   private environmentClock=new EnvironmentClock();
+  /** Every second of playback on this page, never reset by visiting another place. */
+  private listeningClock=new EnvironmentClock();
 
   constructor(private seed:number,private mood:Mood) {this.environmentPlan=createSession(seed,mood);this.plan=this.environmentPlan;this.track=this.makeTrack();}
 
   get playing() {return this.running;}
+  get listenedSeconds() {return this.listeningClock.seconds(this.context?.currentTime??0);}
   get environment() {return sessionAt(this.environmentPlan,this.environmentClock.seconds(this.context?.currentTime??0));}
   get session() {
     const {track,beat}=this.position();
@@ -94,13 +97,13 @@ export class RadioAudio {
         const now=context.currentTime;
         stopVoices(graph,now,0.025);
         this.segments=[this.segment(this.track,now+0.09-this.beat*60/this.track.bpm,this.beat)];
-        this.running=true;this.environmentClock.start(now);
+        this.running=true;this.environmentClock.start(now);this.listeningClock.start(now);
         startAmbience(graph,this.mood,now+0.02);
         holdParameter(graph.output.gain,now);graph.output.gain.linearRampToValueAtTime(1,now+0.35);
         this.tick();
         this.timer=setInterval(()=>this.tick(),250);
       }catch(error){
-        this.environmentClock.pause(context.currentTime);
+        this.environmentClock.pause(context.currentTime);this.listeningClock.pause(context.currentTime);
         this.running=false;this.wanted=false;this.abort?.abort();
         if(this.graph){disposeGraph(this.graph);this.graph=undefined;}
         if(context.state!=='closed')await context.close().catch(()=>undefined);
@@ -115,7 +118,7 @@ export class RadioAudio {
     this.wanted=false;
     if(!this.running)return;
     const position=this.position();this.track=position.track;this.beat=position.beat;
-    this.environmentClock.pause(this.context?.currentTime??0);
+    this.environmentClock.pause(this.context?.currentTime??0);this.listeningClock.pause(this.context?.currentTime??0);
     // Pausing discards look-ahead segments; recreate the immediate successor on resume.
     this.index=this.track.sessionPlan===this.plan?this.track.index+1:0;
     this.running=false;
@@ -253,28 +256,34 @@ export class RadioAudio {
   }
 }
 
-export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;ambience?:number;sampleRate?:number;standalone?:boolean}={}) {
+/** The events a song plays when it starts at beat `from`. Humanisation can perform a downbeat up to a few thousandths
+ *  of a beat early, so a start partway in keeps events within 0.05 beats before it (far short of any written pickup). */
+export const eventsFrom=(events:readonly ScoreEvent[],from:number)=>{const early=from>0?.05:0;return events.filter(event=>event.beat>=from-early);};
+
+export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;ambience?:number;sampleRate?:number;standalone?:boolean;fromBeat?:number;fadeIn?:number;fadeOut?:number}={}) {
   const seconds=Math.max(1,Math.min(300,options.seconds??90)),sampleRate=options.sampleRate??44100;
   const plan=createSession(options.seed??20260917,options.mood??'rain',options.style??'lofi');
   const score=(index:number)=>options.standalone&&plan.style==='lofi'?composeTrack(plan.seed,plan.mood,index):composeSessionTrack(plan,index);
   const track=score(options.index??0);
   const context=new OfflineAudioContext(2,Math.ceil(seconds*sampleRate),sampleRate);
   const graph=createGraph(context,plan.style==='lofi'?await loadPiano(context):new Map(),plan.seed);
-  graph.output.gain.setValueAtTime(0,0);graph.output.gain.linearRampToValueAtTime(1,0.3);
-  graph.output.gain.setValueAtTime(1,seconds-0.3);graph.output.gain.linearRampToValueAtTime(0,seconds);
+  const fadeIn=Math.max(.05,options.fadeIn??.3),fadeOut=Math.max(.05,options.fadeOut??.3);
+  graph.output.gain.setValueAtTime(0,0);graph.output.gain.linearRampToValueAtTime(1,fadeIn);
+  graph.output.gain.setValueAtTime(1,seconds-fadeOut);graph.output.gain.linearRampToValueAtTime(0,seconds);
   graph.ambience.gain.value=options.ambience??DEFAULT_MIX.ambience;setSoundMode(graph,options.mode??'beats');
   if(track.session)for(let time=0;time<seconds;time+=.25){
     const weather=Math.max(.75,Math.min(1.12,sessionAt(plan,track.session.offset+time).weather));
     graph.ambience.gain.setTargetAtTime((options.ambience??DEFAULT_MIX.ambience)*weather,time,3);
   }
   startAmbience(graph,options.mood??'rain',0);
-  let song=track,start=0.05,index=options.index??0;
+  // `fromBeat` starts the first song partway in, as a clip starts at its theme.
+  let song=track,start=0.05,index=options.index??0,from=Math.max(0,options.fromBeat??0);
   while(start<seconds) {
-    for(const event of song.events) {
-      const at=start+event.beat*60/song.bpm;if(at>=seconds)break;
+    for(const event of eventsFrom(song.events,from)) {
+      const at=Math.max(0,start+(event.beat-from)*60/song.bpm);if(at>=seconds)break;
       scheduleNote(graph,event,at,60/song.bpm);
     }
-    start+=song.bars*4*60/song.bpm;
+    start+=(song.bars*4-from)*60/song.bpm;from=0;
     song=score(++index);
   }
   const buffer=await context.startRendering();disposeGraph(graph);

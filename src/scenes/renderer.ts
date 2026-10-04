@@ -1,8 +1,10 @@
 import { SCENES, type Edition, type Point, type SceneId } from './edition';
 import type {SessionState} from '../session/session';
 import {drawSessionEffects} from './session-effects';
+import {coverLayout} from './cover';
 import {meadowLightAt} from './meadow-light';
 import {SceneLight,sceneLightAt} from './scene-light';
+import {loadPainting} from './painting-source';
 
 const TAU = Math.PI*2;
 const noise = (n: number) => { const f = Math.sin(n*127.1+311.7)*43758.5453; return f-Math.floor(f); };
@@ -24,22 +26,34 @@ export class SceneRenderer {
   private eveningFailures=new Set<SceneId>();
   private sceneLight?:SceneLight;
   private observer?:ResizeObserver;
+  /** What a still picture last showed; an unchanged still picture is not redrawn. */
+  private drawn?:string;
+  private painted=false;
   motion = true;
-  constructor(private canvas: HTMLCanvasElement, public edition: Edition) {
+  /** A clip renders at a fixed size instead of measuring the page. */
+  private size?:{width:number;height:number;ratio:number};
+  private pan?:number;
+  /** Called when a painting arrives or fails, so a still picture can repaint promptly. */
+  onChange?:()=>void;
+  constructor(private canvas: HTMLCanvasElement, public edition: Edition, options:{size?:{width:number;height:number;ratio:number}}={}) {
     const ctx = canvas.getContext('2d',{alpha:false});
     if (!ctx) throw new Error('This browser could not open the scene. Try reloading the page.');
-    this.ctx = ctx; this.load(edition.scene); this.resize();
+    this.ctx = ctx; this.size = options.size; this.load(edition.scene); this.resize();
     // The canvas box can change without any window resize event: phones re-resolve
     // dynamic viewport units after the first layout, fullscreen changes the host,
     // fonts and panels reflow. Follow the element itself, not the window.
-    if(typeof ResizeObserver!=='undefined') {
-      this.observer=new ResizeObserver(()=>this.resize());
+    if(!this.size&&typeof ResizeObserver!=='undefined') {
+      // Resizing clears the bitmap, so ask for a frame now rather than at a still picture's next check.
+      this.observer=new ResizeObserver(()=>{this.resize();this.onChange?.();});
       this.observer.observe(canvas);
     }
   }
-  get ready() { return !!this.images.get(this.edition.scene)?.naturalWidth; }
+  /** Dimensions arrive before the pixels, so a painting is ready only once it has fully loaded. */
+  get ready() { const image=this.images.get(this.edition.scene); return !!image?.complete&&!!image.naturalWidth; }
   get lightingFailed() {return this.eveningFailures.has(this.edition.scene);}
   get failed() { return this.failures.has(this.edition.scene)||this.lightingFailed; }
+  /** Crossfades and ripples deserve smoother frames than the steady scene. */
+  get smooth() { return !!this.previous||this.ripples.length>0; }
   get diagnostics() { return { images:this.images.size,eveningImages:this.evenings.size,composites:this.sceneLight?1:0, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.sceneLight,lightingFailed:this.lightingFailed,bitmap:[this.canvas.width,this.canvas.height],box:[this.width,this.height],ratio:this.ratio }; }
   setEdition(next: Edition): void {
     if(this.ready && this.motion) {
@@ -48,12 +62,14 @@ export class SceneRenderer {
       this.previous.getContext('2d')!.drawImage(this.canvas,0,0);
     }
     this.sceneLight?.dispose();this.sceneLight=undefined;
-    this.changedAt = 0; this.edition = next; this.ripples = []; this.journey=undefined;this.load(next.scene); this.layout();
+    this.changedAt = 0; this.edition = next; this.ripples = []; this.journey=undefined;this.drawn=undefined;this.load(next.scene); this.layout();
   }
   retry(): void {
     if(this.lightingFailed){this.evenings.delete(this.edition.scene);this.eveningFailures.delete(this.edition.scene);this.loadEvening(this.edition.scene);}
     if(!this.ready){this.images.delete(this.edition.scene);this.failures.delete(this.edition.scene);this.load(this.edition.scene);}
+    this.drawn=undefined;
   }
+  private changed():void {this.drawn=undefined;this.onChange?.();}
   private prepareLight():void {
     const id=this.edition.scene,arrival=this.images.get(id),evening=this.evenings.get(id);
     if(!this.sceneLight&&arrival?.naturalWidth&&evening?.naturalWidth)this.sceneLight=new SceneLight(id,arrival,evening);
@@ -61,22 +77,27 @@ export class SceneRenderer {
   private loadEvening(id:SceneId):void {
     if(this.evenings.has(id))return;
     const image=new Image();image.decoding='async';
-    image.onload=()=>this.prepareLight();image.onerror=()=>{this.eveningFailures.add(id);};
-    this.evenings.set(id,image);image.src=SCENES[id].eveningImage;
+    image.onload=()=>{this.prepareLight();this.changed();};
+    this.evenings.set(id,image);
+    loadPainting(image,SCENES[id].eveningImage,()=>{this.eveningFailures.add(id);this.changed();});
   }
   private load(id: SceneId): void {
-    this.loadEvening(id);
-    if (this.images.has(id)) {this.prepareLight();return;}
+    // The evening painting waits for the arrival painting, so a slow connection
+    // spends its bandwidth on the picture that appears first.
+    const cached=this.images.get(id);
+    if (cached) {if(cached.complete&&cached.naturalWidth)this.loadEvening(id);this.prepareLight();return;}
     const image = new Image(); image.decoding = 'async';
-    image.onload = () => { if(id===this.edition.scene) this.layout();this.prepareLight(); };
-    image.onerror = () => this.failures.add(id);
-    this.images.set(id,image); image.src = SCENES[id].image;
+    image.onload = () => { if(id===this.edition.scene){this.layout();this.loadEvening(id);}this.prepareLight();this.changed(); };
+    this.images.set(id,image);
+    loadPainting(image,SCENES[id].image,()=>{this.failures.add(id);this.changed();});
   }
   /** Size the bitmap to the canvas's current CSS box. A no-op while nothing changed, so
    * observers and per-frame checks never clear a frame or interrupt a crossfade. */
   resize(): void {
-    const box = this.canvas.getBoundingClientRect(), width = Math.max(1,box.width), height = Math.max(1,box.height);
-    const ratio = Math.min(devicePixelRatio || 1,2,2560/width);
+    // Every caller wants the next still picture redrawn, including after a lost context.
+    this.drawn=undefined;
+    const box = this.size ?? this.canvas.getBoundingClientRect(), width = Math.max(1,box.width), height = Math.max(1,box.height);
+    const ratio = this.size?.ratio ?? Math.min(devicePixelRatio || 1,2,2560/width);
     const bitmapWidth = Math.round(width*ratio), bitmapHeight = Math.round(height*ratio);
     const sameBitmap = bitmapWidth===this.canvas.width && bitmapHeight===this.canvas.height;
     if(sameBitmap && width===this.width && height===this.height && ratio===this.ratio) return;
@@ -85,16 +106,17 @@ export class SceneRenderer {
     if(!sameBitmap) { this.canvas.width = bitmapWidth; this.canvas.height = bitmapHeight; this.previous = null; }
     this.layout();
   }
-  /** The bitmap must never be shown through a box of another shape; a stale size squashes the painting. */
+  /** The bitmap must never be shown through a box of another shape; a stale size squashes the painting. A clip's detached canvas has no box. */
   private fits(): boolean {
-    return Math.abs(this.canvas.clientWidth-this.width)<=1 && Math.abs(this.canvas.clientHeight-this.height)<=1;
+    return !!this.size || Math.abs(this.canvas.clientWidth-this.width)<=1 && Math.abs(this.canvas.clientHeight-this.height)<=1;
   }
   private layout(): void {
     const image = this.images.get(this.edition.scene), aspect = image?.naturalWidth ? image.naturalWidth/image.naturalHeight : 16/9;
-    this.iw = Math.max(this.width,this.height*aspect); this.ih = this.iw/aspect;
-    this.ox = (this.width-this.iw)*SCENES[this.edition.scene].anchor; this.oy = (this.height-this.ih)*.5;
+    ({iw:this.iw,ih:this.ih,ox:this.ox,oy:this.oy}=coverLayout(this.width,this.height,aspect,this.pan??SCENES[this.edition.scene].anchor));
   }
   point(u:number,v:number) { return { x:this.ox+u*this.iw, y:this.oy+v*this.ih }; }
+  /** Moves a cover crop across the painting (0 left edge, 1 right edge); undefined restores the place's own framing. */
+  setPan(value?:number):void { this.pan=value; this.layout(); }
   private waterPath(): void {
     const ctx = this.ctx; ctx.beginPath();
     SCENES[this.edition.scene].water.forEach(([u,v],i)=>{ const p=this.point(u,v); if(i)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y); });
@@ -122,13 +144,20 @@ export class SceneRenderer {
   draw(time:number,now=performance.now(),session?:SessionState):void {
     if(!this.fits())this.resize();
     if(session&&(!this.journey||this.motion))this.journey=session;
+    if(!this.motion) {
+      const shown=[this.edition.scene,this.edition.seed,time,this.journey?.elapsed,this.ready,this.failed,!!this.sceneLight,this.width,this.height,this.ratio].join('|');
+      if(shown===this.drawn)return;
+      this.drawn=shown;
+    } else this.drawn=undefined;
     const ctx=this.ctx,{scene,warmth,seed}=this.edition,image=this.images.get(scene);
     const intensity=this.edition.intensity*(this.journey?.weather??1);
     ctx.setTransform(this.ratio,0,0,this.ratio,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
     ctx.fillStyle=SCENES[scene].color;ctx.fillRect(0,0,this.width,this.height);
-    if(image?.naturalWidth) {
+    if(image&&this.ready) {
       const painting=this.sceneLight&&this.journey?this.sceneLight.frame(this.journey.elapsed):image;
       ctx.drawImage(painting,this.ox,this.oy,this.iw,this.ih);
+      // First-load checks time the moment a painting first appears.
+      if(!this.painted){this.painted=true;if(!this.size)performance.mark('motes:painting');}
       if(SCENES[scene].water.length) {
         ctx.save();this.waterPath();ctx.clip();
         const strip=Math.ceil(image.naturalHeight/135),start=scene==='coast'?.38:.60;
@@ -243,6 +272,6 @@ export class SceneRenderer {
     this.observer?.disconnect();this.observer=undefined;
     this.images.forEach(i=>{i.onload=null;i.onerror=null;});this.images.clear();this.glows.clear();this.previous=null;
     this.evenings.forEach(i=>{i.onload=null;i.onerror=null;});this.evenings.clear();
-    this.sceneLight?.dispose();this.sceneLight=undefined;
+    this.sceneLight?.dispose();this.sceneLight=undefined;this.drawn=undefined;this.onChange=undefined;
   }
 }

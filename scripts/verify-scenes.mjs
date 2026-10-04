@@ -78,7 +78,7 @@ try {
   assert.ok(Math.abs(late.bitmap[0]/late.bitmap[1]-late.box[0]/late.box[1])<.005,`The canvas bitmap must match its box after a late viewport change: ${JSON.stringify(late)}`);
   await phone.evaluate(()=>{document.querySelector('#experience').style.height='';});await settle(phone);
   assert.deepEqual((await phone.evaluate(()=>window.__motes.rendering)).bitmap,[780,1688]);report.lateViewportChange=true;
-  for(const panel of ['mix','scenes','edition']) {
+  for(const panel of ['mix','scenes','edition','share']) {
     await phone.click(`#${panel}-toggle`);const box=await phone.locator(`#${panel}-panel`).boundingBox();
     if(panel==='scenes'){await thumbnails(phone);await settle(phone);}
     assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=391&&box.y+box.height<=845);
@@ -89,7 +89,7 @@ try {
   for(const viewport of [{width:320,height:568},{width:844,height:390}]) {
     await phone.setViewportSize(viewport);await settle(phone);
     assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-    for(const panel of ['mix','scenes','edition']) {
+    for(const panel of ['mix','scenes','edition','share']) {
       await phone.click(`#${panel}-toggle`);
       const box=await phone.locator(`#${panel}-panel`).boundingBox();
       assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=viewport.width+1&&box.y+box.height<=viewport.height+1);
@@ -101,9 +101,9 @@ try {
 
   const fallback=await browser.newPage({reducedMotion:'reduce'});
   fallback.on('pageerror',error=>errors.push(error.message));
-  await fallback.route('**/scenes/*.png',route=>route.abort());await fallback.goto(`${base}/?debug`);
+  await fallback.route('**/scenes/*.{png,avif,webp}',route=>route.abort());await fallback.goto(`${base}/?debug`);
   await fallback.waitForFunction(()=>window.__motes?.failed);assert.equal(await fallback.locator('#retry-art').isVisible(),true);
-  await fallback.unroute('**/scenes/*.png');await fallback.click('#retry-art');await ready(fallback);await settle(fallback);
+  await fallback.unroute('**/scenes/*.{png,avif,webp}');await fallback.click('#retry-art');await ready(fallback);await settle(fallback);
   assert.equal(await fallback.locator('#art-status').isVisible(),false);report.artRetry=true;
   const rejected=await browser.newPage({reducedMotion:'reduce'});
   await rejected.addInitScript(()=>{const resume=AudioContext.prototype.resume;let failed=false;AudioContext.prototype.resume=function(){if(!failed){failed=true;return Promise.reject(new Error('Blocked playback'));}return resume.call(this);};});
