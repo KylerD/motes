@@ -2,7 +2,7 @@
 // online numbers decide whether it stays. Judged dimensions S1–S3 are not automated yet.
 //
 //   npm run score                         build, tests and the fast gates (G2, G3, G5, G6)
-//   npm run score -- --full               also the whole browser and audio verify suite (G1, G4)
+//   npm run score -- --full               also the whole browser, audio and clip verify suite (G1, G4, G6 clips)
 //   npm run score -- --refresh-reference  re-measure the YouTube tab this machine is compared with
 //   npm run score -- --strict             exit non-zero when any gate fails
 //   npm run score -- --headless           no visible windows (CPU figures then use software rendering)
@@ -27,8 +27,8 @@ mkdirSync('captures',{recursive:true});
 // G1 Correctness: tests and a production build always; the browser suite with --full.
 const tested=run('npx',['vitest','run','--reporter=dot']),built=run('npm',['run','build']);
 if(!built){gate('G1','Correctness',false,'the production build failed');process.exit(1);}
-const suite={correctness:['verify-scenes.mjs','verify-sessions.mjs','verify-ios-audio.mjs'],audio:['verify-music.mjs','verify-mix.mjs','verify-mix.mjs synthwave','verify-synthwave.mjs','verify-synthwave-sound.mjs']};
-const passed={correctness:[],audio:[]},failed={correctness:[],audio:[]};
+const suite={correctness:['verify-scenes.mjs','verify-sessions.mjs','verify-ios-audio.mjs'],audio:['verify-music.mjs','verify-mix.mjs','verify-mix.mjs synthwave','verify-synthwave.mjs','verify-synthwave-sound.mjs'],sharing:['verify-clip.mjs']};
+const passed={correctness:[],audio:[],sharing:[]},failed={correctness:[],audio:[],sharing:[]};
 if(args.has('--full')) {
   const dev=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'error'});await dev.listen();
   const url=dev.resolvedUrls.local[0].replace(/\/$/,'');
@@ -158,8 +158,9 @@ for(const file of pages) {
   if(meta('og:title')&&meta('og:description')&&meta('og:url')&&meta('twitter:card')==='summary_large_image'&&size?.width===1200&&size?.height===630)cards.push(file);
 }
 const app=readFileSync(`dist/${pages[0]}`,'utf8'),share=/data-share/.test(app),clip=/data-clip/.test(app);
-gate('G6','Shareable',cards.length===pages.length&&pages.length===5&&share&&clip,
-  `preview cards ${cards.length}/${pages.length} pages, share action ${share?'present':'not built yet'}, clip export ${clip?'present':'not built yet'}`,{cards,share,clip});
+const clipChecked=full?failed.sharing.length===0:undefined;
+gate('G6','Shareable',cards.length===pages.length&&pages.length===5&&share&&clip&&clipChecked!==false,
+  `preview cards ${cards.length}/${pages.length} pages, share action ${share?'present':'not built yet'}, clip export ${!clip?'not built yet':clipChecked===undefined?'present (clip files checked with --full)':clipChecked?'makes valid clips for every place':'FAILS verify-clip.mjs'}`,{cards,share,clip,clipChecked});
 gate('G4','Audio health',full?failed.audio.length===0:null,full?`${passed.audio.length}/${suite.audio.length} audio checks pass${failed.audio.length?` (failed: ${failed.audio.join(', ')})`:''}`:'not run (use --full)');
 gate('S1–S3','Judged picture, clip and music',null,'not automated yet');
 await server.close();
