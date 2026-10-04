@@ -125,6 +125,17 @@ try {
   assert.equal(await offline.isEnabled('#make-clip'),true);
   assert.equal(await offline.evaluate(()=>document.activeElement?.id),'make-clip','focus returns to Try again');
   report.paintingFailure=true;await offline.close();
+
+  // A tab left open across a deploy can't fetch the clip code; it asks for a reload instead of a hopeless Try again.
+  const stale=await browser.newPage();stale.on('pageerror',error=>errors.push(error.message));
+  await stale.route(/\/src\/clip\/export\.ts/,route=>route.abort());
+  await stale.goto(`${base}/places/neon-rain/?day=${day}&debug`);await ready(stale);
+  await openShare(stale);await stale.focus('#make-clip');await stale.keyboard.press('Enter');
+  await stale.waitForFunction(()=>document.querySelector('#clip-make-label')?.textContent==='Try again',null,{timeout:60000});
+  assert.equal((await stale.textContent('#clip-status')).trim(),'Motes has been updated. Reload the page to make a clip.');
+  assert.equal(await stale.isEnabled('#make-clip'),true);
+  assert.equal(await stale.evaluate(()=>document.activeElement?.id),'make-clip');
+  report.updatedCode=true;await stale.close();
 } finally {await browser.close();await server.close();}
 report.errors=errors;
 console.log(JSON.stringify(report,null,1));

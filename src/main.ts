@@ -187,8 +187,11 @@ async function startClip() {
   const job=new AbortController(),place=current,style=preferences.style;clipJob=job;readyClip=undefined;
   clipState('working','Preparing the painting…');$<HTMLProgressElement>('clip-bar').value=0;
   try {
-    const {makeClip}=await import('./clip/export');
-    const file=await makeClip(place,style,preferences.mode,{signal:job.signal,onProgress:(stage,fraction)=>{
+    // A tab left open across a deploy can't fetch the old build's clip code. Reloading brings the new one, but stops the music, so it's the listener's choice.
+    const clip=await import('./clip/export').catch(()=>undefined);
+    if(job.signal.aborted)return;
+    if(!clip){clipState('failed','Motes has been updated. Reload the page to make a clip.');return;}
+    const file=await clip.makeClip(place,style,preferences.mode,{signal:job.signal,onProgress:(stage,fraction)=>{
       if(job.signal.aborted)return;
       const overall=stage==='frames'?.1+.9*fraction:stage==='music'?.05:0;
       $<HTMLProgressElement>('clip-bar').value=Math.round(overall*100);
