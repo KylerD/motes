@@ -256,7 +256,7 @@ export class RadioAudio {
   }
 }
 
-export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;ambience?:number;sampleRate?:number;standalone?:boolean}={}) {
+export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;ambience?:number;sampleRate?:number;standalone?:boolean;fromBeat?:number;fadeOut?:number}={}) {
   const seconds=Math.max(1,Math.min(300,options.seconds??90)),sampleRate=options.sampleRate??44100;
   const plan=createSession(options.seed??20260917,options.mood??'rain',options.style??'lofi');
   const score=(index:number)=>options.standalone&&plan.style==='lofi'?composeTrack(plan.seed,plan.mood,index):composeSessionTrack(plan,index);
@@ -264,20 +264,23 @@ export async function renderPreview(options:{seed?:number;mood?:Mood;index?:numb
   const context=new OfflineAudioContext(2,Math.ceil(seconds*sampleRate),sampleRate);
   const graph=createGraph(context,plan.style==='lofi'?await loadPiano(context):new Map(),plan.seed);
   graph.output.gain.setValueAtTime(0,0);graph.output.gain.linearRampToValueAtTime(1,0.3);
-  graph.output.gain.setValueAtTime(1,seconds-0.3);graph.output.gain.linearRampToValueAtTime(0,seconds);
+  const fadeOut=Math.max(.05,options.fadeOut??.3);
+  graph.output.gain.setValueAtTime(1,seconds-fadeOut);graph.output.gain.linearRampToValueAtTime(0,seconds);
   graph.ambience.gain.value=options.ambience??DEFAULT_MIX.ambience;setSoundMode(graph,options.mode??'beats');
   if(track.session)for(let time=0;time<seconds;time+=.25){
     const weather=Math.max(.75,Math.min(1.12,sessionAt(plan,track.session.offset+time).weather));
     graph.ambience.gain.setTargetAtTime((options.ambience??DEFAULT_MIX.ambience)*weather,time,3);
   }
   startAmbience(graph,options.mood??'rain',0);
-  let song=track,start=0.05,index=options.index??0;
+  // `fromBeat` starts the first song partway in, as a clip starts at its theme.
+  let song=track,start=0.05,index=options.index??0,from=Math.max(0,options.fromBeat??0);
   while(start<seconds) {
     for(const event of song.events) {
-      const at=start+event.beat*60/song.bpm;if(at>=seconds)break;
+      if(event.beat<from)continue;
+      const at=start+(event.beat-from)*60/song.bpm;if(at>=seconds)break;
       scheduleNote(graph,event,at,60/song.bpm);
     }
-    start+=song.bars*4*60/song.bpm;
+    start+=(song.bars*4-from)*60/song.bpm;from=0;
     song=score(++index);
   }
   const buffer=await context.startRendering();disposeGraph(graph);
