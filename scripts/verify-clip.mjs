@@ -103,7 +103,15 @@ try {
   const shared=await phone.evaluate(()=>window.__sharedClip);
   assert.equal(shared.active,true,'the share sheet opens from a fresh gesture');
   assert.deepEqual(shared.files.map(f=>[f.name,f.type]),[[`motes-the-last-chapter-${day}.mp4`,'video/mp4']]);
-  assert.ok(shared.files[0].size>1e6);report.phoneShare=true;await phone.close();
+  assert.ok(shared.files[0].size>1e6);report.phoneShare=true;
+  // A second tap while the sheet is still open is ignored, not turned into a download.
+  await phone.evaluate(()=>{
+    window.__shares=0;window.__downloads=0;const create=URL.createObjectURL;URL.createObjectURL=blob=>{window.__downloads++;return create(blob);};
+    navigator.share=()=>{window.__shares++;return new Promise((_,reject)=>setTimeout(()=>reject(new DOMException('Share canceled','AbortError')),1000));};
+  });
+  await phone.click('#clip-deliver');await phone.click('#clip-deliver');await phone.waitForTimeout(1300);
+  assert.deepEqual(await phone.evaluate(()=>[window.__shares,window.__downloads]),[1,0],'a second tap while sharing does nothing');
+  report.shareTwice=true;await phone.close();
 
   // Unsupported: no H.264 encoder means a clear, disabled action.
   const old=await browser.newPage();old.on('pageerror',error=>errors.push(error.message));

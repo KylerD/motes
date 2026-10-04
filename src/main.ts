@@ -164,7 +164,7 @@ async function share() {
 }
 $('share-link').addEventListener('click',()=>void share());
 // Clips: the renderer and encoder (src/clip/export.ts) load only when someone makes one.
-let clipJob:AbortController|undefined,readyClip:File|undefined,clipSupport:Promise<boolean>|undefined;
+let clipJob:AbortController|undefined,readyClip:File|undefined,clipSupport:Promise<boolean>|undefined,sharingClip=false;
 function clipState(state:'idle'|'working'|'ready'|'failed',message='') {
   $('clip-progress').hidden=state!=='working';$('make-clip').hidden=state==='ready';$('clip-deliver').hidden=state!=='ready';
   // Working keeps the action focusable, so focus never drops to the page, where Space would pause the music.
@@ -209,11 +209,14 @@ async function startClip() {
 }
 /** A second tap: share sheets need a fresh gesture, which a long export outlives. */
 async function deliverClip() {
-  const file=readyClip;if(!file)return;
+  const file=readyClip;if(!file||sharingClip)return;
   const done=(method:'sheet'|'download',message:string)=>{track('clip',{method,place:current.scene,style:preferences.style});text('clip-status',message);};
   if(sharesClip(file)) {
+    // A second tap while the sheet is open would throw InvalidStateError and fall through to a download.
+    sharingClip=true;
     try{await navigator.share({files:[file],...shareMessage(current.scene)});done('sheet','Shared. Thank you for passing it on.');return;}
     catch(error){if(error instanceof DOMException&&error.name==='AbortError')return;}
+    finally{sharingClip=false;}
   }
   const url=URL.createObjectURL(file),link=document.createElement('a');
   link.href=url;link.download=file.name;document.body.append(link);link.click();link.remove();
