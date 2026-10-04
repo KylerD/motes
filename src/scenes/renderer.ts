@@ -1,6 +1,7 @@
 import { SCENES, type Edition, type Point, type SceneId } from './edition';
 import type {SessionState} from '../session/session';
 import {drawSessionEffects} from './session-effects';
+import {coverLayout} from './cover';
 import {meadowLightAt} from './meadow-light';
 import {SceneLight,sceneLightAt} from './scene-light';
 import {loadPainting} from './painting-source';
@@ -28,12 +29,15 @@ export class SceneRenderer {
   private drawn?:string;
   private painted=false;
   motion = true;
+  /** A clip renders at a fixed size instead of measuring the page. */
+  private size?:{width:number;height:number;ratio:number};
+  private pan?:number;
   /** Called when a painting arrives or fails, so a still picture can repaint promptly. */
   onChange?:()=>void;
-  constructor(private canvas: HTMLCanvasElement, public edition: Edition) {
+  constructor(private canvas: HTMLCanvasElement, public edition: Edition, options:{size?:{width:number;height:number;ratio:number}}={}) {
     const ctx = canvas.getContext('2d',{alpha:false});
     if (!ctx) throw new Error('This browser could not open the scene. Try reloading the page.');
-    this.ctx = ctx; this.load(edition.scene); this.resize();
+    this.ctx = ctx; this.size = options.size; this.load(edition.scene); this.resize();
   }
   /** Dimensions arrive before the pixels, so a painting is ready only once it has fully loaded. */
   get ready() { const image=this.images.get(this.edition.scene); return !!image?.complete&&!!image.naturalWidth; }
@@ -79,17 +83,18 @@ export class SceneRenderer {
     loadPainting(image,SCENES[id].image,()=>{this.failures.add(id);this.changed();});
   }
   resize(): void {
-    const box = this.canvas.getBoundingClientRect(); this.width = Math.max(1,box.width); this.height = Math.max(1,box.height);
-    this.ratio = Math.min(devicePixelRatio || 1,2,2560/this.width);
+    const box = this.size ?? this.canvas.getBoundingClientRect(); this.width = Math.max(1,box.width); this.height = Math.max(1,box.height);
+    this.ratio = this.size?.ratio ?? Math.min(devicePixelRatio || 1,2,2560/this.width);
     this.canvas.width = Math.round(this.width*this.ratio); this.canvas.height = Math.round(this.height*this.ratio);
     this.previous = null; this.drawn=undefined; this.layout();
   }
   private layout(): void {
     const image = this.images.get(this.edition.scene), aspect = image?.naturalWidth ? image.naturalWidth/image.naturalHeight : 16/9;
-    this.iw = Math.max(this.width,this.height*aspect); this.ih = this.iw/aspect;
-    this.ox = (this.width-this.iw)*SCENES[this.edition.scene].anchor; this.oy = (this.height-this.ih)*.5;
+    ({iw:this.iw,ih:this.ih,ox:this.ox,oy:this.oy}=coverLayout(this.width,this.height,aspect,this.pan??SCENES[this.edition.scene].anchor));
   }
   point(u:number,v:number) { return { x:this.ox+u*this.iw, y:this.oy+v*this.ih }; }
+  /** Moves a cover crop across the painting (0 left edge, 1 right edge); undefined restores the place's own framing. */
+  setPan(value?:number):void { this.pan=value; this.layout(); }
   private waterPath(): void {
     const ctx = this.ctx; ctx.beginPath();
     SCENES[this.edition.scene].water.forEach(([u,v],i)=>{ const p=this.point(u,v); if(i)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y); });
@@ -129,7 +134,7 @@ export class SceneRenderer {
       const painting=this.sceneLight&&this.journey?this.sceneLight.frame(this.journey.elapsed):image;
       ctx.drawImage(painting,this.ox,this.oy,this.iw,this.ih);
       // First-load checks time the moment a painting first appears.
-      if(!this.painted){this.painted=true;performance.mark('motes:painting');}
+      if(!this.painted){this.painted=true;if(!this.size)performance.mark('motes:painting');}
       if(SCENES[scene].water.length) {
         ctx.save();this.waterPath();ctx.clip();
         const strip=Math.ceil(image.naturalHeight/135),start=scene==='coast'?.38:.60;
