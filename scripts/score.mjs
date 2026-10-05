@@ -74,8 +74,13 @@ async function cpuOf(url,prepare,{warm=20,measure=60,reference=false,keep=()=>tr
       fps:Math.round(windows.reduce((sum,w)=>sum+w.fps,0)/windows.length),browser:browser.version(),note,states};
   } finally {await browser.close();}
 }
-const motes=await cpuOf(`${base}/places/neon-rain/?day=2026-09-17`,async page=>{
+const listen=async page=>{
   await page.click('#listen');await page.waitForFunction(()=>document.querySelector('#listen')?.getAttribute('aria-pressed')==='true',null,{timeout:30000});
+};
+const motes=await cpuOf(`${base}/places/neon-rain/?day=2026-09-17`,listen);
+// Both music styles must stay inside the gate; synthwave is chosen the way a listener's saved preference would.
+const synthwave=await cpuOf(`${base}/places/neon-rain/?day=2026-09-17`,async page=>{
+  await page.evaluate(()=>localStorage.setItem('motes-listening',JSON.stringify({style:'synthwave'})));await page.reload();await listen(page);
 });
 const referenceFile='captures/score-reference.json',machine=`${os.cpus()[0]?.model.trim()} · ${os.platform()} · Chrome ${motes.browser.split('.')[0]}`;
 let reference=existsSync(referenceFile)?JSON.parse(readFileSync(referenceFile,'utf8')):undefined;
@@ -100,7 +105,8 @@ if(!fresh||args.has('--refresh-reference')) for(let attempt=1;;attempt++) {
   if(attempt===3)throw new Error(`The YouTube reference never played steadily (${youtube.note}); run again with --refresh-reference.`);
   console.log(`YouTube reference attempt ${attempt} was not steady (${youtube.note}); measuring again.`);
 }
-const ratio=Math.round(100*motes.percentOfCore/reference.youtube.percentOfCore)/100;
+const ratioOf=measured=>Math.round(100*measured.percentOfCore/reference.youtube.percentOfCore)/100;
+const ratio=ratioOf(motes),synthwaveRatio=ratioOf(synthwave);
 // --detail separates the picture's cost from the music's.
 const detail=args.has('--detail')?{
   visualsOnly:await cpuOf(`${base}/places/neon-rain/?day=2026-09-17`,async()=>{}),
@@ -108,7 +114,7 @@ const detail=args.has('--detail')?{
     await page.click('#listen');await page.click('#mix-toggle');await page.click('#motion');await page.keyboard.press('Escape');
   }),
 }:undefined;
-gate('G2','Lightness',ratio<=1,`Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps vs YouTube lofi live ${reference.youtube.percentOfCore}% (${reference.youtube.cleanWindows} ad-free windows, ${reference.youtube.note}) → ratio ${ratio}${detail?`; visuals only ${detail.visualsOnly.percentOfCore}%, listening with Still ${detail.listeningStill.percentOfCore}%`:''}${headless?' [headless]':''}`,{motes,youtube:reference.youtube,ratio,machine,detail});
+gate('G2','Lightness',ratio<=1&&synthwaveRatio<=1,`Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps (lofi), ${synthwave.percentOfCore}% at ${synthwave.fps} fps (synthwave) vs YouTube lofi live ${reference.youtube.percentOfCore}% (${reference.youtube.cleanWindows} ad-free windows, ${reference.youtube.note}) → ratio ${ratio} lofi, ${synthwaveRatio} synthwave${detail?`; visuals only ${detail.visualsOnly.percentOfCore}%, listening with Still ${detail.listeningStill.percentOfCore}%`:''}${headless?' [headless]':''}`,{motes,synthwave,youtube:reference.youtube,ratio,synthwaveRatio,machine,detail});
 
 // G3 First load: a phone on Lighthouse's slow-4G profile with a 4× slower CPU.
 async function firstLoad(path) {
