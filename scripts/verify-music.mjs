@@ -52,7 +52,10 @@ try {
   assert.ok(settled.voices>0&&settled.voices<200);assert.equal(settled.scheduledSegments,1);assert.ok(settled.compositions>=13);
   results.push({name:'rapid track/mode/volume changes remain bounded',settled});
   const before=await page.evaluate(()=>window.radio.diagnostics);
-  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'));});
+  // A visible tab keeps a short look-ahead; hiding it extends the look-ahead at once, before timers are throttled.
+  assert.ok(before.scheduledAhead>.5&&before.scheduledAhead<=2.6,`visible look-ahead ${before.scheduledAhead}`);
+  const extended=await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'));return window.radio.diagnostics;});
+  assert.ok(extended.scheduledAhead>3.5,`hidden look-ahead ${extended.scheduledAhead}`);
   await page.waitForTimeout(1500);
   const hidden=await page.evaluate(()=>window.radio.diagnostics);
   assert.equal(hidden.playing,true);assert.ok(hidden.ticks>before.ticks);assert.ok(hidden.currentTime>before.currentTime+1);

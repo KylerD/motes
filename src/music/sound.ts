@@ -1,6 +1,6 @@
 import { randomSource, type Mood, type MusicMode, type ScoreEvent } from './composer';
 import {synthVoice} from './synthwave/sound';
-import {createSynthEffects} from './synthwave/effects';
+import {createSynthEffects,type SynthEcho} from './synthwave/effects';
 
 const sampleNotes = [47,51,54,57,60,63,66,69,72,75,78,81];
 export const DEFAULT_MIX = { music:0.65, ambience:0.38 } as const;
@@ -17,7 +17,7 @@ export interface Voice { start: number; end: number; gain: GainNode; source: Aud
 export interface SoundGraph {
   context: BaseAudioContext; output: GainNode; music: GainNode; ambience: GainNode;
   piano: BiquadFilterNode; melody: BiquadFilterNode; bass: GainNode; drums: GainNode; synth: GainNode; synthSnare: GainNode;
-  effectSources: AudioScheduledSourceNode[];
+  effectSources: AudioScheduledSourceNode[]; synthEchoes: SynthEcho[];
   echoDelay: DelayNode; echoBeat: number;
   ambienceSources: {source:AudioBufferSourceNode;gain:GainNode}[]; voices: Set<Voice>; bank: PianoBank;
   drumBuffers: Map<string,AudioBuffer>; nodes: AudioNode[]; seed: number;
@@ -81,7 +81,7 @@ export function createGraph(context: BaseAudioContext, bank:PianoBank, seed:numb
   drumBuffers.set('rim',noiseBuffer(context,0.075,seed^99,(t,n)=>(n*0.4+Math.sin(2*Math.PI*1700*t)*0.6)*Math.exp(-t*110)));
   drumBuffers.set('synth-snare',noiseBuffer(context,.32,seed^0x813,(t,n)=>(n*.75+Math.sin(2*Math.PI*180*t)*.25)*Math.exp(-t*17)*(1-Math.exp(-t*1800))));
   drumBuffers.set('synth-hat',noiseBuffer(context,.1,seed^0x808,(t,n)=>n*Math.exp(-t*55)*(1-Math.exp(-t*2000))));
-  return {context,output,music,ambience,piano,melody,bass,drums,synth:synthEffects.input,synthSnare:synthEffects.snare,effectSources:synthEffects.sources,echoDelay:delay,echoBeat:0,bank,drumBuffers,nodes,seed,voices:new Set(),ambienceSources:[]};
+  return {context,output,music,ambience,piano,melody,bass,drums,synth:synthEffects.input,synthSnare:synthEffects.snare,effectSources:synthEffects.sources,synthEchoes:[],echoDelay:delay,echoBeat:0,bank,drumBuffers,nodes,seed,voices:new Set(),ambienceSources:[]};
 }
 
 export function setSoundMode(graph:SoundGraph,mode:MusicMode) {
@@ -200,6 +200,11 @@ export function startAmbience(graph:SoundGraph,mood:Mood,at=graph.context.curren
 export function stopVoices(graph:SoundGraph,at:number,fade=0.12,from=-Infinity) {
   // Skipping/pausing must also discard tempo changes queued for abandoned notes.
   graph.echoDelay.delayTime.cancelScheduledValues(Math.max(at,from));graph.echoBeat=0;
+  // A full stop fades the shared synth echoes with their notes; later notes start fresh ones.
+  if(from===-Infinity)for(const echo of graph.synthEchoes)if(echo.open) {
+    echo.open=false;echo.until=at+fade+.05;
+    holdParameter(echo.output.gain,at);echo.output.gain.linearRampToValueAtTime(0,at+fade);
+  }
   for(const voice of graph.voices) {
     if(voice.start<from)continue;
     holdParameter(voice.gain.gain,at);
@@ -213,6 +218,8 @@ export function disposeGraph(graph:SoundGraph) {
   for(const source of graph.effectSources){try{source.stop();}catch{/* Already stopped. */}}
   for(const voice of graph.voices) {for(const source of [voice.source,...voice.auxiliary]){try{source.stop();}catch{/* Already stopped. */}}for(const node of voice.nodes)node.disconnect();}
   graph.voices.clear();
+  for(const echo of graph.synthEchoes)for(const node of echo.nodes)node.disconnect();
+  graph.synthEchoes=[];
   for(const {source,gain} of graph.ambienceSources){try{source.stop();}catch{/* Already stopped. */}source.disconnect();gain.disconnect();}
   graph.ambienceSources=[];
   for(const node of graph.nodes)node.disconnect();

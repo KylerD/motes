@@ -59,7 +59,17 @@ try {
       return Math.min(...windows) / body;
     });
     disposeGraph(padGraph);
-    return { body, tail, tailDb: 20 * Math.log10(tail / body), stereoWidth, peak, echoes, chordJoinRatios: joins };
+    // Plucks at one tempo share one echo, which is released once its last repeat has passed.
+    const shared = new OfflineAudioContext(2, rate * 6, rate), sharedGraph = createGraph(shared, new Map(), 7);
+    const pluck = beat => ({ instrument: 'arp', beat, note: 72, duration: .2, velocity: .5, pan: 0 });
+    scheduleNote(sharedGraph, pluck(0), .05, .5); scheduleNote(sharedGraph, pluck(1), .55, .5);
+    const sharedEchoes = { oneTempo: sharedGraph.synthEchoes.length };
+    void shared.suspend(4).then(() => {
+      scheduleNote(sharedGraph, pluck(0), 4.05, .6); sharedEchoes.afterRelease = sharedGraph.synthEchoes.length;
+      return shared.resume();
+    });
+    await shared.startRendering(); disposeGraph(sharedGraph);
+    return { body, tail, tailDb: 20 * Math.log10(tail / body), stereoWidth, peak, echoes, sharedEchoes, chordJoinRatios: joins };
   });
   mkdirSync('captures-synthwave', { recursive: true });
   writeFileSync('captures-synthwave/sound-character.json', JSON.stringify(report, null, 2));
@@ -74,5 +84,6 @@ try {
       assert.ok(echo.ratios.every((ratio, index) => index === 0 || ratio < echo.ratios[index - 1]), 'Successive echoes should decay.');
     }
   }
+  assert.deepEqual(report.sharedEchoes, { oneTempo: 1, afterRelease: 1 }, 'Plucks share one echo per tempo and spent echoes are released.');
   assert.ok(report.chordJoinRatios.every(ratio => ratio > .7), 'Held harmony must carry across chord attacks without a deep volume hole.');
 } finally { await browser.close(); await server.close(); }

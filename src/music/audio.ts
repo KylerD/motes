@@ -10,6 +10,7 @@ export type { Mood, MusicMode, Track } from './composer';
 interface PlaybackTrack extends Track {sessionPlan:MusicSessionPlan}
 interface Segment {track:PlaybackTrack;start:number;cursor:number}
 const clamp=(value:number)=>Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
+const hidden=()=>typeof document!=='undefined'&&document.hidden;
 
 /** One look-ahead clock for music. It deliberately has no connection to the animation clock. */
 export class RadioAudio {
@@ -20,6 +21,8 @@ export class RadioAudio {
   private timer?:ReturnType<typeof setInterval>;
   private suspendTimer?:ReturnType<typeof setTimeout>;
   private disposed=false;
+  /** Hiding a tab extends the look-ahead at once, before its timer can be throttled. */
+  private readonly onVisibility=()=>this.tick();
   private wanted=false;
   private running=false;
   private volume:number=DEFAULT_MIX.music;
@@ -55,7 +58,8 @@ export class RadioAudio {
     return {title:track.title,bpm:Math.round(track.bpm),voice:track.voice,style:this.style,family:track.family,progress:Math.min(1,beat/(track.bars*4)),section:track.sections.find(s=>beat/4>=s.startBar&&beat/4<s.endBar)?.name??'Opening'};
   }
   get diagnostics() {
-    return {playing:this.running,contextState:this.context?.state??'uninitialized',voices:this.graph?.voices.size??0,scheduledSegments:this.segments.length,ticks:this.ticks,compositions:this.compositions,scheduledThrough:this.segments[this.segments.length-1]?.start??0,currentTime:this.context?.currentTime??0};
+    const currentTime=this.context?.currentTime??0,starts=[...this.graph?.voices??[]].map(voice=>voice.start);
+    return {playing:this.running,contextState:this.context?.state??'uninitialized',voices:this.graph?.voices.size??0,scheduledSegments:this.segments.length,ticks:this.ticks,compositions:this.compositions,scheduledThrough:this.segments[this.segments.length-1]?.start??0,scheduledAhead:Math.max(0,...starts)-currentTime,currentTime};
   }
 
   async enable():Promise<void> {
@@ -102,6 +106,7 @@ export class RadioAudio {
         holdParameter(graph.output.gain,now);graph.output.gain.linearRampToValueAtTime(1,now+0.35);
         this.tick();
         this.timer=setInterval(()=>this.tick(),250);
+        globalThis.document?.addEventListener('visibilitychange',this.onVisibility);
       }catch(error){
         this.environmentClock.pause(context.currentTime);this.listeningClock.pause(context.currentTime);
         this.running=false;this.wanted=false;this.abort?.abort();
@@ -123,6 +128,7 @@ export class RadioAudio {
     this.index=this.track.sessionPlan===this.plan?this.track.index+1:0;
     this.running=false;
     if(this.timer!==undefined){clearInterval(this.timer);this.timer=undefined;}
+    globalThis.document?.removeEventListener('visibilitychange',this.onVisibility);
     const context=this.context,graph=this.graph;
     if(!context||!graph)return;
     holdParameter(graph.output.gain,context.currentTime);
@@ -232,8 +238,10 @@ export class RadioAudio {
     const now=context.currentTime;
     const weatherLevel=Math.max(.75,Math.min(1.12,this.environment.weather));
     if(Math.abs(weatherLevel-this.weatherLevel)>.005){this.weatherLevel=weatherLevel;graph.ambience.gain.setTargetAtTime(this.ambienceVolume*weatherLevel,now,3);}
-    // Audio remains scheduled through normal background timer throttling. There is exactly one timer.
-    const horizon=now+6;
+    // Audio remains scheduled through normal background timer throttling: a hidden tab keeps six seconds
+    // ahead. A visible tab's timer is reliable and each scheduled voice costs CPU until it ends, so it keeps
+    // two and a half. There is exactly one timer.
+    const horizon=now+(hidden()?6:2.5);
     while(this.segments.length>1&&this.segments[1].start<=now)this.segments.shift();
     let segment=this.segments[this.segments.length-1];
     if(!segment)return;

@@ -15,6 +15,25 @@ function room(context: BaseAudioContext, seed: number, seconds: number, gated = 
   return buffer;
 }
 
+/** The first `seconds` of an impulse, faded out over its last quarter-second. */
+function head(context: BaseAudioContext, buffer: AudioBuffer, seconds: number): AudioBuffer {
+  const part = context.createBuffer(buffer.numberOfChannels, Math.round(seconds * buffer.sampleRate), buffer.sampleRate);
+  const fade = Math.round(.25 * buffer.sampleRate);
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+    const data = part.getChannelData(channel);
+    data.set(buffer.getChannelData(channel).subarray(0, part.length));
+    for (let i = 0; i < fade; i++) data[part.length - 1 - i] *= i / fade;
+  }
+  return part;
+}
+
+/** RMS over all channels: a normalising convolver divides its output by this. */
+function power(buffer: AudioBuffer): number {
+  let sum = 0;
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) for (const value of buffer.getChannelData(channel)) sum += value * value;
+  return Math.sqrt(sum / (buffer.numberOfChannels * buffer.length));
+}
+
 /** A separate stereo chorus/hall and short gated snare room keep the lofi mix untouched. */
 export function createSynthEffects(context: BaseAudioContext, music: GainNode, drums: GainNode, seed: number) {
   const nodes: AudioNode[] = [], sources: AudioScheduledSourceNode[] = [];
@@ -33,8 +52,12 @@ export function createSynthEffects(context: BaseAudioContext, music: GainNode, d
   const predelay = context.createDelay(.1), highpass = context.createBiquadFilter(), lowpass = context.createBiquadFilter();
   predelay.delayTime.value = .035; highpass.type = 'highpass'; highpass.frequency.value = 230;
   lowpass.type = 'lowpass'; lowpass.frequency.value = 5300;
-  const hall = context.createConvolver(); hall.buffer = room(context, seed ^ 0x68416c6c, 5.2);
-  const hallLevel = gain(.68);
+  // Live, the browser convolves in short blocks, so a long impulse is the costliest part of synthwave.
+  // The hall keeps the first two seconds of its 5.2-second decay: the rest is 0.55% of its energy, 22 dB
+  // down and under the next notes. Its level is compensated for the shorter impulse's normalisation.
+  const full = room(context, seed ^ 0x68416c6c, 5.2), impulse = head(context, full, 2);
+  const hall = context.createConvolver(); hall.buffer = impulse;
+  const hallLevel = gain(.68 * power(impulse) / power(full));
   input.connect(predelay); predelay.connect(highpass); highpass.connect(hall); hall.connect(lowpass); lowpass.connect(hallLevel); hallLevel.connect(music);
   const plate = context.createConvolver(); plate.buffer = room(context, seed ^ 0x67617465, .28, true);
   const plateLevel = gain(.36); snare.connect(plate); plate.connect(plateLevel); plateLevel.connect(drums);
@@ -43,12 +66,21 @@ export function createSynthEffects(context: BaseAudioContext, music: GainNode, d
   return { input, snare, nodes, sources };
 }
 
+export interface SynthEcho {
+  secondsPerBeat: number; input: GainNode; output: GainNode; nodes: AudioNode[];
+  /** Closed echoes are fading after a stop and take no new notes. */
+  open: boolean;
+  /** Audio time after which the last repeat has left its nodes. */
+  until: number;
+}
+
 /** Four decaying dotted-eighth repeats; no feedback loop or shared tempo automation. */
-export function addSynthEcho(context: BaseAudioContext, input: AudioNode, output: AudioNode, secondsPerBeat: number, nodes: AudioNode[]): number {
-  const spacing = .75 * secondsPerBeat;
-  let previous = input;
+function createSynthEcho(context: BaseAudioContext, destination: AudioNode, secondsPerBeat: number): SynthEcho {
+  const spacing = .75 * secondsPerBeat, input = context.createGain(), output = context.createGain();
+  const nodes: AudioNode[] = [input, output];
+  let previous: AudioNode = input;
   for (let tap = 1; tap <= 4; tap++) {
-    // Short mono stages bound delay storage even with many overlapping voices.
+    // Short mono stages bound delay storage.
     const delay = context.createDelay(spacing + .01), level = context.createGain(), filter = context.createBiquadFilter(), pan = context.createStereoPanner();
     delay.delayTime.value = spacing; delay.channelCount = 1; delay.channelCountMode = 'explicit';
     level.gain.value = .52 * .6 ** (tap - 1);
@@ -58,5 +90,19 @@ export function addSynthEcho(context: BaseAudioContext, input: AudioNode, output
     previous = delay;
     nodes.push(delay, filter, level, pan);
   }
-  return 3 * secondsPerBeat;
+  output.connect(destination);
+  return { secondsPerBeat, input, output, nodes, open: true, until: 0 };
+}
+
+/** Plucks at one tempo share one echo, which sums exactly as a chain per note would without
+ *  keeping every note's voice alive through its repeats. Echoes whose repeats have finished are released. */
+export function synthEcho(context: BaseAudioContext, echoes: SynthEcho[], destination: AudioNode, secondsPerBeat: number, dryEnd: number): GainNode {
+  for (const echo of echoes.filter(echo => echo.until < context.currentTime)) {
+    for (const node of echo.nodes) node.disconnect();
+    echoes.splice(echoes.indexOf(echo), 1);
+  }
+  let echo = echoes.find(echo => echo.open && echo.secondsPerBeat === secondsPerBeat);
+  if (!echo) { echo = createSynthEcho(context, destination, secondsPerBeat); echoes.push(echo); }
+  echo.until = Math.max(echo.until, dryEnd + 3 * secondsPerBeat + .1);
+  return echo.input;
 }
