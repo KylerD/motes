@@ -53,7 +53,7 @@ These must not get worse while we climb:
 
 Online numbers move slowly and need traffic. Between releases, every change is scored on a branch against `main`:
 
-- `npm run score` runs the build, unit tests and gates G2, G3, G5 and G6 in about five minutes.
+- `npm run score` runs the build, unit tests and gates G2 (in both music styles), G3, G5 and G6.
 - `npm run score -- --full` adds the browser and audio verify suite (G1, G4).
 - `--detail` splits CPU between the picture and the music.
 - `--strict` exits non-zero when a gate fails.
@@ -67,13 +67,13 @@ A change can ship only if every gate passes.
 | Gate | Pass when | Before (`main`, 2 Oct 2026) | Now (`feat/hillclimb-phase-0`) |
 | --- | --- | --- | --- |
 | G1 Correctness | `npm test`, `npm run build` and the verify scripts in README.md pass | Passing | **Pass** |
-| G2 Lightness | CPU while listening ≤ a YouTube lofi live tab on the same machine (ratio ≤ 1.0) | 94% of a core at 240 fps vs YouTube 33%, **ratio ≈2.8** | 20% at 35 fps, **ratio 0.61: pass** (lofi). The picture is about 14 points, lofi audio about 4. Synthwave adds about 18 more: **ratio ≈1.15**, next to fix. |
+| G2 Lightness | CPU while listening ≤ a YouTube lofi live tab on the same machine (ratio ≤ 1.0) | 94% of a core at 240 fps vs YouTube 33%, **ratio ≈2.8** | Lofi 21.6% at 35 fps, **ratio 0.65**; synthwave 24.6%, **ratio 0.75: pass** (`perf/synthwave-cpu`, 5 Oct). The same day, `main` measured 0.75 lofi and 1.82 synthwave. |
 | G3 First load | First painting ≤ 350 KB, on screen within 2.5 s on a phone with slow 4G and a 4× slower CPU | 2.4–2.8 MB PNG per painting | 204–241 KB AVIF, on screen at 2.0–2.4 s: **pass** |
 | G4 Audio health | Existing mix and synthwave checks pass, true peak ≤ −1 dBTP, no dropouts, voices bounded | Passing | **Pass** (5/5) |
 | G5 Accessibility | Zero serious or critical axe violations on desktop and phone, with every panel open | Not automated | **Pass** |
 | G6 Shareable | Every page has a preview card; a working share action; clip export makes a valid 15 s vertical video | 0 of 3 | Preview cards 5/5 pages, a share action, and clip export (15 s vertical H.264/AAC, checked for every place): **pass** |
 
-Measured on a Ryzen 9 9950X with Chrome 154 and a 240 Hz display, at a 1280×720 window with sound muted; last run 3 Oct 2026. G3 uses its own marker (`motes:painting`) because LCP can't see a canvas.
+Measured on a Ryzen 9 9950X with Chrome 154 and a 240 Hz display, at a 1280×720 window with sound muted; last run 5 Oct 2026. G3 uses its own marker (`motes:painting`) because LCP can't see a canvas.
 
 ### Judged dimensions
 
@@ -133,8 +133,12 @@ The instinct is right: GPU rendering opens up dynamic light, weather, camera mov
 
     Together these took CPU from about 94% to about 37% of a core.
   - Profiling on 3 Oct showed the "music" share wasn't the audio graph. The hour's 2 px progress strip had a 650 ms CSS transition and was updated every 700 ms, so the compositor ran at the display rate (240 Hz here) for as long as music played. Removing the transition took listening from about 36% to 20% of a core, and listening with Still from 25% to 5%.
-  - Measured audio alone on a blank page: lofi about 4% of a core, synthwave about 22%. In offline renders the synthwave hall reverb (a 5.2 s stereo convolution) is about a third of synthwave's cost and its per-voice echoes about a tenth; the rest is detuned oscillators.
-  - Next: bring synthwave inside the gate, and score both styles. Then the GPU compositor.
+  - Synthwave was brought inside the gate on 5 Oct (ratio 1.82 → 0.75 on the same day's measurements; listening CPU 60% → 25% of a core), and `npm run score` now measures both styles. Offline renders under-counted the live cost, so each step was checked in a live tab:
+    - Each pluck had its own 16-node echo chain and stayed alive for three beats of repeats. Notes at one tempo now share one echo, which sums identically (−111 dB difference), and voices end with their dry release.
+    - Every scheduled voice costs CPU from scheduling until it ends. A visible tab now schedules 2.5 s ahead instead of 6; a hidden tab still keeps 6, extended the moment it is hidden. Voices at one level share a mix and centred bass and kick skip their panner, again sample-identical.
+    - Live, the browser convolves in short blocks, so the 5.2 s hall was most of what remained: about 15% of a core for the radio alone, against 6% without it. It now keeps the first two seconds, level-compensated; the rest of the decay was 0.55% of its energy. Octave bands of rendered songs match `main` within 0.03 dB.
+    - Blending each triangle into its detuned sawtooth (two oscillators instead of four) saved a quarter of offline render time but nothing measurable live, and deepened momentary dips at pad chord changes, so it was not kept.
+  - Next: the GPU compositor.
 
 ### Assets: made by the engine, not commissioned
 
@@ -187,7 +191,7 @@ Mods are how Motes gets staying power without a big team. In a GameDiscoverCo st
 | --- | --- | --- | --- |
 | **0 Measure** | Oct 2026 | Done: <ul><li>`npm run score` (gates G1–G6)</li><li>30 fps budget and idle stop</li><li>AVIF/WebP</li><li>A preview page and card per place</li><li>Web manifest</li><li>A still progress strip (G2 passing for lofi)</li><li>Licence files</li><li>Share action</li><li>Cookieless milestone analytics in `src/measure/` (off until configured)</li></ul> To do: <ul><li>Turn analytics on: PostHog project with cookieless tracking, `/ingest` proxy, build variables, EU consent check</li><li>"How Motes is made" page</li></ul> | <ul><li>WEL baseline measured</li><li>G3 and G6 preview cards passing ✓</li><li>CPU ratio ≤ 1.5 ✓ (0.61)</li></ul> |
 | **1 Spread** | Oct–Nov 2026 | <ul><li>Arrival-to-evening clip export ✓</li><li>Numbered edition postcard</li><li>Stream/OBS mode with a free-with-credit licence</li><li>Picture-in-picture</li><li>Halloween edition</li><li>Launch on TikTok/Reels/Shorts (one clip per daily edition), Reddit, Show HN and Product Hunt</li></ul> | <ul><li>K measured</li><li>`ref=share` arrivals measured</li><li>G6 fully passing</li></ul> |
-| **2 Craft** | Nov 2026–Jan 2027 | <ul><li>three.js compositor behind a flag</li><li>First engine place (the rooftop rain garden), judged against its painting</li><li>Place-pack v1</li><li>Synthwave inside the CPU gate</li><li>A winter place for exams and the holidays</li><li>Music engine package released under MIT</li></ul> | <ul><li>CPU ratio ≤ 1.0 in both styles (G2)</li><li>Engine place adopted or the look iterated</li><li>New place shipped through the pack format</li></ul> |
+| **2 Craft** | Nov 2026–Jan 2027 | <ul><li>three.js compositor behind a flag</li><li>First engine place (the rooftop rain garden), judged against its painting</li><li>Place-pack v1</li><li>Synthwave inside the CPU gate ✓</li><li>A winter place for exams and the holidays</li><li>Music engine package released under MIT</li></ul> | <ul><li>CPU ratio ≤ 1.0 in both styles (G2) ✓ (0.65 / 0.75)</li><li>Engine place adopted or the look iterated</li><li>New place shipped through the pack format</li></ul> |
 | **3 Cadence** | Q1 2027 | <ul><li>Monthly new place</li><li>Local mods</li><li>Motes 24/7 YouTube stream for discovery</li><li>Decide on a Steam wishlist page from retention data</li></ul> | W4 ≥ 15% |
 | **4 Platform** | Q2 2027 onwards | <ul><li>Curated guest places</li><li>Steam build with Workshop</li><li>AI place builder</li></ul> | 12-month targets |
 
@@ -232,6 +236,9 @@ Made on 3 Oct 2026:
 | Lofi Cities | 39–92 |
 | Motes listening, no progress transition (3 Oct) | 20 |
 | Motes audio alone, lofi / synthwave (3 Oct) | 4 / 22 |
+| Motes listening, lofi / synthwave, `main` (5 Oct) | 25 / 60 |
+| Motes listening, lofi / synthwave, after `perf/synthwave-cpu` (5 Oct) | 22 / 25 |
+| Synthwave radio alone with a 5.2 s / 2 s / no hall (5 Oct, dev build) | 17 / 11 / 8 |
 | three.js sky + water example at 30 fps | 20 |
 
 - three.js r186 is 194 KB gzipped (WebGL); Godot 4.7's web export has no WebGPU (Godot docs).

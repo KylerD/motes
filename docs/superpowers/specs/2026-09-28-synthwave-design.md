@@ -22,6 +22,8 @@ User feedback: the initial version lacked the characteristic rolling gallop, rev
 
 Further listening feedback identified gaps between the main chords and a missing sustained, echoing flow. Pads now hold for 8.8 beats across the next chord's attack, with a 2.4-second release. Arpeggios, leads and chord accents receive four decaying, alternating stereo echoes on a dotted-eighth grid. Four cascaded mono delay stages per voice keep storage bounded; the voice's cancellation gain controls both direct sound and echoes, and its lifetime includes the final repeat.
 
+Update, 5 October 2026: to bring synthwave inside the CPU gate, notes at one tempo now share one echo (the same four stages, summed identically). A full stop fades and retires it and later notes start a fresh one, so voices end with their dry release. The hall convolves the first two seconds of its 5.2-second impulse; the remainder is 0.55% of its energy and lies under the following notes.
+
 Synthwave owns a stereo modulated chorus, 5.2-second filtered hall with 35 ms predelay, and a short gated snare room. Effects route only synthwave instruments; drum reverb follows the drums control. Shared effect oscillators belong to the graph and stop on disposal. Per-note oscillator partners and echo nodes remain owned by the voice lifecycle. Rendered checks measure the tail after release, stereo width, headroom, distinct tempo-matched repeats, cancelled echoes and actual chord-join levels; these establish the requested acoustic changes without claiming to judge taste.
 
 ## Verification
