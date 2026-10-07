@@ -52,3 +52,8 @@ figcaption{margin-top:8px;color:var(--paper-muted);font-size:13px}
 }
 @media(max-width:520px){.pair{grid-template-columns:1fr}}
 @media(max-width:360px){:root{--pad:20px}.home img{width:132px}}
+.counting{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin:20px 0 22px;padding:14px 0;border-block:1px solid var(--paper-line)}
+.counting p{margin:0;font-size:14px}
+.counting button{min-height:44px;padding:0 16px;border:1px solid var(--paper-muted);border-radius:10px;background:none;color:var(--paper-text);font:600 14px/1.2 var(--sans);cursor:pointer}
+.counting button:hover{background:var(--paper-deep)}
+.counting button:focus-visible{outline:2px solid var(--panel-focus);outline-offset:3px}

@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {addListening,crossed,parseWeek,weekOf,weeksSinceFirst} from '../src/measure/listening';
+import {addListening,crossed,expired,parseWeek,weekOf,weeksSinceFirst} from '../src/measure/listening';
 
 describe('weekly engaged listening',()=>{
   it('keys a week by its local Monday',()=>{
@@ -29,6 +29,16 @@ describe('weekly engaged listening',()=>{
   it('crosses daylight-saving changes as whole weeks',()=>{
     expect(weeksSinceFirst({first:'2026-10-19',week:'2026-10-26',minutes:0,sent:false})).toBe('1');
     expect(weeksSinceFirst({first:'2026-03-23',week:'2026-03-30',minutes:0,sent:false})).toBe('1');
+  });
+  it('expires thirteen months after the first week, without being extended',()=>{
+    const record={week:'2027-10-25',minutes:3,sent:false,first:'2026-09-28'};
+    expect(expired(record,'2027-10-25')).toBe(false);
+    expect(expired(record,'2027-11-01')).toBe(true);
+    // Listening every week doesn't move the first week, so the record still ends on time.
+    expect(addListening(record,'2027-10-25',30).record.first).toBe('2026-09-28');
+    const fresh=addListening(record,'2027-11-01',25);
+    expect(fresh).toMatchObject({engaged:true,record:{week:'2027-11-01',minutes:25,first:'2027-11-01',sent:true}});
+    expect(weeksSinceFirst(fresh.record)).toBe('0');
   });
   it('accepts only a well-formed stored week',()=>{
     expect(parseWeek(JSON.stringify({week:'2026-09-28',minutes:4.5,sent:false,first:'2026-09-21'}))).toEqual({week:'2026-09-28',minutes:4.5,sent:false,first:'2026-09-21'});

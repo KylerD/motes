@@ -74,6 +74,21 @@ try {
   await made.setViewportSize({width:390,height:844});
   assert.ok(await made.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'the made page must not scroll sideways on a phone');
   await made.screenshot({path:'captures-scenes/made-mobile.png',fullPage:true});await made.close();report.madePage=true;
+  // Stop counting: the choice is remembered, the week record goes, and turning it back on starts afresh.
+  const optOut=await browser.newPage();optOut.on('pageerror',error=>errors.push(error.message));
+  await optOut.goto(`${base}/made/`);await optOut.evaluate(()=>localStorage.setItem('motes-week',JSON.stringify({week:'2026-10-05',minutes:12,sent:false,first:'2026-09-28'})));
+  await optOut.reload();
+  assert.equal(await optOut.textContent('#counting-status'),'Motes counts listening in this browser.');
+  await optOut.getByRole('button',{name:'Stop counting my listening'}).click();
+  assert.deepEqual(await optOut.evaluate(()=>[localStorage.getItem('motes-counting'),localStorage.getItem('motes-week')]),['off',null]);
+  await optOut.reload();
+  assert.equal(await optOut.textContent('#counting-status'),'Motes doesn’t count listening in this browser.');
+  await optOut.getByRole('button',{name:'Count my listening again'}).click();
+  assert.equal(await optOut.evaluate(()=>localStorage.getItem('motes-counting')),null);await optOut.close();
+  const gpc=await browser.newPage();await gpc.addInitScript(()=>Object.defineProperty(navigator,'globalPrivacyControl',{get:()=>true}));
+  await gpc.goto(`${base}/made/`);
+  assert.equal(await gpc.textContent('#counting-status'),'Your browser asks not to be tracked, so Motes counts nothing here.');
+  assert.equal(await gpc.isHidden('#counting-toggle'),true);await gpc.close();report.countingSwitch=true;
 
   const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   phone.on('pageerror',error=>errors.push(error.message));

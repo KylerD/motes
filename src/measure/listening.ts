@@ -21,9 +21,16 @@ export function weeksSinceFirst(record:WeekRecord):ReturnBucket {
   return weeks>=4?'4+':String(weeks) as ReturnBucket;
 }
 
+/** The record expires thirteen months after its first week and is never extended; the browser then counts as new. */
+export function expired(record:WeekRecord,week:string):boolean {
+  const [y,m,d]=record.first.split('-').map(Number);
+  return utcDay(week)>=Date.UTC(y,m-1+13,d);
+}
+
 /** Adds audible minutes to the current week. `engaged` is true only on the update that crosses the threshold. */
 export function addListening(record:WeekRecord|undefined,week:string,minutes:number):{record:WeekRecord;engaged:boolean} {
-  const current=record?.week===week?record:{week,minutes:0,sent:false,first:record?.first??week};
+  const kept=record&&!expired(record,week)?record:undefined;
+  const current=kept?.week===week?kept:{week,minutes:0,sent:false,first:kept?.first??week};
   const next={...current,minutes:current.minutes+Math.max(0,minutes)};
   const engaged=!next.sent&&next.minutes>=ENGAGED_MINUTES;
   return {record:engaged?{...next,sent:true}:next,engaged};

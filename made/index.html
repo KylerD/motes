@@ -38,7 +38,7 @@
     <dl class="summary">
       <div><dt>Music</dt><dd>Composed in your browser as it plays, by Motes’ own open-source engine. No AI music model and no recorded songs.</dd></div>
       <div><dt>Paintings</dt><dd>Made with an AI image tool from written prompts, then edited into matched pairs. Every prompt is published.</dd></div>
-      <div><dt>Privacy</dt><dd>No cookies, accounts or identifiers. A few anonymous milestones, and nothing at all if your browser asks not to be tracked.</dd></div>
+      <div><dt>Privacy</dt><dd>No cookies, accounts or identifiers. A few anonymous milestones, which you can switch off, and nothing at all if your browser asks not to be tracked.</dd></div>
     </dl>
 
     <section aria-labelledby="music">
@@ -73,9 +73,10 @@
 
     <section aria-labelledby="privacy">
       <h2 id="privacy">Privacy</h2>
-      <p>Motes sets no cookies and has no accounts. It sends a handful of anonymous events to PostHog’s EU cloud: that you arrived (and the <code>ref</code> of the link you followed), your first Listen, 5, 20 and 60 minutes of listening, one event when you pass twenty minutes in a week, and shares. No identifier is sent or stored; PostHog counts visitors with a hash it makes on its own servers and changes every day.</p>
-      <p>Your browser keeps your sound and motion settings, and this week’s listening minutes with the week you first listened. That is how Motes counts weekly listeners without an ID.</p>
-      <p>If your browser sends Global Privacy Control or Do Not Track, Motes sends nothing at all. Clips are made on your device and never uploaded. Apart from those events, the fonts, paintings and piano all come from motes.sh.</p>
+      <p>Motes sets no cookies and has no accounts. It sends a handful of anonymous events to PostHog’s EU cloud, by way of motes.sh: that you arrived (and the <code>ref</code> of the link you followed), your first Listen, 5, 20 and 60 minutes of listening, one event when you pass twenty minutes in a week, and shares. No identifier is sent or stored; PostHog counts visitors with a hash it makes on its own servers and changes every day.</p>
+      <p>To count weekly listeners, and how many come back, without an ID, your browser keeps this week’s listening minutes and the week you first listened. That record expires thirteen months after your first week and is never extended. The numbers are used only to tell whether changes make Motes a better place to stay. Your sound and motion settings are kept too, so Motes sounds the way you left it.</p>
+      <div id="counting" class="counting" hidden><p id="counting-status" aria-live="polite"></p><button id="counting-toggle" type="button"></button></div>
+      <p>If your browser sends Global Privacy Control or Do Not Track, Motes sends nothing at all. Clips are made on your device and never uploaded. Every request the page makes, events included, goes to motes.sh.</p>
     </section>
 
     <section aria-labelledby="licences">
