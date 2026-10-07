@@ -41,7 +41,7 @@ The same date and place reproduce the same starting edition. An open session rec
 
 Listening gradually deepens the light, changes the weather and warms windows. A train briefly visits the snowy station, a small boat crosses the bay, birds and butterflies pass through the meadow, and a shower passes over the city. These moments belong to the hour rather than repeating every few seconds. A separate clock counts actual listening time: Pause holds it, Next changes only the music, and Still freezes only the picture. The clock continues during normal background listening and starts fresh on arrival in another edition, while the current song finishes naturally. After the hour, the scene stays in its evening state.
 
-From 24 to 31 October, by the local date, every place is a **Halloween edition**. It arrives looking like an ordinary afternoon with a few unlit jack-o'-lanterns, then becomes Halloween by evening: their carvings light up along the place's own lamp arc, a harvest moon rises (over the meadow, from behind its ridge) and bats flit across it. All of it is drawn by `src/scenes/halloween.ts` over the existing paintings and follows listening time, so clips show it too. The words turn seasonal after half an hour, with "Happy Halloween." on the 31st. The music opens and closes the hour in minor with a written Halloween motif, a creeping figure in both styles, and adds vibes and one more minor song; after hours returns to ordinary themes. Everything else about the edition (place, seed, weather) is what that date would otherwise be, and ordinary days compose exactly as before: `tests/halloween.test.ts` pins their fingerprints.
+From 24 to 31 October, by the local date, every place is a **Halloween edition** with its own pair of authored paintings: an arrival with unlit jack-o'-lanterns and autumn colour, and an evening where they glow and a harvest moon rises with bats. They are composition-matched edits of the place's paintings, so masks, water and crops line up, and the usual lighting arc carries the place from one to the other; only the visited place's pair loads. The words turn seasonal after half an hour, with "Happy Halloween." on the 31st. The music opens and closes the hour in minor with a written Halloween motif, a creeping figure in both styles, and adds vibes and one more minor song; after hours returns to ordinary themes. Everything else about the edition (place, seed, weather) is what that date would otherwise be, and ordinary days compose exactly as before: `tests/halloween.test.ts` pins their fingerprints.
 
 Every place has a matched evening painting. Over roughly fifty minutes, the sky, distance, sheltered foreground and water change at their own pace:
 
@@ -60,8 +60,7 @@ The scene paints at a steady 30 frames a second, 60 during crossfades and ripple
 
 | Module | Responsibility |
 | --- | --- |
-| `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere, the Halloween season and its words |
-| `src/scenes/halloween.ts` | Jack-o'-lanterns, harvest moon and bats over a Halloween edition |
+| `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere, the Halloween season, its paintings and its words |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
 | `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
 | `src/scenes/painting-source.ts` | AVIF → WebP → PNG painting fallback |
@@ -102,7 +101,7 @@ node scripts/render-music-preview.mjs
 
 The two clip scripts need installed Chrome and ffmpeg/ffprobe on the PATH; clips land in `captures/clips/`.
 
-`npm run score` scores a change against the gates in [GOAL.md](GOAL.md): CPU in both music styles against a YouTube lofi stream, first load on a slow phone, accessibility and link previews. `npm run score -- --full` also runs every check above. The CPU gate opens visible Chrome windows; installed Chrome is preferred. `--day 2026-10-31` measures CPU on another edition's day, and `--evening` holds the picture at its settled evening, so `npm run score -- --day 2026-10-31 --evening` prices the Halloween edition with its moon, bats and lit pumpkins.
+`npm run score` scores a change against the gates in [GOAL.md](GOAL.md): CPU in both music styles against a YouTube lofi stream, first load on a slow phone, accessibility and link previews. `npm run score -- --full` also runs every check above. The CPU gate opens visible Chrome windows; installed Chrome is preferred. `--day 2026-10-31` measures CPU on another edition's day, and `--evening` holds the picture at its settled evening, so `npm run score -- --day 2026-10-31 --evening` prices the Halloween edition at its heaviest.
 
 Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, canvas sizing after a late viewport change with no window resize, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
 

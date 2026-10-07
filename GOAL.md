@@ -159,6 +159,7 @@ Kyle's direction (3 Oct 2026): **new places must not depend on commissioning art
   3. Adopt it only if it wins on cosiness and believable evening without losing on human touch. Otherwise iterate the look before building more places.
 - **After adoption:** about one new place a month as a place pack, directed by Kyle and built by Claude, with no commissions.
 - **Until then** the current paintings stay, with their prompts kept as provenance in `public/scenes/ARTWORK.md`.
+- **Seasonal editions use authored paintings** (Kyle, 7 Oct 2026). The first Halloween build drew pumpkins over the paintings in code and was rejected as stickers. Each place now has a composition-matched Halloween pair, made with the same image tool as the current paintings and recorded in `ARTWORK.md`. Never draw recognisable objects over the art in code; light, weather and small distant silhouettes stay in code.
 - **Check every model and tool licence** used for textures, depth or masks. Depth Anything V2 Base, Large and Giant, and Depth Anything 3 Large and Giant, are non-commercial; Marigold code and Qwen-Image-Layered are Apache-2.0.
 
 Don't use AI video on the core art (it's heavy, drifts and can't follow the music) or pixel art (the look Lofi Cities was attacked for).
