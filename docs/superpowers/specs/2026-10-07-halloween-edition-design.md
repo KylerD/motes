@@ -19,13 +19,14 @@ It follows the existing rules: no new paintings (the final pixels come from Mote
 
 ### Picture
 
-A new module, `src/scenes/halloween.ts`, draws three layers over the painting. The renderer calls `drawHalloween` after `drawSessionEffects`, only when `edition.season === 'halloween'`. Every layer is derived from listening time (the environment clock) and picture time, never from session events: clips sample a plan without events, and these layers must appear in clips.
+A new module, `src/scenes/halloween.ts`, draws three layers over the painting. Its `HalloweenLayer` is owned by the `SceneRenderer`, created for a Halloween edition and dropped with it, so no module holds mutable state. The renderer calls `layer.draw(...)` after `drawSessionEffects`, only when `edition.season === 'halloween'`. Every layer is derived from listening time (the environment clock) and picture time, never from session events: clips sample a plan without events, and these layers must appear in clips.
 
 1. **Jack-o'-lanterns.** Three or four small pumpkins per place, standing on painted surfaces at authored image coordinates. At least two sit inside the phone crop (about 26% of the painting's width around the place's anchor on a tall phone).
-   - Body: three overlapping lobes in a muted orange, with a darker rim, a highlight and a short stem. The lobes are drawn in the painting's palette rather than flat clip-art colours.
-   - Daylight: matte orange and unlit; easy to miss.
-   - Evening: the body darkens with the place's foreground light, so it never glows unnaturally against the evening painting. The carved face (two triangular eyes and a jagged mouth) lights up along the place's own lamp arc (`sceneLightAt(...).lamps`), with a soft flicker and a small warm glow.
-   - Sizes are 1.2–2.2% of the image width, matched to their depth in the painting.
+   - Body: pre-rendered once per pixel size as a shaded sprite, so it reads painterly rather than as flat clip-art. It has three overlapping lobes with radial shading in a muted orange, a warm rim light, a short stem and a soft contact shadow.
+   - Two sprites, day and dusk, are crossfaded by the place's foreground light. Daylight is matte orange and unlit, easy to miss. At evening the body darkens with the painting, so it never glows unnaturally.
+   - Carvings vary so they read as hand-made: a friendly face (round eyes, a gentle smile), a crescent moon, and a scatter of round holes. Never the stock triangle-eyed face on every pumpkin.
+   - The carving's light rises along the place's own lamp arc (`sceneLightAt(...).lamps`), with a soft flicker. A small warm pool of light spreads onto the surface beneath.
+   - Sizes are 1.2–2.2% of the image width, matched to their depth in the painting. In a clip (phone layout at 2.67×) that makes a near pumpkin about 50 output pixels wide: readable without dominating.
 2. **Harvest moon.** A warm cream disc with a soft halo and two faint maria, in a clear patch of each sky and inside the phone crop where the painting allows.
    - It fades in as the sky turns to evening (sky light 0.35 → 0.9) and rises 3% of the image height over the hour.
    - It is drawn from a cached sprite that is rebuilt only when its pixel size changes.
@@ -41,19 +42,21 @@ Initial coordinates (u, v in image units; size as a fraction of image width), to
 | Last light station | platform (.355, .720, .022), (.380, .725, .014); far platform (.365, .610, .009); window ledge (.175, .556, .014) | (.570, .150) |
 | The last chapter | lantern block (.495, .768, .020); wall top (.567, .657, .012); desk (.150, .615, .016) | (.605, .130) |
 
-The cost is bounded and small: at most four pumpkins, one cached moon sprite and four bat paths per frame. Glows reuse a cached radial sprite instead of creating gradients each frame. Water does not reflect the overlays; only the composited painting is displaced, as today.
+The cost is bounded and small. Each frame draws at most four pumpkins (three sprite draws each: body, carving and glow), one moon sprite and four bat paths, and creates no gradients. The layer caches its sprites per pixel size, rebuilds them only when the layout changes, and holds a fixed number of them. Water does not reflect the overlays; only the composited painting is displaced, as today.
 
 ### Words
 
-- **Atmosphere** (`edition.light`, also used in the canvas's accessible name): three Halloween phrases per place, for example "Pumpkins on the platform" or "A harvest moon over the bay".
-- **Captions:** from 30 listening minutes, the caption shown in the player becomes one of two Halloween captions per place (30–45 minutes, then 45 onwards). The first half-hour keeps the place's own captions, so the edition starts quietly.
-- **Subtitle:** the final subtitle (from 40 minutes) becomes a Halloween line. On 31 October it is "Happy Halloween."
+One line per place for each slot, in the existing short, welcoming voice. No puns.
+
+- **Atmosphere** (`edition.light`, also used in the canvas's accessible name): one Halloween phrase per place, for example "Pumpkins on the platform".
+- **Caption:** from 30 listening minutes, the caption shown in the player becomes a Halloween caption per place, for example "A harvest moon over the bay". The first half-hour keeps the place's own captions, so the edition starts quietly.
+- **Subtitle:** the final subtitle (from 40 minutes) becomes a Halloween line per place. On 31 October it is "Happy Halloween."
 
 ### Music
 
 **The motif.**
 - Rhythm: two creeping phrases over two bars. The first is three eighth notes into a held note (beats 0, ½, 1, then 1½ held for 1½ beats). The second, after a rest, repeats that shape held longer (beats 4, 4½, 5, then 5½ held for 2). The rhythm leaves air, ends on a held note and never overlaps itself, like every existing cell.
-- Lofi: the rhythm is appended as `MELODY_CELLS[12]`. Contour `[2, 1, 0, 3, 2, 1, 0, -1]` around the fifth (`degree: 4`): in minor it falls ♭7, ♭6, 5, springs up to the octave, then falls again to the fourth.
+- Lofi: the rhythm is appended as `MELODY_CELLS[12]`. Contour `[2, 1, 0, 3, 2, 1, 0, -1]` around the fifth (`degree: 4`): in minor it creeps down from ♭7 through ♭6 to 5, springs up, then creeps down again. The melody's usual chord-tone fitting may move individual notes; the creeping shape and its rhythm are what make it recognisable.
 - Synthwave: the same rhythm is appended as `HOOKS[6]`, with the chord-tone contour `[2, 1, 0, 3, 2, 1, 0, 1]`.
 - Random theme draws keep using only the original 12 cells and 6 hooks, so no ordinary song changes.
 
@@ -72,16 +75,19 @@ Ordinary days must compose exactly as before. A fingerprint test pins `createSes
 
 ### Plumbing
 
-- `RadioAudio` takes the season in its constructor and in `setEdition(seed, mood, season)`. Both the music plan and the environment plan use it.
-- `main.ts` passes `current.season` wherever it builds a session: audio, preview, debug.
+The season comes from one place, `edition()`. Every caller that builds a session passes `edition.season` on:
+
+- `RadioAudio` takes the season in its constructor and in `setEdition(seed, mood, season)`, and keeps it. The music plan, the environment plan and a style switch's new hour all use it, so switching to synthwave on 31 October still gives the Halloween hour.
+- `main.ts` passes `current.season` to audio, previews and the debug plan.
 - `src/clip/export.ts` and `src/clip/music.ts` pass `edition.season`, so a Halloween clip has the Halloween picture and motif.
-- `scripts/render-music-preview.mjs` accepts an optional eighth argument, `halloween`.
-- `scripts/score.mjs` adds a Halloween CPU measurement (Neon rain on 31 October, lofi). G2 passes only if every measured ratio is 1.0 or lower.
+- `renderPreview` takes a `season` option. `scripts/render-music-preview.mjs` accepts an optional eighth argument, `halloween`.
+- `scripts/score.mjs` gains `--day <date>` for the CPU gate, which otherwise measures 17 September. `npm run score -- --day 2026-10-31` scores the Halloween edition, and the same option will serve any later seasonal edition. The everyday score run keeps its length.
 
 ## Out of scope
 
 - Static link-preview cards: they are built once, so they can't follow dates.
 - A seasonal on/off switch.
+- Dating share links during the season. Links shared during the season already open the Halloween edition; pinning the date would make links go stale for everyone who opens them later.
 - New session events, mist, falling leaves or new paintings.
 - Any analytics change: arrivals by date already show the edition's effect.
 
@@ -100,5 +106,6 @@ Ordinary days must compose exactly as before. A fingerprint test pins `createSes
   - PCM previews of Halloween lofi songs 1 and 18 and Halloween synthwave song 1, with peak/RMS reported;
   - `verify-music`, `verify-mix`, `verify-mix synthwave`, `verify-synthwave` and `verify-synthwave-sound`;
   - three rendered synthwave family previews, as CLAUDE.md requires for synthwave changes.
-- **Gates:** `npm test`, `npm run build`, `npm run score -- --full` with the new Halloween G2 measurement.
+  - Kyle's listen to the motif, which no automated check can judge.
+- **Gates:** `npm test`, `npm run build`, `npm run score -- --full`, and `npm run score -- --day 2026-10-31` for the Halloween CPU ratio (1.0 or lower in both styles).
 - **Docs:** PRODUCT.md, DESIGN.md and README describe the edition. GOAL.md marks it done in the Phase 1 roadmap.
