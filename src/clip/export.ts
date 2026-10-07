@@ -41,7 +41,7 @@ export async function makeClip(edition:Edition,style:MusicStyle,mode:MusicMode,
     onProgress?.('music',0);
     const music=await renderClipMusic(edition,style,mode);
     signal?.throwIfAborted();
-    const plan=createSession(edition.seed,edition.scene),ctx=canvas.getContext('2d',{alpha:false})!,title=SCENES[edition.scene].title;
+    const plan=createSession(edition.seed,edition.scene,'lofi',edition.season),ctx=canvas.getContext('2d',{alpha:false})!,title=SCENES[edition.scene].title;
     const blob=await encodeClip(canvas,music,index=>{
       const frame=clipFrame(index);
       renderer.setPan(frame.pan);

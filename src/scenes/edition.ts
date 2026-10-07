@@ -38,7 +38,18 @@ export function sceneFromPath(path: string): SceneId | undefined {
   const slug = /^\/places\/([a-z-]+)\/?$/.exec(path)?.[1];
   return SCENE_IDS.find(id => SCENES[id].slug === slug);
 }
-export interface Edition { day: string; scene: SceneId; seed: number; intensity: number; wind: number; warmth: number; light: string; }
+export type Season = 'halloween';
+/** Halloween runs from 24 to 31 October, by the viewer's local date, every year. */
+export function seasonOf(day: string): Season | undefined {
+  return validDay(day) && day.slice(5,7) === '10' && Number(day.slice(8)) >= 24 ? 'halloween' : undefined;
+}
+const HALLOWEEN: Record<SceneId,{light:string;caption:string;subtitle:string}> = {
+  rain: { light: 'Pumpkins on the rooftop', caption: 'Pumpkin light above the city', subtitle: 'A quiet Halloween above the rain.' },
+  meadow: { light: 'Pumpkins by the water', caption: 'A harvest moon over the meadow', subtitle: 'A quiet Halloween in the long grass.' },
+  snow: { light: 'Pumpkins on the platform', caption: 'A harvest moon over the peaks', subtitle: 'A quiet Halloween between trains.' },
+  coast: { light: 'Pumpkins on the terrace', caption: 'A harvest moon over the bay', subtitle: 'A quiet Halloween by the sea.' },
+};
+export interface Edition { day: string; scene: SceneId; seed: number; intensity: number; wind: number; warmth: number; light: string; season?: Season; }
 export function edition(day = localDay(), scene?: SceneId): Edition {
   const safeDay = validDay(day) ? day : localDay();
   const ordinal = Math.floor(Date.parse(`${safeDay}T12:00:00Z`)/86400000);
@@ -51,7 +62,16 @@ export function edition(day = localDay(), scene?: SceneId): Edition {
     snow: ['The quiet between trains', 'Snowfall at dusk', 'Warm windows, winter sky'],
     coast: ['A sea breeze at sunset', 'The tide coming in', 'Last light over the bay'],
   };
-  return { day: safeDay, scene: place, seed, intensity, wind, warmth, light: lights[place][Math.floor(rng()*3)] };
+  // The light is drawn either way, so a season changes no other draw.
+  const light = lights[place][Math.floor(rng()*3)], season = seasonOf(safeDay);
+  return season ? { day: safeDay, scene: place, seed, intensity, wind, warmth, light: HALLOWEEN[place].light, season }
+    : { day: safeDay, scene: place, seed, intensity, wind, warmth, light };
+}
+/** A Halloween edition keeps its place's own words for the first half-hour, then takes on the season's. */
+export function seasonalWords(edition: Edition, seconds: number): { caption?: string; subtitle?: string } {
+  if (edition.season !== 'halloween') return {};
+  const words = HALLOWEEN[edition.scene], subtitle = edition.day.endsWith('-10-31') ? 'Happy Halloween.' : words.subtitle;
+  return { ...(seconds >= 1800 ? { caption: words.caption } : {}), ...(seconds >= 2400 ? { subtitle } : {}) };
 }
 export function dayLabel(day: string): string {
   const date = new Date(`${day}T12:00:00`);

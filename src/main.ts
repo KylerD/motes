@@ -1,7 +1,7 @@
 import './style.css';
 import { DEFAULT_MIX, RadioAudio } from './music/audio';
 import type {MusicStyle} from './music/composer';
-import { edition,dayLabel,localDay,validDay,isScene,placePath,sceneFromPath,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
+import { edition,dayLabel,localDay,validDay,isScene,placePath,sceneFromPath,seasonalWords,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
 import { SceneRenderer } from './scenes/renderer';
 import {createSession,sessionAt} from './session/session';
 import {sceneLightAt} from './scenes/scene-light';
@@ -20,7 +20,7 @@ const queryDay = params.get('day'), queryScene = params.get('scene'), chosenScen
 const arrivalRef = /^[\w-]{1,32}$/.test(params.get('ref')??'') ? params.get('ref')! : undefined;
 let today = localDay(), current = edition(validDay(queryDay)?queryDay:today,chosenScene);
 let scenePinned = chosenScene!==undefined;
-const audio = new RadioAudio(current.seed,current.scene);
+const audio = new RadioAudio(current.seed,current.scene,current.season);
 const canvas=$<HTMLCanvasElement>('scene');
 let renderer:SceneRenderer;
 try { renderer=new SceneRenderer(canvas,current); }
@@ -98,7 +98,7 @@ function updateEdition() {
   updateUrl();updatePlayer();
 }
 function visit(day:string,scene?:SceneId) {
-  scenePinned=scene!==undefined;current=edition(day,scene);renderer.setEdition(current);audio.setEdition(current.seed,current.scene);visualTime=0;previewSeconds=undefined;
+  scenePinned=scene!==undefined;current=edition(day,scene);renderer.setEdition(current);audio.setEdition(current.seed,current.scene,current.season);visualTime=0;previewSeconds=undefined;
   $('new-day').hidden=true;closePanels();updateEdition();repaint();
 }
 for(const id of SCENE_IDS) {
@@ -139,9 +139,9 @@ function updatePlayer() {
   text('track-title',track.title);
   text('track-detail',switchingStyle?'Tuning into your music…':starting?(track.style==='synthwave'?'Warming up the synths…':'Preparing the piano…'):!listened?'An hour, unfolding here':`${voice} · ${session.chapter}`);
   attribute('track-detail','title',`${voice} · ${session.chapter}${preferences.mode==='ambient'?' · Without drums':''}`);
-  const environment=previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds);
+  const environment=previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene,'lofi',current.season),previewSeconds);
   const shownEnvironment=renderer.motion?environment:renderer.diagnostics.session??environment;
-  const light=sceneLightAt(current.scene,shownEnvironment.elapsed);
+  const light={...sceneLightAt(current.scene,shownEnvironment.elapsed),...seasonalWords(current,shownEnvironment.elapsed)};
   text('atmosphere-description',light.caption);
   text('scene-subtitle',light.subtitle);
   $('track-progress').style.transform=`scaleX(${session.progress})`;
@@ -275,7 +275,7 @@ function repaint() {schedulePaint(0);}
 function paint(now:number) {
   if(disposed)return;
   if(renderer.motion)visualTime+=Math.min(.07,Math.max(0,(now-last)/1000));last=now;
-  renderer.draw(visualTime,now,previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene),previewSeconds));
+  renderer.draw(visualTime,now,previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene,'lofi',current.season),previewSeconds));
   $('art-status').hidden=renderer.ready&&!renderer.failed;$('retry-art').hidden=!renderer.failed;
   $('art-message').textContent=renderer.ready&&renderer.lightingFailed?'The evening light couldn’t load. You can still stay here.':renderer.failed?'The painting couldn’t load. The music is still here.':'Finding a quiet place…';
   schedulePaint(frameDelay({motion:renderer.motion,smooth:renderer.smooth,spent:performance.now()-now}));
@@ -313,7 +313,7 @@ window.addEventListener('pagehide',e=>{
 window.addEventListener('pageshow',e=>{
   if(e.persisted){last=performance.now();repaint();if(cachedPlayback)void toggleListening();}
 });
-if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},get session(){return audio.session;},get environment(){return audio.environment;},get clip(){return clipJob?'working':readyClip?'ready':'idle';},get sessionPlan(){return createSession(current.seed,current.scene);},visit,
-  previewSession:(seconds:number,preserveMotion=false)=>{previewSeconds=Math.max(0,seconds);if(!preserveMotion)visualTime=seconds;renderer.draw(visualTime,performance.now(),sessionAt(createSession(current.seed,current.scene),previewSeconds));updatePlayer();},
+if(params.has('debug'))Object.assign(window,{__motes:{get edition(){return current;},get time(){return visualTime;},get ready(){return renderer.ready;},get failed(){return renderer.failed;},get motion(){return renderer.motion;},get rendering(){return renderer.diagnostics;},get radio(){return audio.diagnostics;},get track(){return audio.current;},get session(){return audio.session;},get environment(){return audio.environment;},get clip(){return clipJob?'working':readyClip?'ready':'idle';},get sessionPlan(){return createSession(current.seed,current.scene,'lofi',current.season);},visit,
+  previewSession:(seconds:number,preserveMotion=false)=>{previewSeconds=Math.max(0,seconds);if(!preserveMotion)visualTime=seconds;renderer.draw(visualTime,performance.now(),sessionAt(createSession(current.seed,current.scene,'lofi',current.season),previewSeconds));updatePlayer();},
   advance:(seconds:number)=>{visualTime+=seconds;renderer.draw(visualTime);},point:(u:number,v:number)=>renderer.point(u,v)}});
 updateEdition();repaint();

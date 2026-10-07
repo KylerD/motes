@@ -17,7 +17,11 @@ export const MELODY_CELLS: Cell[] = [
   [[0, 0.5], [0.5, 0.5], [1, 0.5], [2, 1], [3, 0.5], [3.5, 1.5], [6, 1.5]],
   [[1, 0.5], [1.5, 0.5], [2, 0.5], [2.5, 1.5], [4.5, 0.5], [5, 0.5], [5.5, 1.5]],
   [[0.5, 0.5], [1, 1], [4.5, 0.5], [5, 1.5]],
+  // Halloween: creep down three eighths into a held note, then again, held longer. Never drawn at random.
+  [[0, 0.5], [0.5, 0.5], [1, 0.5], [1.5, 1.5], [4, 0.5], [4.5, 0.5], [5, 0.5], [5.5, 2]],
 ];
+/** Themes draw at random from the first cells only; the cells after them are authored for one theme, so adding one changes no song. */
+export const DRAWN_CELLS = 12;
 
 /** A comp hit over two bars. `upper` drops the lowest voice; `tie` plays the next bar's chord early and replaces its downbeat. */
 export interface CompHit { at: number; duration: number; velocity: number; upper?: boolean; roll?: boolean; tie?: boolean }

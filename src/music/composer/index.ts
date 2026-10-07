@@ -9,10 +9,10 @@ import type { Arrangement, Mood, Track } from './types';
 
 export type * from './types';
 export { randomSource } from './random';
-export { makeTheme } from './plan';
+export { makeTheme, HALLOWEEN_THEME } from './plan';
 export { formBars } from './form';
 export { LOOPS } from './harmony';
-export { MELODY_CELLS } from './cells';
+export { MELODY_CELLS, DRAWN_CELLS } from './cells';
 
 const keyNames = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
 const words: Record<Mood, string[]> = {

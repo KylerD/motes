@@ -1,5 +1,5 @@
 import type { PhraseEnd } from './cells';
-import { MELODY_CELLS } from './cells';
+import { DRAWN_CELLS } from './cells';
 import { formBars, sectionsFor } from './form';
 import { B_LOOPS, LOOPS, TURNAROUNDS, buildHarmony, loopById } from './harmony';
 import { anchorFor, makeContour } from './melody';
@@ -14,8 +14,11 @@ export interface SongPlan {
 }
 
 export function makeTheme(random: () => number, cell?: number, contour?: number[]): Theme {
-  return { cell: cell ?? Math.floor(random() * MELODY_CELLS.length), contour: contour ?? makeContour(random), degree: random() < 0.5 ? 2 : 4 };
+  return { cell: cell ?? Math.floor(random() * DRAWN_CELLS), contour: contour ?? makeContour(random), degree: random() < 0.5 ? 2 : 4 };
 }
+
+/** The Halloween motif around the fifth: in minor it creeps down from the seventh, springs up, and creeps down again. */
+export const HALLOWEEN_THEME: Theme = { cell: DRAWN_CELLS, contour: [2, 1, 0, 3, 2, 1, 0, -1], degree: 4 };
 
 /** A complete arrangement for a song heard outside a session (standalone previews and groove fixtures). */
 export function standaloneArrangement(random: () => number, mood: Mood): Arrangement {

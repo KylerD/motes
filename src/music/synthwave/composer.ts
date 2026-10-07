@@ -1,6 +1,6 @@
 import { randomSource } from '../composer/random';
 import type { Chord, Instrument, Mood, Role, ScoreEvent, Section, Track } from '../composer/types';
-import { ARPS, FORMS, HOOKS, INTERVALS, LOOPS, type SynthArrangement } from './catalog';
+import { ARPS, DRAWN_HOOKS, FORMS, HOOKS, INTERVALS, LOOPS, type SynthArrangement } from './catalog';
 
 const names: Record<Mood, string[]> = {
   rain: ['Midnight Overpass', 'Neon Letters', 'Glass Horizons', 'Tail Lights'],
@@ -72,10 +72,12 @@ export function composeSynthwave(seed: number, mood: Mood, index: number, a: Syn
       const hookBar = local % 8;
       const leadHere = !quiet && !opening && local % 2 === 0 && hookBar < (a.family === 'lead' ? 6 : a.family === 'drift' ? 2 : 4);
       if (leadHere || opening && local === 4 || section.role === 'tag' && local === 0) {
-        const cell = HOOKS[a.theme.cell];
+        const cell = HOOKS[a.theme.cell], authored = a.theme.cell >= DRAWN_HOOKS;
+        // An authored motif keeps its shape: one octave for the whole statement, and the answer repeats it.
+        let base = 60 + root; while (base < 65) base += 12; while (base > 76) base -= 12;
         cell.forEach(([at, duration], n) => {
-          const tone = intervals[(a.theme.contour[n % a.theme.contour.length] + (hookBar === 2 ? 1 : 0)) % 4];
-          let midi = 60 + root + tone; while (midi < 67) midi += 12; while (midi > 83) midi -= 12;
+          const tone = intervals[(a.theme.contour[n % a.theme.contour.length] + (hookBar === 2 && !authored ? 1 : 0)) % 4];
+          let midi = authored ? base + tone : 60 + root + tone; while (midi < 67 && !authored) midi += 12; while (midi > 83) midi -= 12;
           add('lead', beat + at, midi, Math.min(duration, 7.8 - at), level * (opening ? .4 : .64), .06);
         });
       }

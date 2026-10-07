@@ -29,15 +29,21 @@ export const HOOKS = [
   [[0, .75], [1.5, .75], [3, 1], [4.5, 2.5]],
   [[1, 1.5], [3, .5], [4, 1], [5.5, 2]],
   [[0, 3], [4, 1.5], [6, 1.5]],
+  // Halloween: the lofi motif's rhythm. Never drawn at random.
+  [[0, .5], [.5, .5], [1, .5], [1.5, 1.5], [4, .5], [4.5, .5], [5, .5], [5.5, 2]],
 ] as const;
+/** Themes draw at random from the first hooks only, so adding an authored hook changes no song. */
+export const DRAWN_HOOKS = 6;
+/** The Halloween motif over chord tones: fifth, third, root, back up to the fifth; then down again to rest on the third. */
+export const HALLOWEEN_HOOK: Theme = { cell: DRAWN_HOOKS, contour: [2, 1, 0, 2, 2, 1, 0, 1], degree: 2 };
 export const ARPS = [[0, 2, 1, 3, 2, 1, 3, 2], [0, 1, 2, 3, 2, 1, 2, 1], [3, 2, 1, 0, 1, 2, 1, 2], [0, 2, 3, 2, 1, 2, 3, 1]];
 
 export function synthTheme(random: () => number): Theme {
   const contours = [[0, 1, 2, 1, 0], [2, 1, 0, 1, 2], [1, 2, 1, 0, 1], [0, 2, 1, 2, 0]];
-  return { cell: Math.floor(random() * HOOKS.length), contour: contours[Math.floor(random() * contours.length)], degree: 2 };
+  return { cell: Math.floor(random() * DRAWN_HOOKS), contour: contours[Math.floor(random() * contours.length)], degree: 2 };
 }
 
-export function planSynthwave(seed: number): SynthArrangement[] {
+export function planSynthwave(seed: number, halloween = false): SynthArrangement[] {
   const random = randomSource(seed ^ 0x73796e74);
   const tonic = [0, 2, 5, 7, 9][Math.floor(random() * 5)];
   const sequence: SynthFamily[] = ['arpeggio', 'pulse', 'drift', 'lead', 'arpeggio', 'drift', 'pulse', 'lead', 'drift', 'arpeggio', 'lead', 'pulse', 'arpeggio', 'drift', 'lead', 'pulse', 'drift', 'arpeggio'];
@@ -54,6 +60,7 @@ export function planSynthwave(seed: number): SynthArrangement[] {
       tonic: (tonic + (i > 4 && i < 10 ? 5 : i > 11 && i < 16 ? 7 : 0)) % 12,
       energy: energy[i], loop, contrast: (loop + 3) % LOOPS.length, theme: synthTheme(random), arp: Math.floor(random() * ARPS.length) });
   });
+  if (halloween) arrangements[0].theme = HALLOWEEN_HOOK;
   Object.assign(arrangements[17], { tonic: arrangements[0].tonic, loop: arrangements[0].loop, contrast: arrangements[0].contrast, theme: arrangements[0].theme, arp: arrangements[0].arp });
   const scale = arrangements.reduce((sum, a) => sum + a.bars * 240 / a.bpm, 0) / 3600;
   return arrangements.map(a => ({ ...a, bpm: a.bpm * scale }));

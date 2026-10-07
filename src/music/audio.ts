@@ -1,6 +1,7 @@
 import { composeTrack, type Mood, type MusicMode, type MusicStyle, type ScoreEvent, type Track } from './composer';
 import {createSession,composeSessionTrack,sessionAt,type SessionPlan,type MusicSessionPlan} from '../session/session';
 import {EnvironmentClock} from '../session/environment';
+import type {Season} from '../scenes/edition';
 import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, loadPiano, scheduleNote, setSoundMode, startAmbience, stopVoices, type SoundGraph, type PianoBank } from './sound';
 export { composeTrack } from './composer';
 export { DEFAULT_MIX } from './sound';
@@ -44,7 +45,7 @@ export class RadioAudio {
   /** Every second of playback on this page, never reset by visiting another place. */
   private listeningClock=new EnvironmentClock();
 
-  constructor(private seed:number,private mood:Mood) {this.environmentPlan=createSession(seed,mood);this.plan=this.environmentPlan;this.track=this.makeTrack();}
+  constructor(private seed:number,private mood:Mood,private season?:Season) {this.environmentPlan=createSession(seed,mood,'lofi',season);this.plan=this.environmentPlan;this.track=this.makeTrack();}
 
   get playing() {return this.running;}
   get listenedSeconds() {return this.listeningClock.seconds(this.context?.currentTime??0);}
@@ -165,7 +166,7 @@ export class RadioAudio {
       try{await this.ensurePiano();}catch(error){if(revision===this.styleRevision&&!this.disposed)throw error;return;}
       if(revision!==this.styleRevision||this.disposed)return;
     }
-    this.style=style;this.index=0;this.plan=createSession(this.seed,this.mood,style);this.track=this.makeTrack();this.beat=0;
+    this.style=style;this.index=0;this.plan=createSession(this.seed,this.mood,style,this.season);this.track=this.makeTrack();this.beat=0;
     // Synthwave has no sample dependency. Wake activation instead of awaiting an obsolete fetch.
     if(style==='synthwave'&&this.pending&&this.pianoPending) {
       const obsolete=this.abort;this.pianoPending=undefined;this.abort=undefined;obsolete?.abort();
@@ -179,9 +180,9 @@ export class RadioAudio {
   }
 
   /** Visiting a place changes its atmosphere now; a new edition joins after the current song. */
-  setEdition(seed:number,mood:Mood):void {
-    if(seed===this.seed&&mood===this.mood)return;
-    this.seed=seed;this.mood=mood;this.index=0;this.plan=createSession(seed,mood,this.style);this.environmentPlan=createSession(seed,mood);
+  setEdition(seed:number,mood:Mood,season?:Season):void {
+    if(seed===this.seed&&mood===this.mood&&season===this.season)return;
+    this.seed=seed;this.mood=mood;this.season=season;this.index=0;this.plan=createSession(seed,mood,this.style,season);this.environmentPlan=createSession(seed,mood,'lofi',season);
     this.environmentClock.reset(this.context?.currentTime??0);
     if(this.running&&this.context&&this.graph) {
       const active=this.activeSegment();
@@ -268,9 +269,9 @@ export class RadioAudio {
  *  of a beat early, so a start partway in keeps events within 0.05 beats before it (far short of any written pickup). */
 export const eventsFrom=(events:readonly ScoreEvent[],from:number)=>{const early=from>0?.05:0;return events.filter(event=>event.beat>=from-early);};
 
-export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;ambience?:number;sampleRate?:number;standalone?:boolean;fromBeat?:number;fadeIn?:number;fadeOut?:number}={}) {
+export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;season?:Season;ambience?:number;sampleRate?:number;standalone?:boolean;fromBeat?:number;fadeIn?:number;fadeOut?:number}={}) {
   const seconds=Math.max(1,Math.min(300,options.seconds??90)),sampleRate=options.sampleRate??44100;
-  const plan=createSession(options.seed??20260917,options.mood??'rain',options.style??'lofi');
+  const plan=createSession(options.seed??20260917,options.mood??'rain',options.style??'lofi',options.season);
   const score=(index:number)=>options.standalone&&plan.style==='lofi'?composeTrack(plan.seed,plan.mood,index):composeSessionTrack(plan,index);
   const track=score(options.index??0);
   const context=new OfflineAudioContext(2,Math.ceil(seconds*sampleRate),sampleRate);
