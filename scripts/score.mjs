@@ -6,6 +6,8 @@
 //   npm run score -- --refresh-reference  re-measure the YouTube tab this machine is compared with
 //   npm run score -- --strict             exit non-zero when any gate fails
 //   npm run score -- --headless           no visible windows (CPU figures then use software rendering)
+//   npm run score -- --day 2026-10-31     measure CPU on another edition's day, such as a seasonal one
+//   npm run score -- --evening            measure CPU with the scene held at its settled evening (minute 50)
 //
 // Results print as a table and are written to captures/score.json.
 import {createServer,preview} from 'vite';
@@ -17,6 +19,10 @@ import {existsSync,mkdirSync,readFileSync,readdirSync,writeFileSync} from 'node:
 import os from 'node:os';
 
 const args=new Set(process.argv.slice(2)),headless=args.has('--headless');
+// The CPU gate measures one fixed day unless --day names another, such as a seasonal edition's.
+const dayArgument=process.argv[process.argv.indexOf('--day')+1],cpuDay=process.argv.includes('--day')&&/^\d{4}-\d{2}-\d{2}$/.test(dayArgument??'')?dayArgument:'2026-09-17';
+// --evening holds the picture at minute 50, where every lamp, moon and evening layer is drawn.
+const evening=args.has('--evening'),cpuPage=`/places/neon-rain/?day=${cpuDay}${evening?'&debug':''}`;
 const gates=[];
 const gate=(id,name,pass,detail,measured={})=>{gates.push({id,name,pass,detail,measured});console.log(`${id} ${pass===null?'—   ':pass?'PASS':'FAIL'} ${name}: ${detail}`);};
 const run=(command,commandArgs)=>spawnSync(command,commandArgs,{shell:true,stdio:'inherit'}).status===0;
@@ -76,10 +82,11 @@ async function cpuOf(url,prepare,{warm=20,measure=60,reference=false,keep=()=>tr
 }
 const listen=async page=>{
   await page.click('#listen');await page.waitForFunction(()=>document.querySelector('#listen')?.getAttribute('aria-pressed')==='true',null,{timeout:30000});
+  if(evening)await page.evaluate(()=>window.__motes.previewSession(3000,true));
 };
-const motes=await cpuOf(`${base}/places/neon-rain/?day=2026-09-17`,listen);
+const motes=await cpuOf(`${base}${cpuPage}`,listen);
 // Both music styles must stay inside the gate; synthwave is chosen the way a listener's saved preference would.
-const synthwave=await cpuOf(`${base}/places/neon-rain/?day=2026-09-17`,async page=>{
+const synthwave=await cpuOf(`${base}${cpuPage}`,async page=>{
   await page.evaluate(()=>localStorage.setItem('motes-listening',JSON.stringify({style:'synthwave'})));await page.reload();await listen(page);
 });
 const referenceFile='captures/score-reference.json',machine=`${os.cpus()[0]?.model.trim()} · ${os.platform()} · Chrome ${motes.browser.split('.')[0]}`;
@@ -109,12 +116,12 @@ const ratioOf=measured=>Math.round(100*measured.percentOfCore/reference.youtube.
 const ratio=ratioOf(motes),synthwaveRatio=ratioOf(synthwave);
 // --detail separates the picture's cost from the music's.
 const detail=args.has('--detail')?{
-  visualsOnly:await cpuOf(`${base}/places/neon-rain/?day=2026-09-17`,async()=>{}),
-  listeningStill:await cpuOf(`${base}/places/neon-rain/?day=2026-09-17`,async page=>{
+  visualsOnly:await cpuOf(`${base}${cpuPage}`,async()=>{}),
+  listeningStill:await cpuOf(`${base}${cpuPage}`,async page=>{
     await page.click('#listen');await page.click('#mix-toggle');await page.click('#motion');await page.keyboard.press('Escape');
   }),
 }:undefined;
-gate('G2','Lightness',ratio<=1&&synthwaveRatio<=1,`Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps (lofi), ${synthwave.percentOfCore}% at ${synthwave.fps} fps (synthwave) vs YouTube lofi live ${reference.youtube.percentOfCore}% (${reference.youtube.cleanWindows} ad-free windows, ${reference.youtube.note}) → ratio ${ratio} lofi, ${synthwaveRatio} synthwave${detail?`; visuals only ${detail.visualsOnly.percentOfCore}%, listening with Still ${detail.listeningStill.percentOfCore}%`:''}${headless?' [headless]':''}`,{motes,synthwave,youtube:reference.youtube,ratio,synthwaveRatio,machine,detail});
+gate('G2','Lightness',ratio<=1&&synthwaveRatio<=1,`${cpuDay==='2026-09-17'?'':`On ${cpuDay}: `}${evening?'At evening: ':''}Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps (lofi), ${synthwave.percentOfCore}% at ${synthwave.fps} fps (synthwave) vs YouTube lofi live ${reference.youtube.percentOfCore}% (${reference.youtube.cleanWindows} ad-free windows, ${reference.youtube.note}) → ratio ${ratio} lofi, ${synthwaveRatio} synthwave${detail?`; visuals only ${detail.visualsOnly.percentOfCore}%, listening with Still ${detail.listeningStill.percentOfCore}%`:''}${headless?' [headless]':''}`,{day:cpuDay,evening,motes,synthwave,youtube:reference.youtube,ratio,synthwaveRatio,machine,detail});
 
 // G3 First load: a phone on Lighthouse's slow-4G profile with a 4× slower CPU.
 async function firstLoad(path) {
