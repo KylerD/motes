@@ -33,14 +33,14 @@ A new module, `src/scenes/halloween.ts`, draws three layers over the painting. I
    - At the coast the moon sits above the painted silver path on the bay, so the painting's own path reads as its reflection.
 3. **Bats.** Four small dark silhouettes flitting in loose, uneven loops near the moon. They appear only once the moon is well up (at 0.6 or more of its level), and their wings flap with picture time, so Still freezes them.
 
-Initial coordinates (u, v in image units; size as a fraction of image width), to be checked against desktop and phone screenshots:
+Final coordinates (u, v in image units; size as a fraction of image width), chosen from desktop and phone screenshots. A phone shows the painting's v .66–.77 under its caption and its top under the header; the clip's wordmark covers v .115–.151. So each moon settles at v ≥ .178, and pumpkins mostly stand above v .66.
 
-| Place | Jack-o'-lanterns | Moon |
-| --- | --- | --- |
-| Neon rain | veranda (.430, .558, .016), (.455, .562, .011); steps (.330, .597, .014); pond rim (.560, .612, .010) | (.560, .100) |
-| Golden hour | stones (.455, .655, .016), (.480, .660, .011); grass (.605, .628, .012); by the lantern (.775, .620, .013) | (.480, .070) |
-| Last light station | platform (.355, .720, .022), (.380, .725, .014); far platform (.365, .610, .009); window ledge (.175, .556, .014) | (.570, .150) |
-| The last chapter | lantern block (.495, .768, .020); wall top (.567, .657, .012); desk (.150, .615, .016) | (.605, .130) |
+| Place | Jack-o'-lanterns | Moon (settled centre) | Arrival light on pumpkins |
+| --- | --- | --- | --- |
+| Neon rain | steps (.335, .600, .024), (.365, .607, .016); pond rim (.470, .624, .015), (.565, .618, .017) | (.52, .20), veiled to 70% by cloud | 0.3 (blue hour) |
+| Golden hour | stones (.455, .655, .026), (.487, .662, .018); grass (.605, .628, .019); by the lantern (.775, .622, .021) | (.55, .178), radius .021, rising from behind the ridge, clipped to a traced horizon | 1 |
+| Last light station | platform (.368, .655, .024), (.393, .661, .016), (.386, .606, .011); window ledge (.175, .556, .022) | (.55, .20) | 0.45 (twilight) |
+| The last chapter | lantern block (.497, .770, .030); wall top (.567, .657, .022); on the books (.400, .745, .018) | (.605, .19) | 0.8 (sunset) |
 
 The cost is bounded and small. Each frame draws at most four pumpkins (three sprite draws each: body, carving and glow), one moon sprite and four bat paths, and creates no gradients. The layer caches its sprites per pixel size, rebuilds them only when the layout changes, and holds a fixed number of them. Water does not reflect the overlays; only the composited painting is displaced, as today.
 
@@ -57,7 +57,7 @@ One line per place for each slot, in the existing short, welcoming voice. No pun
 **The motif.**
 - Rhythm: two creeping phrases over two bars. The first is three eighth notes into a held note (beats 0, ½, 1, then 1½ held for 1½ beats). The second, after a rest, repeats that shape held longer (beats 4, 4½, 5, then 5½ held for 2). The rhythm leaves air, ends on a held note and never overlaps itself, like every existing cell.
 - Lofi: the rhythm is appended as `MELODY_CELLS[12]`. Contour `[2, 1, 0, 3, 2, 1, 0, -1]` around the fifth (`degree: 4`): in minor it creeps down from ♭7 through ♭6 to 5, springs up, then creeps down again. The melody's usual chord-tone fitting may move individual notes; the creeping shape and its rhythm are what make it recognisable.
-- Synthwave: the same rhythm is appended as `HOOKS[6]`, with the chord-tone contour `[2, 1, 0, 3, 2, 1, 0, 1]`.
+- Synthwave: the same rhythm is appended as `HOOKS[6]`, with the chord-tone contour `[2, 1, 0, 2, 2, 1, 0, 1]`: fifth, third, root, back up to the fifth, then down again to rest on the third. Ordinary hooks fold each note into the lead's range separately, which would zigzag a written line. So an authored hook (one never drawn at random) is placed at one octave per statement, and its answer repeats it rather than shifting. In every key it creeps down the triad and springs back.
 - Random theme draws keep using only the original 12 cells and 6 hooks, so no ordinary song changes.
 
 **Lofi Halloween hour** (`createSession(seed, mood, style, season)`):
@@ -67,7 +67,7 @@ One line per place for each slot, in the existing short, welcoming voice. No pun
 - Vibes also play songs 4 and 18, as well as 7, 11 and 15.
 - Tempos, forms and the exact 3,600-second hour are unchanged.
 
-**Synthwave Halloween hour** (`planSynthwave(seed, season)`): song 1 and its return at song 18 carry the motif. Synthwave is already mostly minor, so nothing else changes.
+**Synthwave Halloween hour** (`planSynthwave(seed, halloween)`, a boolean so the MIT engine needn't know the app's seasons): song 1 and its return at song 18 carry the motif. Synthwave is already mostly minor, so nothing else changes.
 
 **After hours:** fresh ordinary themes, as today.
 
@@ -81,7 +81,7 @@ The season comes from one place, `edition()`. Every caller that builds a session
 - `main.ts` passes `current.season` to audio, previews and the debug plan.
 - `src/clip/export.ts` and `src/clip/music.ts` pass `edition.season`, so a Halloween clip has the Halloween picture and motif.
 - `renderPreview` takes a `season` option. `scripts/render-music-preview.mjs` accepts an optional eighth argument, `halloween`.
-- `scripts/score.mjs` gains `--day <date>` for the CPU gate, which otherwise measures 17 September. `npm run score -- --day 2026-10-31` scores the Halloween edition, and the same option will serve any later seasonal edition. The everyday score run keeps its length.
+- `scripts/score.mjs` gains `--day <date>` for the CPU gate, which otherwise measures 17 September, and `--evening`, which holds the picture at minute 50 so evening layers are priced. `npm run score -- --day 2026-10-31 --evening` scores the Halloween edition with its moon, bats and lit pumpkins, and the same options will serve any later seasonal edition. The everyday score run keeps its length.
 
 ## Out of scope
 
@@ -107,5 +107,5 @@ The season comes from one place, `edition()`. Every caller that builds a session
   - `verify-music`, `verify-mix`, `verify-mix synthwave`, `verify-synthwave` and `verify-synthwave-sound`;
   - three rendered synthwave family previews, as CLAUDE.md requires for synthwave changes.
   - Kyle's listen to the motif, which no automated check can judge.
-- **Gates:** `npm test`, `npm run build`, `npm run score -- --full`, and `npm run score -- --day 2026-10-31` for the Halloween CPU ratio (1.0 or lower in both styles).
+- **Gates:** `npm test`, `npm run build`, `npm run score -- --full`, and `npm run score -- --day 2026-10-31 --evening` for the Halloween CPU ratio (1.0 or lower in both styles).
 - **Docs:** PRODUCT.md, DESIGN.md and README describe the edition. GOAL.md marks it done in the Phase 1 roadmap.

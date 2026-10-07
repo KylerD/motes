@@ -41,6 +41,8 @@ The same date and place reproduce the same starting edition. An open session rec
 
 Listening gradually deepens the light, changes the weather and warms windows. A train briefly visits the snowy station, a small boat crosses the bay, birds and butterflies pass through the meadow, and a shower passes over the city. These moments belong to the hour rather than repeating every few seconds. A separate clock counts actual listening time: Pause holds it, Next changes only the music, and Still freezes only the picture. The clock continues during normal background listening and starts fresh on arrival in another edition, while the current song finishes naturally. After the hour, the scene stays in its evening state.
 
+From 24 to 31 October, by the local date, every place is a **Halloween edition**. It arrives looking like an ordinary afternoon with a few unlit jack-o'-lanterns, then becomes Halloween by evening: their carvings light up along the place's own lamp arc, a harvest moon rises (over the meadow, from behind its ridge) and bats flit across it. All of it is drawn by `src/scenes/halloween.ts` over the existing paintings and follows listening time, so clips show it too. The words turn seasonal after half an hour, with "Happy Halloween." on the 31st. The music opens and closes the hour in minor with a written Halloween motif, a creeping figure in both styles, and adds vibes and one more minor song; after hours returns to ordinary themes. Everything else about the edition (place, seed, weather) is what that date would otherwise be, and ordinary days compose exactly as before: `tests/halloween.test.ts` pins their fingerprints.
+
 Every place has a matched evening painting. Over roughly fifty minutes, the sky, distance, sheltered foreground and water change at their own pace:
 
 - **Neon rain:** bright blue clouds give way to indigo, with neon and lantern reflections across the darkening rooftop pond.
@@ -58,7 +60,8 @@ The scene paints at a steady 30 frames a second, 60 during crossfades and ripple
 
 | Module | Responsibility |
 | --- | --- |
-| `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere |
+| `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere, the Halloween season and its words |
+| `src/scenes/halloween.ts` | Jack-o'-lanterns, harvest moon and bats over a Halloween edition |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
 | `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
 | `src/scenes/painting-source.ts` | AVIF → WebP → PNG painting fallback |
@@ -99,13 +102,13 @@ node scripts/render-music-preview.mjs
 
 The two clip scripts need installed Chrome and ffmpeg/ffprobe on the PATH; clips land in `captures/clips/`.
 
-`npm run score` scores a change against the gates in [GOAL.md](GOAL.md): CPU in both music styles against a YouTube lofi stream, first load on a slow phone, accessibility and link previews. `npm run score -- --full` also runs every check above. The CPU gate opens visible Chrome windows; installed Chrome is preferred.
+`npm run score` scores a change against the gates in [GOAL.md](GOAL.md): CPU in both music styles against a YouTube lofi stream, first load on a slow phone, accessibility and link previews. `npm run score -- --full` also runs every check above. The CPU gate opens visible Chrome windows; installed Chrome is preferred. `--day 2026-10-31` measures CPU on another edition's day, and `--evening` holds the picture at its settled evening, so `npm run score -- --day 2026-10-31 --evening` prices the Halloween edition with its moon, bats and lit pumpkins.
 
 Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, canvas sizing after a late viewport change with no window resize, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
 
 Technical audio checks establish playback and signal health, not a claim that every generated track meets someone's musical taste. The listening experience remains the quality bar.
 
-The preview command accepts an optional final style argument: `node scripts/render-music-preview.mjs 90 captures-synthwave/arpeggio.wav 20260928 rain 0 synthwave`. Indices 0, 1 and 2 preview the arpeggio, pulse and drift families. The synthwave browser check covers style loading failures, late requests, rapid switching, pause/resume, independent scenery time, preference migration and desktop/phone controls.
+The preview command accepts an optional style argument: `node scripts/render-music-preview.mjs 90 captures-synthwave/arpeggio.wav 20260928 rain 0 synthwave`. Indices 0, 1 and 2 preview the arpeggio, pulse and drift families. A final `halloween` argument renders the Halloween hour: `node scripts/render-music-preview.mjs 75 captures-music/halloween.wav 995008447 meadow 0 lofi halloween`. The synthwave browser check covers style loading failures, late requests, rapid switching, pause/resume, independent scenery time, preference migration and desktop/phone controls.
 
 The synthwave sound builds from wide detuned pads into a rolling sixteenth-note bass gallop, arpeggios and electronic drums, with a thicker chord layer entering as the hook develops. Pads sustain across chord changes; four decaying dotted-eighth echoes carry the arpeggios, lead and chord accents between attacks. Filter brightness opens through the arrangement. A dedicated stereo chorus, a hall reverb keeping the first two seconds of its long decay, and a gated snare room give it its night-drive character. Notes at one tempo share one set of short mono delay stages; pause and switching fade it, so queued echoes are cancelled, and later notes start a fresh one. `node scripts/verify-synthwave-sound.mjs` checks the rendered tail, stereo width, headroom, timed repeats, cancellation, shared echoes and continuity at chord changes.
 
