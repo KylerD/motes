@@ -8,8 +8,8 @@ import {sceneLightAt} from './scenes/scene-light';
 import {frameDelay} from './scenes/frame-budget';
 import {shareLink,shareMessage} from './share/link';
 import {canMakeClips} from './clip/support';
-import {measuring,refOf,track} from './measure/analytics';
-import {addListening,crossed,parseWeek,weekOf,weeksSinceFirst,type WeekRecord} from './measure/listening';
+import {WEEK_KEY,measuring,refOf,track} from './measure/analytics';
+import {addListening,crossed,expired,parseWeek,weekOf,weeksSinceFirst,type WeekRecord} from './measure/listening';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
@@ -283,9 +283,14 @@ function paint(now:number) {
 renderer.onChange=repaint;
 // Weekly engaged listening (GOAL.md): only this week's audible minutes and the first week are kept.
 let storedWeek:WeekRecord|undefined,visitMinutes=0,countedSeconds=0;
-if(measuring)try{storedWeek=parseWeek(localStorage.getItem('motes-week'));}catch{/* Storage may be unavailable. */}
+if(measuring())try{
+  storedWeek=parseWeek(localStorage.getItem(WEEK_KEY));
+  // A record past its thirteen months is deleted, not extended.
+  if(storedWeek&&expired(storedWeek,weekOf(new Date()))){storedWeek=undefined;localStorage.removeItem(WEEK_KEY);}
+}catch{/* Storage may be unavailable. */}
 function measureListening() {
-  if(!measuring)return;
+  // Counting switched off in another tab forgets this tab's record too.
+  if(!measuring()){storedWeek=undefined;return;}
   const seconds=audio.listenedSeconds,minutes=(seconds-countedSeconds)/60;countedSeconds=seconds;
   if(minutes<=0||preferences.volume<=0)return;
   const before=visitMinutes;visitMinutes+=minutes;
@@ -293,7 +298,7 @@ function measureListening() {
   for(const mark of crossed(before,visitMinutes))track('listened',{minutes:mark,place:current.scene,style:preferences.style,weeks_since_first:weeks});
   if(step.engaged)track('engaged_week',{weeks_since_first:weeks});
   // Write roughly once a minute; a lost fraction of a minute doesn't change who counts.
-  if(step.engaged||Math.floor(step.record.minutes)!==Math.floor(storedWeek?.minutes??-1))try{localStorage.setItem('motes-week',JSON.stringify(step.record));}catch{/* Private browsing may disable persistence. */}
+  if(step.engaged||Math.floor(step.record.minutes)!==Math.floor(storedWeek?.minutes??-1))try{localStorage.setItem(WEEK_KEY,JSON.stringify(step.record));}catch{/* Private browsing may disable persistence. */}
   storedWeek=step.record;
 }
 track('$pageview',{ref:arrivalRef,$referrer:document.referrer||undefined,place:current.scene,pinned:scenePinned});
