@@ -5,6 +5,7 @@ import {coverLayout} from './cover';
 import {meadowLightAt} from './meadow-light';
 import {SceneLight,sceneLightAt} from './scene-light';
 import {loadPainting} from './painting-source';
+import {HalloweenLayer} from './halloween';
 
 const TAU = Math.PI*2;
 const noise = (n: number) => { const f = Math.sin(n*127.1+311.7)*43758.5453; return f-Math.floor(f); };
@@ -25,6 +26,7 @@ export class SceneRenderer {
   private evenings=new Map<SceneId,HTMLImageElement>();
   private eveningFailures=new Set<SceneId>();
   private sceneLight?:SceneLight;
+  private halloween?:HalloweenLayer;
   private observer?:ResizeObserver;
   /** What a still picture last showed; an unchanged still picture is not redrawn. */
   private drawn?:string;
@@ -62,6 +64,7 @@ export class SceneRenderer {
       this.previous.getContext('2d')!.drawImage(this.canvas,0,0);
     }
     this.sceneLight?.dispose();this.sceneLight=undefined;
+    if(next.season!=='halloween')this.halloween=undefined;
     this.changedAt = 0; this.edition = next; this.ripples = []; this.journey=undefined;this.drawn=undefined;this.load(next.scene); this.layout();
   }
   retry(): void {
@@ -174,7 +177,11 @@ export class SceneRenderer {
         ctx.globalAlpha=.035+warmth*.035+Math.sin(time*.012+seed%13)*.018;ctx.fillRect(0,0,this.width,this.height);
       }
       ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-      if(this.journey)drawSessionEffects(ctx,scene,this.journey,time,{width:this.width,height:this.height,iw:this.iw,point:(u,v)=>this.point(u,v)},!!this.sceneLight);
+      if(this.journey) {
+        const space={width:this.width,height:this.height,iw:this.iw,point:(u:number,v:number)=>this.point(u,v)};
+        drawSessionEffects(ctx,scene,this.journey,time,space,!!this.sceneLight);
+        if(this.edition.season==='halloween')(this.halloween??=new HalloweenLayer()).draw(ctx,scene,this.journey,time,space,this.ratio);
+      }
       this.lights(time);
     }
     if(scene==='rain')this.rain(time,intensity);
@@ -272,6 +279,6 @@ export class SceneRenderer {
     this.observer?.disconnect();this.observer=undefined;
     this.images.forEach(i=>{i.onload=null;i.onerror=null;});this.images.clear();this.glows.clear();this.previous=null;
     this.evenings.forEach(i=>{i.onload=null;i.onerror=null;});this.evenings.clear();
-    this.sceneLight?.dispose();this.sceneLight=undefined;this.drawn=undefined;this.onChange=undefined;
+    this.sceneLight?.dispose();this.sceneLight=undefined;this.halloween=undefined;this.drawn=undefined;this.onChange=undefined;
   }
 }
