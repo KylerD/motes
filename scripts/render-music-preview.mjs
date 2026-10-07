@@ -9,15 +9,16 @@ const seed=Number(process.argv[4]||'20260917');
 const mood=process.argv[5]||'rain';
 const index=Number(process.argv[6]||'0');
 const style=process.argv[7]||'lofi';
+const season=process.argv[8]==='halloween'?'halloween':undefined;
 const server=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'error',plugins:[{name:'music-preview',configureServer(server){server.middlewares.use('/__music_preview',(_req,res)=>{res.setHeader('Content-Type','text/html');res.end('<!doctype html><title>Motes music preview</title>');});}}]});
 await server.listen();
 const browser=await chromium.launch({channel:'chromium'});
 try {
   const page=await browser.newPage();
   await page.goto(server.resolvedUrls.local[0]+'__music_preview');
-  const result=await page.evaluate(async({seconds,seed,mood,index,style})=>{
+  const result=await page.evaluate(async({seconds,seed,mood,index,style,season})=>{
     const {renderPreview}=await import('/src/music/audio.ts');
-    const {buffer,track}=await renderPreview({seconds,seed,mood,index,style,mode:'beats'});
+    const {buffer,track}=await renderPreview({seconds,seed,mood,index,style,season,mode:'beats'});
     const channels=Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i));
     let peak=0,power=0,clipped=0;
     const blockRms=[];
@@ -34,7 +35,7 @@ try {
     for(let frame=0;frame<buffer.length;frame++)for(let ch=0;ch<channels.length;ch++)view.setInt16(44+(frame*channels.length+ch)*2,Math.max(-32768,Math.min(32767,Math.round(channels[ch][frame]*32767))),true);
     const bytes=new Uint8Array(wav);let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
     return {wav:btoa(binary),report:{seconds,sampleRate:buffer.sampleRate,peak,rms:Math.sqrt(power/(buffer.length*channels.length)),clipped,blockRms,title:track.title,bpm:track.bpm,key:track.key,voice:track.voice,style,family:track.family,events:track.events.length}};
-  },{seconds,seed,mood,index,style});
+  },{seconds,seed,mood,index,style,season});
   mkdirSync(dirname(output),{recursive:true});
   writeFileSync(output,Buffer.from(result.wav,'base64'));
   writeFileSync(output.replace(/\.wav$/,'.json'),JSON.stringify(result.report,null,2));

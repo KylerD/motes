@@ -6,7 +6,7 @@ import {CLIP,loudnessGain,musicStartBeat} from './plan';
 
 /** The edition's opening song from its first theme, rendered offline exactly as the radio plays it. */
 export async function renderClipMusic(edition:Edition,style:MusicStyle,mode:MusicMode):Promise<AudioBuffer> {
-  const track=composeSessionTrack(createSession(edition.seed,edition.scene,style),0);
+  const track=composeSessionTrack(createSession(edition.seed,edition.scene,style,edition.season),0);
   const {buffer}=await renderPreview({seed:edition.seed,mood:edition.scene,style,mode,index:0,seconds:CLIP.seconds,
     sampleRate:CLIP.sampleRate,fromBeat:musicStartBeat(track),fadeIn:CLIP.fadeIn,fadeOut:CLIP.fadeOut});
   const channels=Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i));

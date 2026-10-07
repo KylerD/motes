@@ -1,8 +1,9 @@
-import {LOOPS,MELODY_CELLS,composeTrack,formBars,makeTheme,randomSource,type Arrangement,type CompCell,type FormName,type GrooveCell,type KeyVoice,type Mode,type Mood,type Theme,type Track} from '../music/composer';
+import {DRAWN_CELLS,HALLOWEEN_THEME,LOOPS,composeTrack,formBars,makeTheme,randomSource,type Arrangement,type CompCell,type FormName,type GrooveCell,type KeyVoice,type Mode,type Mood,type Theme,type Track} from '../music/composer';
 
 import {planSynthwave,synthTheme,type SynthArrangement} from '../music/synthwave/catalog';
 import {composeSynthwave} from '../music/synthwave/composer';
 import type {MusicStyle} from '../music/composer';
+import type {Season} from '../scenes/edition';
 export interface SessionSlot<A=Arrangement> {index:number;start:number;duration:number;chapter:string;arrangement:A}
 export type EventKind='train'|'boat'|'birds'|'butterflies'|'shower'|'windows';
 export interface SessionEvent {kind:EventKind;start:number;duration:number}
@@ -14,6 +15,8 @@ export interface SessionState {elapsed:number;progress:number;chapter:string;cap
 
 const chapters=['Arriving','Settling in','The long way home','Room to breathe','Lamplight','Stay a little longer'];
 const voices:KeyVoice[]=['upright','felt','upright','electric','upright','electric','vibes','upright','felt','felt','vibes','felt','electric','upright','vibes','upright','felt','upright'];
+/** Halloween adds vibes early in the hour and to the motif's return. */
+const halloweenVoices=voices.map((voice,i):KeyVoice=>i===3||i===17?'vibes':voice);
 const tempos=[74,74,76,76,78,80,80,78,76,74,72,72,74,76,78,80,78,74];
 const energy=[.68,.7,.78,.85,.88,.94,.88,.8,.7,.55,.5,.58,.7,.8,.78,.8,.66,.5];
 const keySteps=[0,0,0,5,5,0,0,7,7,0,0,5,5,0,0,7,0,0];
@@ -33,14 +36,15 @@ function pick<T>(random:()=>number,options:readonly T[],avoid:(T|undefined)[]):T
 }
 
 /** A written hour: song shapes, loops, grooves and themes make a sequence, not eighteen shuffled songs. */
-export function createSession(seed:number,mood:Mood,style?:'lofi'):SessionPlan;
-export function createSession(seed:number,mood:Mood,style:'synthwave'):SynthSessionPlan;
-export function createSession(seed:number,mood:Mood,style:MusicStyle):MusicSessionPlan;
-export function createSession(seed:number,mood:Mood,style:MusicStyle='lofi'):MusicSessionPlan {
+export function createSession(seed:number,mood:Mood,style?:'lofi',season?:Season):SessionPlan;
+export function createSession(seed:number,mood:Mood,style:'synthwave',season?:Season):SynthSessionPlan;
+export function createSession(seed:number,mood:Mood,style:MusicStyle,season?:Season):MusicSessionPlan;
+export function createSession(seed:number,mood:Mood,style:MusicStyle='lofi',season?:Season):MusicSessionPlan {
+  const halloween=season==='halloween';
   if(style==='synthwave') {
-    const environment=createSession(seed,mood);
+    const environment=createSession(seed,mood,'lofi',season);
     let start=0;
-    const slots=planSynthwave(seed).map((arrangement,index)=>{
+    const slots=planSynthwave(seed,halloween).map((arrangement,index)=>{
       const duration=arrangement.bars*240/arrangement.bpm;
       const slot={index,start,duration,chapter:chapters[Math.floor(index/3)],arrangement};start+=duration;return slot;
     });
@@ -50,11 +54,13 @@ export function createSession(seed:number,mood:Mood,style:MusicStyle='lofi'):Mus
   const swing=.082+random()*.02,sequence=FORM_SEQUENCES[Math.floor(random()*FORM_SEQUENCES.length)];
   const raw=tempos.map(bpm=>bpm+(random()-.5)*1.2);
   const scale=raw.reduce((sum,bpm,i)=>sum+formBars(sequence[i])*4*60/bpm,0)/3600;
-  // Minor on both nocturnes and on one track in each of chapters 2, 3 and 5 where a neighbour isn't already minor (never the opening or the final return).
+  // Minor on both nocturnes and on one track in each of chapters 2, 3, 5 and 6 where a neighbour isn't already minor (never the opening or the final return).
+  // Halloween opens and closes in minor with its motif, and adds chapter 4.
   const minor=new Set(sequence.flatMap((f,i)=>f==='nocturne'?[i]:[]));
-  for(const chapter of [1,2,4,5]){const choices=[0,1,2].map(k=>chapter*3+k).filter(i=>i!==17&&!minor.has(i)&&!minor.has(i-1)&&!minor.has(i+1));if(choices.length)minor.add(choices[Math.floor(random()*choices.length)]);}
-  const hour=makeTheme(random);
-  const otherCell=()=>{let cell=hour.cell;while(cell===hour.cell)cell=Math.floor(random()*MELODY_CELLS.length);return cell;};
+  if(halloween){minor.add(0);minor.add(17);}
+  for(const chapter of halloween?[1,2,3,4,5]:[1,2,4,5]){const choices=[0,1,2].map(k=>chapter*3+k).filter(i=>i!==17&&!minor.has(i)&&!minor.has(i-1)&&!minor.has(i+1));if(choices.length)minor.add(choices[Math.floor(random()*choices.length)]);}
+  const hour=halloween?HALLOWEEN_THEME:makeTheme(random);
+  const otherCell=()=>{let cell=hour.cell;while(cell===hour.cell)cell=Math.floor(random()*DRAWN_CELLS);return cell;};
   // The hour's rhythm belongs to the opening, its approach (15, 16) and its return (17); other songs borrow its contour or go their own way.
   const themes:Theme[]=sequence.map((_,i)=>i===0||i===17?hour:i===15||i===16?makeTheme(random,hour.cell):i%3===1?makeTheme(random,otherCell(),hour.contour):makeTheme(random,otherCell()));
   const stretch=new Set(sequence.flatMap((f,i)=>f==='long'&&energy[i]>=.8?[i]:[]).slice(0,2));
@@ -75,7 +81,7 @@ export function createSession(seed:number,mood:Mood,style:MusicStyle='lofi'):Mus
   let start=0;
   const slots=raw.map((bpm,index)=>{
     const form=sequence[index],tempo=bpm*scale,duration=formBars(form)*4*60/tempo;
-    const arrangement:Arrangement={bpm:tempo,tonic:(tonic+keySteps[index])%12,voice:voices[index],energy:energy[index],swing,
+    const arrangement:Arrangement={bpm:tempo,tonic:(tonic+keySteps[index])%12,voice:(halloween?halloweenVoices:voices)[index],energy:energy[index],swing,
       form,mode:minor.has(index)?'minor':'major',loop:loops[index],comp:comps[index],groove:grooveCells[index],theme:themes[index],stretch:stretch.has(index)};
     const slot={index,start,duration,chapter:chapters[Math.floor(index/3)],arrangement};start+=duration;return slot;
   });

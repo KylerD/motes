@@ -3,9 +3,9 @@ import {createSession,composeSessionTrack} from '../src/session/session';
 import type {Mood,Track} from '../src/music/composer';
 import {harmonyGrams,jaccard,median,melodyGrams,rhythmGrams,weightedJaccard} from './similarity';
 
-// Session plans depend on the seed alone, so every fixture uses its own seed.
-const hours=(['rain','meadow','snow','coast'] as Mood[]).flatMap((mood,m)=>[20260917+m,4242+m*7].map(seed=>{
-  const plan=createSession(seed,mood);return plan.slots.map((_,i)=>composeSessionTrack(plan,i));
+// Session plans depend on the seed alone, so every fixture uses its own seed. Each place also has a Halloween hour.
+const hours=(['rain','meadow','snow','coast'] as Mood[]).flatMap((mood,m)=>[20260917+m,4242+m*7,1031+m*11].map((seed,k)=>{
+  const plan=createSession(seed,mood,'lofi',k===2?'halloween':undefined);return plan.slots.map((_,i)=>composeSessionTrack(plan,i));
 }));
 
 function melodyGramList(track:Track):string[] {
