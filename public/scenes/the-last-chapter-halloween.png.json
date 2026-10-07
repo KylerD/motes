@@ -1,0 +1,19 @@
+{
+  "prompt": "Use case: lighting edit of an existing painting.\nAsset type: a precisely composition-matched arrival lighting state of an existing ambient video-game scene. It will be slowly composited under the edit target, so geometric registration is critical.\nInput images: the-last-chapter-halloween.png is the EDIT TARGET, not a loose reference. the-last-chapter.png is a LIGHTING REFERENCE ONLY: match its time of day, light direction, sky and colour temperature (a warm sunset low over the bay with its golden reflection on the water). Original canvas is 1672 by 941 pixels. Keep the edit target's full framing, aspect ratio, view, perspective, object scale and positions exactly.\nPrimary request: relight the edit target into the lighting of the reference. Keep every object of the edit target exactly where and as it is, including the bookshelves, lamp, armchair, curtain, pot, candle lantern, side table, books, bougainvillea, stone walls, harbour, boat, harbour lanterns and fallen leaves and every jack-o'-lantern with exactly its carving (faces stay faces; a crescent-moon carving stays a crescent moon). At this earlier hour the jack-o'-lanterns are unlit: orange pumpkins in the ambient light with dark carved openings, no candle glow and no warm reflections. The sky matches the reference, with its setting sun and its reflection: no moon and no bats.\nStyle: retain the painterly, richly textured, cosy video-game illustration.\nStrict constraints: lighting edit only; identical camera and composition to the edit target; do not crop, zoom, move edges, add or remove objects other than the moon and bats, or change any silhouette, carving or water geometry. No rain streaks, falling snow, particles, text, watermark or UI. Deliver one complete landscape image at the same size.",
+  "tool": "image_gen.imagegen",
+  "client": "Codex CLI 0.160.1",
+  "mode": "built-in lighting edit",
+  "sourceAsset": "public/scenes/the-last-chapter-halloween-evening.png",
+  "lightingReference": "public/scenes/the-last-chapter.png",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "generationDate": "2026-10-07",
+  "outputFile": "public/scenes/the-last-chapter-halloween.png",
+  "outputDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "assessment": "A 50/50 blend with its source shows no doubled edges on landmarks, shorelines or water; only the added Halloween objects differ."
+}

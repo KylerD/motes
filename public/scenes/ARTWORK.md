@@ -49,3 +49,21 @@ Three composition-matched lighting edits were generated with the built-in image-
 | The last chapter | [the-last-chapter-night.png](the-last-chapter-night.png) | Sunset gives way to a silver-blue bay, cool curtain and terrace, warm reading lamps and harbour windows. [Prompt and provenance](the-last-chapter-night.png.json). |
 
 Runtime lighting uses separate sky, distance, foreground and water masks over about fifty minutes. The coastal sun and its reflection fade at the same rate. Rain, snow, steam, moving reflections and occasional events remain code-driven. Only the visited place loads its evening image; no artwork is generated during a visit. Each prompt is retained in its sidecar and embedded in the PNG.
+
+## Halloween pairs (24–31 October)
+
+Eight composition-matched seasonal paintings were generated on 7 October 2026 with the same built-in image tool (`image_gen.imagegen`, through Codex CLI 0.160.1). An earlier build drew jack-o'-lanterns over the paintings in code; it was rejected as stickers, so seasonal objects are painted.
+
+- **Evening** (`<slug>-halloween-evening.png`): an edit of the place's evening painting. It adds candle-lit jack-o'-lanterns on painted surfaces, a harvest moon with a few bats, and autumn touches.
+- **Arrival** (`<slug>-halloween.png`): that Halloween evening relit toward the place's own arrival painting, which is attached as a lighting reference only. The same jack-o'-lanterns keep their carvings, with no moon or bats.
+
+All are 1672×941. A 50/50 blend of each against its source shows no doubled edges, so the existing masks, water polygons and crops apply.
+
+| Place | Arrival | Evening | Seasonal touches |
+| --- | --- | --- | --- |
+| Neon rain | [neon-rain-halloween.png](neon-rain-halloween.png) | [neon-rain-halloween-evening.png](neon-rain-halloween-evening.png) | Orange paper lanterns along the eaves, red maple leaves, pumpkins on the veranda, steps and pond rim, a moon through the clouds |
+| Golden hour | [golden-hour-halloween.png](golden-hour-halloween.png) | [golden-hour-halloween-evening.png](golden-hour-halloween-evening.png) | An autumn oak and fallen leaves, pumpkins by the bench, shore and lantern, a moon rising in the sunset gap |
+| Last light station | [last-light-station-halloween.png](last-light-station-halloween.png) | [last-light-station-halloween-evening.png](last-light-station-halloween-evening.png) | An autumn wreath in the café window, pumpkins on the sill and snowy platform, a moon over the peaks |
+| The last chapter | [the-last-chapter-halloween.png](the-last-chapter-halloween.png) | [the-last-chapter-halloween-evening.png](the-last-chapter-halloween-evening.png) | Pumpkins on the lantern block, books, wall and terrace, lanterns along the harbour, a moon above the bay's silver path |
+
+Each image's exact prompt and provenance are in its JSON sidecar and embedded in the PNG. Only the visited place's pair loads, and only on a Halloween date.
