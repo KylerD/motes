@@ -44,6 +44,33 @@ for(const [place,evening] of Object.entries(PLACES)) {
   console.log('preview card',place,kb(`${scenes}/og/${place}.jpg`));
 }
 
+// The made page's card shows all four places as soft-edged bands, each centred on its
+// cover-crop anchor from src/scenes/edition.ts, so it reads as Motes rather than one place.
+const ANCHORS={'neon-rain':.43,'golden-hour':.60,'last-light-station':.43,'the-last-chapter':.56},BAND=WIDTH/4,FEATHER=36;
+const card=Buffer.alloc(WIDTH*HEIGHT*3),weight=new Float32Array(WIDTH*HEIGHT);
+for(const [i,[place,anchor]] of Object.entries(ANCHORS).entries()) {
+  const {data,info}=await sharp(`${scenes}/${place}.png`).resize({height:HEIGHT}).removeAlpha().raw().toBuffer({resolveWithObject:true});
+  const start=i*BAND-FEATHER,width=BAND+2*FEATHER,left=Math.round(Math.min(info.width-width,Math.max(0,anchor*info.width-width/2)));
+  for(let x=Math.max(0,start);x<Math.min(WIDTH,start+width);x++) {
+    const w=Math.min(smooth((x-start)/(2*FEATHER)),smooth((start+width-x)/(2*FEATHER)))||1e-3;
+    for(let y=0;y<HEIGHT;y++) {
+      const o=y*WIDTH+x,s=(y*info.width+left+x-start)*3;weight[o]+=w;
+      for(let c=0;c<3;c++)card[o*3+c]=Math.round((card[o*3+c]*(weight[o]-w)+data[s+c]*w)/weight[o]);
+    }
+  }
+}
+const cardShade=Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset=".68" stop-color="#1b1410" stop-opacity="0"/><stop offset="1" stop-color="#1b1410" stop-opacity=".55"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>`);
+await sharp(card,{raw:{width:WIDTH,height:HEIGHT,channels:3}})
+  .composite([{input:cardShade},{input:logo,left:44,top:HEIGHT-44-Math.round(220*114/486)}])
+  .jpeg({quality:86,mozjpeg:true}).toFile(`${scenes}/og/made.jpg`);
+console.log('preview card made',kb(`${scenes}/og/made.jpg`));
+
+// The made page shows one place's two paintings side by side, at its reading width.
+mkdirSync(`${scenes}/made`,{recursive:true});
+for(const file of ['neon-rain','neon-rain-night']) {
+  await sharp(`${scenes}/${file}.png`).resize(640,360,{fit:'cover'}).webp({quality:82,effort:6}).toFile(`${scenes}/made/${file}.webp`);
+}
+
 // Installable app icons: the shelter-and-mote symbol on the toasted-brown radio colour,
 // inside the maskable safe zone.
 for(const [size,name] of [[180,'apple-touch-icon'],[192,'icon-192'],[512,'icon-512']]) {

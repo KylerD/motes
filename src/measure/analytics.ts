@@ -16,3 +16,6 @@ export function track(event:string,properties:Record<string,string|number|boolea
   // keepalive lets the last milestone leave with a closing tab.
   void fetch(`${host}/i/v0/e/`,{method:'POST',headers:{'Content-Type':'application/json'},body,keepalive:true}).catch(()=>undefined);
 }
+
+/** The `ref` an arriving link carried, when it looks like one of ours rather than arbitrary text. */
+export const refOf=(params:URLSearchParams):string|undefined=>/^[\w-]{1,32}$/.test(params.get('ref')??'')?params.get('ref')!:undefined;

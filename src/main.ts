@@ -8,7 +8,7 @@ import {sceneLightAt} from './scenes/scene-light';
 import {frameDelay} from './scenes/frame-budget';
 import {shareLink,shareMessage} from './share/link';
 import {canMakeClips} from './clip/support';
-import {measuring,track} from './measure/analytics';
+import {measuring,refOf,track} from './measure/analytics';
 import {addListening,crossed,parseWeek,weekOf,weeksSinceFirst,type WeekRecord} from './measure/listening';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
@@ -17,7 +17,7 @@ const attribute = (id:string,name:string,value:string) => {const element=$(id);i
 const params = new URLSearchParams(location.search), reduced = matchMedia('(prefers-reduced-motion: reduce)');
 // A place page (/places/<slug>/) pins its place; ?scene= links from before place pages still work.
 const queryDay = params.get('day'), queryScene = params.get('scene'), chosenScene = sceneFromPath(location.pathname)??(isScene(queryScene)?queryScene:undefined);
-const arrivalRef = /^[\w-]{1,32}$/.test(params.get('ref')??'') ? params.get('ref')! : undefined;
+const arrivalRef = refOf(params);
 let today = localDay(), current = edition(validDay(queryDay)?queryDay:today,chosenScene);
 let scenePinned = chosenScene!==undefined;
 const audio = new RadioAudio(current.seed,current.scene,current.season);
