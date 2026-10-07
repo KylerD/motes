@@ -1,0 +1,18 @@
+{
+  "prompt": "Use case: seasonal edit of an existing painting.\nAsset type: a precisely composition-matched Halloween-night state of an existing ambient video-game scene. It will be slowly composited directly over the original painting, so geometric registration is critical.\nInput image: the supplied last-light-station-night.png is the EDIT TARGET, not a loose reference. Original canvas is 1672 by 941 pixels, approximately 16:9 landscape. Keep the same full image framing, aspect ratio, view, perspective, object scale and positions.\nPreserve the original illustration, composition and every landmark contour as closely as possible: the café window and its interior at left, the cup on the sill, the hanging clock, the wooden pillars and platform roof, the platform lamps, the bench with the patterned blanket, the suitcase, the curving railway and its fence, the village, viaduct, lake lights, snowy trees and blue mountains. Do not redraw or reinterpret their shapes.\nAdd, painted in exactly the same hand-painted style, brushwork and palette so they look like they were always part of it:\n- Five carved jack-o'-lanterns resting naturally in the snow: one on the café window sill beside the cup, two together on the snowy platform at the foot of the near wooden pillar, one beside the suitcase, and one smaller further down the platform by a lamp post. Sizes matched to depth. Gentle, friendly carvings (simple smiling faces, one with a crescent moon), lit from within by warm candlelight, casting amber light onto the snow around them, with believable contact shadows and a dusting of snow on their tops.\n- A large, soft, warm harvest moon rising above the mountains in the clear sky at upper right of centre (not behind the trees), with its glow on the snowy peaks.\n- Three or four very small bat silhouettes near the moon.\n- A small wreath of autumn leaves and tiny gourds in the café window.\nLighting and palette: keep the existing evening palette and mood; the jack-o'-lanterns join the existing warm lights. Cosy and inviting, not scary.\nStrict constraints: identical camera and composition; do not crop, zoom or move edges; do not change water geometry, silhouettes or existing objects; no skulls, ghosts, witches, cobwebs, gravestones, characters, text, legible signs, graphics, watermark or UI. Paint no rain streaks, falling snow or floating particles (those animate in code). Preserve fine spatial detail and edges. Deliver one complete landscape image at the same size.",
+  "tool": "image_gen.imagegen",
+  "client": "Codex CLI 0.160.1",
+  "mode": "built-in seasonal edit",
+  "sourceAsset": "public/scenes/last-light-station-night.png",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "generationDate": "2026-10-07",
+  "outputFile": "public/scenes/last-light-station-halloween-evening.png",
+  "outputDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "assessment": "A 50/50 blend with its source shows no doubled edges on landmarks, shorelines or water; only the added Halloween objects differ."
+}

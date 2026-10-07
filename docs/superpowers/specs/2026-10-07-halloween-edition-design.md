@@ -6,7 +6,7 @@ Written 7 October 2026. GOAL.md Phase 1 ("Spread") lists a Halloween edition alo
 
 Kyle's direction: a Halloween edition that arrives looking like an ordinary Motes evening and becomes unmistakably Halloween by evening, so it works as a cosy listen and the arrival-to-evening clip catches the change for launch posts. It covers **24–31 October** (local dates, every year) and adds **a recognisable Halloween motif** to the music.
 
-It follows the existing rules: no new paintings (the final pixels come from Motes' own renderer), no toy-like procedural geometry, cosy rather than scary, no nags or rewards, no interruption at midnight, inside the CPU gate, and visible in clips.
+It follows the existing rules: no toy-like procedural geometry, cosy rather than scary, no nags or rewards, no interruption at midnight, inside the CPU gate, and visible in clips.
 
 ## What changes on a Halloween day
 
@@ -19,30 +19,16 @@ It follows the existing rules: no new paintings (the final pixels come from Mote
 
 ### Picture
 
-A new module, `src/scenes/halloween.ts`, draws three layers over the painting. Its `HalloweenLayer` is owned by the `SceneRenderer`, created for a Halloween edition and dropped with it, so no module holds mutable state. The renderer calls `layer.draw(...)` after `drawSessionEffects`, only when `edition.season === 'halloween'`. Every layer is derived from listening time (the environment clock) and picture time, never from session events: clips sample a plan without events, and these layers must appear in clips.
+**Revised 7 October, after the first version shipped:** the first build drew jack-o'-lanterns, a moon and bats with Canvas 2D over the existing paintings (`src/scenes/halloween.ts`). Kyle rejected it ("pumpkin emojis onto existing artwork … it needs new artwork altogether"): however they are shaded, code-drawn objects read as stickers on a painting. The layer was removed. Seasonal objects are now always painted.
 
-1. **Jack-o'-lanterns.** Three or four small pumpkins per place, standing on painted surfaces at authored image coordinates. At least two sit inside the phone crop (about 26% of the painting's width around the place's anchor on a tall phone).
-   - Body: pre-rendered once per pixel size as a shaded sprite, so it reads painterly rather than as flat clip-art. It has three overlapping lobes with radial shading in a muted orange, a warm rim light, a short stem and a soft contact shadow.
-   - Two sprites, day and dusk, are crossfaded by the place's foreground light. Daylight is matte orange and unlit, easy to miss. At evening the body darkens with the painting, so it never glows unnaturally.
-   - Carvings vary so they read as hand-made: a friendly face (round eyes, a gentle smile), a crescent moon, and a scatter of round holes. Never the stock triangle-eyed face on every pumpkin.
-   - The carving's light rises along the place's own lamp arc (`sceneLightAt(...).lamps`), with a soft flicker. A small warm pool of light spreads onto the surface beneath.
-   - Sizes are 1.2–2.2% of the image width, matched to their depth in the painting. In a clip (phone layout at 2.67×) that makes a near pumpkin about 50 output pixels wide: readable without dominating.
-2. **Harvest moon.** A warm cream disc with a soft halo and two faint maria, in a clear patch of each sky and inside the phone crop where the painting allows.
-   - It fades in as the sky turns to evening (sky light 0.35 → 0.9) and rises 3% of the image height over the hour.
-   - It is drawn from a cached sprite that is rebuilt only when its pixel size changes.
-   - At the coast the moon sits above the painted silver path on the bay, so the painting's own path reads as its reflection.
-3. **Bats.** Four small dark silhouettes flitting in loose, uneven loops near the moon. They appear only once the moon is well up (at 0.6 or more of its level), and their wings flap with picture time, so Still freezes them.
+Each place has an authored Halloween pair in `public/scenes/`, made with the same Codex built-in image tool (`image_gen.imagegen`) as the originals:
 
-Final coordinates (u, v in image units; size as a fraction of image width), chosen from desktop and phone screenshots. A phone shows the painting's v .66–.77 under its caption and its top under the header; the clip's wordmark covers v .115–.151. So each moon settles at v ≥ .178, and pumpkins mostly stand above v .66.
+- **`<slug>-halloween-evening.png`:** a composition-matched edit of the place's evening painting. Jack-o'-lanterns are painted on surfaces with their own candlelight, contact shadows and reflections. A harvest moon rises with a few bats, and autumn touches suit each place: orange eave lanterns and maple leaves on the rooftop, an autumn oak at the meadow, a wreath in the station café, lanterns along the harbour.
+- **`<slug>-halloween.png`:** the arrival. It is that Halloween evening relit toward the place's own arrival painting (attached as a lighting reference only). The same jack-o'-lanterns with the same carvings appear unlit, with no moon or bats.
 
-| Place | Jack-o'-lanterns | Moon (settled centre) | Arrival light on pumpkins |
-| --- | --- | --- | --- |
-| Neon rain | steps (.335, .600, .024), (.365, .607, .016); pond rim (.470, .624, .015), (.565, .618, .017) | (.52, .20), veiled to 70% by cloud | 0.3 (blue hour) |
-| Golden hour | stones (.455, .655, .026), (.487, .662, .018); grass (.605, .628, .019); by the lantern (.775, .622, .021) | (.55, .178), radius .021, rising from behind the ridge, clipped to a traced horizon | 1 |
-| Last light station | platform (.368, .655, .024), (.393, .661, .016), (.386, .606, .011); window ledge (.175, .556, .022) | (.55, .20) | 0.45 (twilight) |
-| The last chapter | lantern block (.497, .770, .030); wall top (.567, .657, .022); on the books (.400, .745, .018) | (.605, .19) | 0.8 (sunset) |
+The usual lighting arc carries a Halloween day from one to the other, so the edition arrives as an autumn visit and settles into a Halloween night. Masks, water polygons, cover crops and clip export apply unchanged because every image is registered to the originals. A 50/50 blend of each pair and of each evening against its everyday evening shows no doubled edges.
 
-The cost is bounded and small. Each frame draws at most four pumpkins (three sprite draws each: body, carving and glow), one moon sprite and four bat paths, and creates no gradients. The layer caches its sprites per pixel size, rebuilds them only when the layout changes, and holds a fixed number of them. Water does not reflect the overlays; only the composited painting is displaced, as today.
+`edition.ts` gives each place an optional `halloween` pair. `arrivalImage(edition)` and `eveningImage(edition)` choose the pair. The renderer keeps one arrival and one evening painting per place, keyed by its current source, so the cache stays at four of each, and a late callback for a superseded image prepares nothing. Only the visited place's pair loads. Place pages still preload the everyday arrival, which a Halloween visit doesn't use: one wasted download for eight days a year.
 
 ### Words
 
@@ -88,7 +74,7 @@ The season comes from one place, `edition()`. Every caller that builds a session
 - Static link-preview cards: they are built once, so they can't follow dates.
 - A seasonal on/off switch.
 - Dating share links during the season. Links shared during the season already open the Halloween edition; pinning the date would make links go stale for everyone who opens them later.
-- New session events, mist, falling leaves or new paintings.
+- New session events or code-drawn mist and falling leaves.
 - Any analytics change: arrivals by date already show the edition's effect.
 
 ## Verification

@@ -1,11 +1,10 @@
-import { SCENES, type Edition, type Point, type SceneId } from './edition';
+import { SCENES, arrivalImage, eveningImage, type Edition, type Point, type SceneId } from './edition';
 import type {SessionState} from '../session/session';
 import {drawSessionEffects} from './session-effects';
 import {coverLayout} from './cover';
 import {meadowLightAt} from './meadow-light';
 import {SceneLight,sceneLightAt} from './scene-light';
 import {loadPainting} from './painting-source';
-import {HalloweenLayer} from './halloween';
 
 const TAU = Math.PI*2;
 const noise = (n: number) => { const f = Math.sin(n*127.1+311.7)*43758.5453; return f-Math.floor(f); };
@@ -14,8 +13,9 @@ interface Ripple { u:number; v:number; born:number; }
 /** A place unfolding in time. No organism model or simulated music controls the painting. */
 export class SceneRenderer {
   private ctx: CanvasRenderingContext2D;
-  private images = new Map<SceneId,HTMLImageElement>();
-  private failures = new Set<SceneId>();
+  /** One arrival painting per place: the current edition's, which a season may change. */
+  private images = new Map<SceneId,{source:string;image:HTMLImageElement}>();
+  private failures = new Set<string>();
   private glows = new Map<string,HTMLCanvasElement>();
   private previous: HTMLCanvasElement | null = null;
   private changedAt = 0;
@@ -23,10 +23,10 @@ export class SceneRenderer {
   private iw = 1; private ih = 1; private ox = 0; private oy = 0;
   private ripples: Ripple[] = [];
   private journey?:SessionState;
-  private evenings=new Map<SceneId,HTMLImageElement>();
-  private eveningFailures=new Set<SceneId>();
+  /** One evening painting per place: the current edition's, which a season may change. */
+  private evenings=new Map<SceneId,{source:string;image:HTMLImageElement}>();
+  private eveningFailures=new Set<string>();
   private sceneLight?:SceneLight;
-  private halloween?:HalloweenLayer;
   private observer?:ResizeObserver;
   /** What a still picture last showed; an unchanged still picture is not redrawn. */
   private drawn?:string;
@@ -51,9 +51,11 @@ export class SceneRenderer {
     }
   }
   /** Dimensions arrive before the pixels, so a painting is ready only once it has fully loaded. */
-  get ready() { const image=this.images.get(this.edition.scene); return !!image?.complete&&!!image.naturalWidth; }
-  get lightingFailed() {return this.eveningFailures.has(this.edition.scene);}
-  get failed() { return this.failures.has(this.edition.scene)||this.lightingFailed; }
+  /** The current edition's arrival painting, once it is the one in the cache. */
+  private get arrival() { const cached=this.images.get(this.edition.scene); return cached?.source===arrivalImage(this.edition)?cached.image:undefined; }
+  get ready() { const image=this.arrival; return !!image?.complete&&!!image.naturalWidth; }
+  get lightingFailed() {return this.eveningFailures.has(eveningImage(this.edition));}
+  get failed() { return this.failures.has(arrivalImage(this.edition))||this.lightingFailed; }
   /** Crossfades and ripples deserve smoother frames than the steady scene. */
   get smooth() { return !!this.previous||this.ripples.length>0; }
   get diagnostics() { return { images:this.images.size,eveningImages:this.evenings.size,composites:this.sceneLight?1:0, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.sceneLight,lightingFailed:this.lightingFailed,bitmap:[this.canvas.width,this.canvas.height],box:[this.width,this.height],ratio:this.ratio }; }
@@ -64,35 +66,40 @@ export class SceneRenderer {
       this.previous.getContext('2d')!.drawImage(this.canvas,0,0);
     }
     this.sceneLight?.dispose();this.sceneLight=undefined;
-    if(next.season!=='halloween')this.halloween=undefined;
     this.changedAt = 0; this.edition = next; this.ripples = []; this.journey=undefined;this.drawn=undefined;this.load(next.scene); this.layout();
   }
   retry(): void {
-    if(this.lightingFailed){this.evenings.delete(this.edition.scene);this.eveningFailures.delete(this.edition.scene);this.loadEvening(this.edition.scene);}
-    if(!this.ready){this.images.delete(this.edition.scene);this.failures.delete(this.edition.scene);this.load(this.edition.scene);}
+    if(this.lightingFailed){this.evenings.delete(this.edition.scene);this.eveningFailures.delete(eveningImage(this.edition));this.loadEvening(this.edition.scene);}
+    if(!this.ready){this.images.delete(this.edition.scene);this.failures.delete(arrivalImage(this.edition));this.load(this.edition.scene);}
     this.drawn=undefined;
   }
   private changed():void {this.drawn=undefined;this.onChange?.();}
   private prepareLight():void {
-    const id=this.edition.scene,arrival=this.images.get(id),evening=this.evenings.get(id);
+    const id=this.edition.scene,arrival=this.arrival,cached=this.evenings.get(id);
+    const evening=cached?.source===eveningImage(this.edition)?cached.image:undefined;
     if(!this.sceneLight&&arrival?.naturalWidth&&evening?.naturalWidth)this.sceneLight=new SceneLight(id,arrival,evening);
   }
+  /** Loads the current edition's evening for its place, replacing another state's painting rather than adding one. */
   private loadEvening(id:SceneId):void {
-    if(this.evenings.has(id))return;
+    const source=eveningImage(this.edition),cached=this.evenings.get(id);
+    if(cached?.source===source)return;
+    if(cached){cached.image.onload=null;cached.image.onerror=null;}
     const image=new Image();image.decoding='async';
     image.onload=()=>{this.prepareLight();this.changed();};
-    this.evenings.set(id,image);
-    loadPainting(image,SCENES[id].eveningImage,()=>{this.eveningFailures.add(id);this.changed();});
+    this.evenings.set(id,{source,image});
+    loadPainting(image,source,()=>{this.eveningFailures.add(source);this.changed();});
   }
   private load(id: SceneId): void {
     // The evening painting waits for the arrival painting, so a slow connection
     // spends its bandwidth on the picture that appears first.
-    const cached=this.images.get(id);
-    if (cached) {if(cached.complete&&cached.naturalWidth)this.loadEvening(id);this.prepareLight();return;}
+    const source=arrivalImage(this.edition),cached=this.images.get(id);
+    if (cached?.source===source) {if(cached.image.complete&&cached.image.naturalWidth)this.loadEvening(id);this.prepareLight();return;}
+    // Another state's painting for this place is replaced, not kept beside it.
+    if(cached){cached.image.onload=null;cached.image.onerror=null;}
     const image = new Image(); image.decoding = 'async';
-    image.onload = () => { if(id===this.edition.scene){this.layout();this.loadEvening(id);}this.prepareLight();this.changed(); };
-    this.images.set(id,image);
-    loadPainting(image,SCENES[id].image,()=>{this.failures.add(id);this.changed();});
+    image.onload = () => { if(source===arrivalImage(this.edition)){this.layout();this.loadEvening(id);}this.prepareLight();this.changed(); };
+    this.images.set(id,{source,image});
+    loadPainting(image,source,()=>{this.failures.add(source);this.changed();});
   }
   /** Size the bitmap to the canvas's current CSS box. A no-op while nothing changed, so
    * observers and per-frame checks never clear a frame or interrupt a crossfade. */
@@ -114,7 +121,7 @@ export class SceneRenderer {
     return !!this.size || Math.abs(this.canvas.clientWidth-this.width)<=1 && Math.abs(this.canvas.clientHeight-this.height)<=1;
   }
   private layout(): void {
-    const image = this.images.get(this.edition.scene), aspect = image?.naturalWidth ? image.naturalWidth/image.naturalHeight : 16/9;
+    const image = this.arrival, aspect = image?.naturalWidth ? image.naturalWidth/image.naturalHeight : 16/9;
     ({iw:this.iw,ih:this.ih,ox:this.ox,oy:this.oy}=coverLayout(this.width,this.height,aspect,this.pan??SCENES[this.edition.scene].anchor));
   }
   point(u:number,v:number) { return { x:this.ox+u*this.iw, y:this.oy+v*this.ih }; }
@@ -152,7 +159,7 @@ export class SceneRenderer {
       if(shown===this.drawn)return;
       this.drawn=shown;
     } else this.drawn=undefined;
-    const ctx=this.ctx,{scene,warmth,seed}=this.edition,image=this.images.get(scene);
+    const ctx=this.ctx,{scene,warmth,seed}=this.edition,image=this.arrival;
     const intensity=this.edition.intensity*(this.journey?.weather??1);
     ctx.setTransform(this.ratio,0,0,this.ratio,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
     ctx.fillStyle=SCENES[scene].color;ctx.fillRect(0,0,this.width,this.height);
@@ -180,7 +187,6 @@ export class SceneRenderer {
       if(this.journey) {
         const space={width:this.width,height:this.height,iw:this.iw,point:(u:number,v:number)=>this.point(u,v)};
         drawSessionEffects(ctx,scene,this.journey,time,space,!!this.sceneLight);
-        if(this.edition.season==='halloween')(this.halloween??=new HalloweenLayer()).draw(ctx,scene,this.journey,time,space,this.ratio);
       }
       this.lights(time);
     }
@@ -277,8 +283,8 @@ export class SceneRenderer {
   }
   dispose():void {
     this.observer?.disconnect();this.observer=undefined;
-    this.images.forEach(i=>{i.onload=null;i.onerror=null;});this.images.clear();this.glows.clear();this.previous=null;
-    this.evenings.forEach(i=>{i.onload=null;i.onerror=null;});this.evenings.clear();
-    this.sceneLight?.dispose();this.sceneLight=undefined;this.halloween=undefined;this.drawn=undefined;this.onChange=undefined;
+    this.images.forEach(({image})=>{image.onload=null;image.onerror=null;});this.images.clear();this.glows.clear();this.previous=null;
+    this.evenings.forEach(({image})=>{image.onload=null;image.onerror=null;});this.evenings.clear();
+    this.sceneLight?.dispose();this.sceneLight=undefined;this.drawn=undefined;this.onChange=undefined;
   }
 }

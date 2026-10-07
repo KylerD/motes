@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {edition,seasonOf,seasonalWords,SCENE_IDS} from '../src/scenes/edition';
+import {edition,seasonOf,seasonalWords,arrivalImage,eveningImage,SCENES,SCENE_IDS} from '../src/scenes/edition';
 import {createSession,composeSessionTrack} from '../src/session/session';
 import {MELODY_CELLS,HALLOWEEN_THEME} from '../src/music/composer';
 import {HOOKS,HALLOWEEN_HOOK} from '../src/music/synthwave/catalog';
@@ -26,6 +26,15 @@ describe('the Halloween season',()=>{
   it('gives each place two Halloween days in 2026',()=>{
     const scenes=Array.from({length:8},(_,i)=>edition(`2026-10-${24+i}`).scene);
     for(const id of SCENE_IDS)expect(scenes.filter(s=>s===id)).toHaveLength(2);
+  });
+  it('paints each place with its own Halloween pair, and only in the season',()=>{
+    for(const scene of SCENE_IDS) {
+      const halloween=edition('2026-10-28',scene),ordinary=edition('2026-11-01',scene);
+      expect(arrivalImage(halloween)).toBe(`/scenes/${SCENES[scene].slug}-halloween.png`);
+      expect(eveningImage(halloween)).toBe(`/scenes/${SCENES[scene].slug}-halloween-evening.png`);
+      expect(arrivalImage(ordinary)).toBe(SCENES[scene].image);
+      expect(eveningImage(ordinary)).toBe(SCENES[scene].eveningImage);
+    }
   });
   it('keeps a place\'s own words for the first half-hour',()=>{
     const day=edition('2026-10-26','rain');

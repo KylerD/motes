@@ -1,0 +1,19 @@
+{
+  "prompt": "Use case: lighting edit of an existing painting.\nAsset type: a precisely composition-matched afternoon lighting state of an existing ambient video-game scene. It will be slowly composited directly under the edit target, so geometric registration is critical.\nInput images: golden-hour-halloween.png is the EDIT TARGET, not a loose reference. golden-hour.png is a LIGHTING REFERENCE ONLY: match its time of day, warm golden sun shafts through the right-side tree, sunlit grasses and colour temperature. Original canvas is 1672 by 941 pixels. Keep the edit target's full framing, aspect ratio, view, perspective, object scale and positions exactly.\nPrimary request: relight the edit target into the same late golden-hour afternoon as the lighting reference. Keep every object of the edit target exactly where and as it is: the arch, bench, cloak, pack, sword, mug, the autumn-coloured tree, fallen leaves, every shoreline stone, the pond outline, the stone lantern and all five jack-o'-lanterns with exactly their carvings: the large one at front left has a CRESCENT MOON carving (keep it a crescent moon, not a face); the small one beside it, the one by the bench, the one on the far shore and the one beside the stone lantern have smiling faces. In daylight the jack-o'-lanterns are unlit: matte orange pumpkins in sunlight with dark carved openings, no candle glow and no warm reflections. The stone lantern is unlit. The sky is the bright afternoon sky of the reference: no moon, no bats, no stars.\nStyle: retain the painterly, richly textured, cosy video-game illustration.\nStrict constraints: lighting edit only; identical camera and composition to the edit target; do not crop, zoom, move edges, add or remove objects other than the moon and bats, or change any silhouette, carving or pond geometry. No text, watermark or UI. Deliver one complete landscape image at the same size.",
+  "tool": "image_gen.imagegen",
+  "client": "Codex CLI 0.160.1",
+  "mode": "built-in lighting edit",
+  "sourceAsset": "public/scenes/golden-hour-halloween-evening.png",
+  "lightingReference": "public/scenes/golden-hour.png",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "generationDate": "2026-10-07",
+  "outputFile": "public/scenes/golden-hour-halloween.png",
+  "outputDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "assessment": "A 50/50 blend with its source shows no doubled edges on landmarks, shorelines or water; only the added Halloween objects differ."
+}

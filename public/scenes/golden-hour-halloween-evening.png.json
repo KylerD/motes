@@ -1,0 +1,18 @@
+{
+  "prompt": "Use case: seasonal edit of an existing painting.\nAsset type: a precisely composition-matched Halloween-night state of an existing ambient video-game scene. It will be slowly composited directly over the original painting, so geometric registration is critical.\nInput image: the supplied golden-hour-dusk.png is the EDIT TARGET, not a loose reference. Original canvas is 1672 by 941 pixels, approximately 16:9 landscape. Keep the same full image framing, aspect ratio, view, perspective, object scale and positions.\nPreserve the original illustration, composition and every landmark contour as closely as possible: the ivy-covered stone arch at left, the bench below it with the exact cloak folds, pack, sword and mug, the right-side tree trunk and canopy, the small stone lantern at the far-right pond shore, the entire pond outline, all shoreline stones and flower clumps, the forest silhouettes and distant mountain ridgelines. Do not redraw or reinterpret their shapes.\nAdd, painted in exactly the same hand-painted style, brushwork and palette as the rest of the illustration so they look like they were always part of it:\n- Five carved jack-o'-lanterns resting naturally in the scene: one on the ground at the end of the bench beside the pack, two together on the flat shoreline stones at the lower left of the pond, one in the grass on the far shore at centre, and one beside the existing stone lantern at right. Different sizes matched to depth. Gentle, friendly carvings (simple smiling faces, one with a crescent moon), lit from within by warm candlelight, casting soft amber light onto the stones and grass around them and small warm reflections in the pond. They must sit on surfaces with believable contact shadows, not float.\n- A large, soft, warm harvest moon rising low in the sunset gap between the mountain ridge and the tree canopy at centre-right, partly behind the ridge, with a faint reflection on the pond.\n- Three or four very small, distant bat silhouettes near the moon.\n- Autumn touches: some leaves in the right-side tree turned amber and russet, a few fallen leaves on the shoreline stones and bench.\nLighting and palette: keep the luminous blue and lavender dusk, slightly deeper toward evening; the jack-o'-lanterns and the existing stone lantern are the warm light sources. Cosy and inviting, not scary, not dark night.\nStrict constraints: identical camera and composition; do not crop, zoom or move edges; do not change pond geometry, silhouettes or existing objects; no skulls, ghosts, witches, cobwebs, gravestones, characters, text, graphics, watermark or UI. Preserve fine spatial detail, stone edges and leaf shapes. Deliver one complete landscape image at the same size.",
+  "tool": "image_gen.imagegen",
+  "client": "Codex CLI 0.160.1",
+  "mode": "built-in seasonal edit",
+  "sourceAsset": "public/scenes/golden-hour-dusk.png",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "generationDate": "2026-10-07",
+  "outputFile": "public/scenes/golden-hour-halloween-evening.png",
+  "outputDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "assessment": "A 50/50 blend with its source shows no doubled edges on landmarks, shorelines or water; only the added Halloween objects differ."
+}
