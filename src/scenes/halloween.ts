@@ -153,7 +153,7 @@ export class HalloweenLayer {
     }
     const lit=light.lamps,day=1-light.foreground;
     place.pumpkins.forEach((pumpkin,i)=>{
-      const width=space.iw*pumpkin.size,height=width*.8,box=Math.round(width*ratio),p=space.point(pumpkin.u,pumpkin.v);
+      const width=space.iw*pumpkin.size,height=width*.8,box=Math.max(4,Math.round(width*ratio)),p=space.point(pumpkin.u,pumpkin.v);
       const x=p.x-width/2,y=p.y-height,w=width,h=width*.92;
       const flicker=.82+.1*Math.sin(time*7.3+i*1.7)+.08*Math.sin(time*12.9+i);
       ctx.globalCompositeOperation='source-over';
