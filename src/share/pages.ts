@@ -27,6 +27,14 @@ export function pageMeta(scene?:SceneId):PageMeta {
   };
 }
 
+/** The plain account of what made Motes: the music, the paintings, the code, privacy and licences. */
+export const madeMeta:PageMeta={
+  title:'How Motes is made',
+  description:'How the music, the paintings and the living light of Motes are made, what is measured, and the licences.',
+  path:'/made/',image:'/scenes/og/made.jpg',
+  imageAlt:'The four Motes places side by side: a rainy rooftop, a golden meadow, a snowy station and a bay at sunset.',
+};
+
 const escape=(value:string)=>value.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const setMeta=(html:string,attribute:'name'|'property',key:string,value:string)=>
   html.replace(new RegExp(`(<meta ${attribute}="${key}" content=")[^"]*(")`),`$1${escape(value)}$2`);

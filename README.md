@@ -52,7 +52,7 @@ Every place has a matched evening painting. Over roughly fifty minutes, the sky,
 
 Water animation samples the changing painting, so reflections follow the sky. Local lamps and scene captions follow each place's lighting arc. These are four original compositions with four additional lighting states, not eight separate places. Paintings load when their place is visited; revisits reuse the decoded images, and only the active place keeps a full-size composite. If evening artwork fails, the original remains visible with a retry action.
 
-Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). Paintings load on demand and crossfade between places. Each browser receives AVIF, WebP or the original PNG, whichever is the lightest it can decode. The evening painting waits until the arrival painting has loaded. If an image fails, sound and controls remain available with a retry action. After changing a painting, run `node scripts/encode-scenes.mjs` to rebuild its AVIF/WebP copies, the place thumbnail, the link-preview card and the app icons.
+Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). [How Motes is made](https://motes.sh/made/) (`made/index.html`) tells visitors the same story plainly: the live-composed music, the paintings made with an AI image tool, what the code animates, what is measured and the licences. Keep it true whenever one of those changes. Paintings load on demand and crossfade between places. Each browser receives AVIF, WebP or the original PNG, whichever is the lightest it can decode. The evening painting waits until the arrival painting has loaded. If an image fails, sound and controls remain available with a retry action. After changing a painting, run `node scripts/encode-scenes.mjs` to rebuild its AVIF/WebP copies, the place thumbnail, the link-preview card and the app icons.
 
 The scene paints at a steady 30 frames a second, 60 during crossfades and ripples. A still picture is redrawn only when something about it changes, so a tab left open for hours stays light.
 
@@ -64,7 +64,8 @@ The scene paints at a steady 30 frames a second, 60 during crossfades and ripple
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
 | `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
 | `src/scenes/painting-source.ts` | AVIF → WebP → PNG painting fallback |
-| `src/share/pages.ts`, `vite.config.ts` | Per-place pages and link previews, built beside the home page |
+| `src/share/pages.ts`, `vite.config.ts` | Per-place pages and link previews, built beside the home page; the made page's preview |
+| `made/` | How Motes is made: a static reading page with no app bundle, linked from the place browser |
 | `src/share/link.ts` | Share links and messages for the current place |
 | `src/clip/` | Clip timeline, offline music, overlays, H.264/AAC encoding and the export job |
 | `src/measure/` | Weekly engaged listening, visit milestones and cookieless PostHog events |

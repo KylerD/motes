@@ -59,8 +59,21 @@ try {
   const edition=await page.evaluate(()=>window.__motes.edition);await page.reload();await ready(page);
   assert.equal(new URL(page.url()).searchParams.has('scene'),false,'Daily editions must not pin yesterday’s scene in the URL.');
   assert.deepEqual(await page.evaluate(()=>window.__motes.edition),edition);report.revisitableDates=true;
-  await page.click('#scenes-toggle');await thumbnails(page);await settle(page);await page.screenshot({path:'captures-scenes/places-desktop.png'});await page.keyboard.press('Escape');
+  await page.click('#scenes-toggle');await thumbnails(page);await settle(page);await page.screenshot({path:'captures-scenes/places-desktop.png'});
+  // How Motes is made opens beside the music, never in place of it.
+  assert.deepEqual(await page.locator('#made-link').evaluate(link=>[link.getAttribute('href'),link.target,link.rel]),['/made/','_blank','noopener']);
+  assert.equal(await page.getByRole('link',{name:'How Motes is made (opens in a new tab)'}).count(),1);
+  await page.keyboard.press('Escape');report.madeLink=true;
   assert.ok((await page.evaluate(()=>window.__motes.rendering)).images<=4);
+
+  const made=await browser.newPage({viewport:{width:1440,height:960}});made.on('pageerror',error=>errors.push(error.message));
+  await made.goto(`${base}/made/`);await made.evaluate(()=>document.fonts.ready);
+  assert.equal(await made.locator('h1').textContent(),'How Motes is made');
+  await made.evaluate(()=>Promise.all([...document.images].map(image=>{image.loading='eager';return image.decode();})));
+  await made.screenshot({path:'captures-scenes/made-desktop.png',fullPage:true});
+  await made.setViewportSize({width:390,height:844});
+  assert.ok(await made.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'the made page must not scroll sideways on a phone');
+  await made.screenshot({path:'captures-scenes/made-mobile.png',fullPage:true});await made.close();report.madePage=true;
 
   const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   phone.on('pageerror',error=>errors.push(error.message));

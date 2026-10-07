@@ -102,6 +102,10 @@ select{background:#fff9ef;color:var(--paper-text);border:1px solid var(--paper-l
 .scene-choice[aria-pressed=true]{background:var(--paper-hover)}.scene-choice[aria-pressed=true] svg{opacity:1}
 .scene-choice:hover{background:#eee3d1}
 #daily-place,#today{color:#81522e;font-size:12px;margin:15px 0 -6px -11px}
+/* Opens in a new tab, so following it never ends the music or the evening. */
+#made-link{display:inline-flex;align-items:center;min-height:32px;color:#81522e;font-size:12px;font-weight:600;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+#made-link:hover{color:var(--paper-text)}#made-link:focus-visible{outline:2px solid #956038;outline-offset:3px;border-radius:7px}
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .edition-panel{right:var(--inset);top:98px;width:366px}
 .share-panel{right:var(--inset);top:98px;width:366px}
 .share-action{display:flex;align-items:center;gap:14px;width:calc(100% + 20px);min-height:66px;margin-inline:-10px;padding:10px;border-radius:10px;text-align:left;font-size:14px;font-weight:600}

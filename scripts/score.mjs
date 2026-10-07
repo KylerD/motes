@@ -145,7 +145,7 @@ const slowest=loads.reduce((a,b)=>a.ms>b.ms?a:b),heaviest=Math.max(...loads.map(
 gate('G3','First load',heaviest<=350&&slowest.ms<=2500,
   `${loads.map(load=>`${load.path} painting ${load.paintingKB} KB, ${load.totalKB} KB in total, on screen at ${(load.ms/1000).toFixed(2)} s`).join('; ')} (slow 4G, 4× CPU)`,{loads});
 
-// G5 Accessibility: no serious or critical axe violations, desktop and phone, every panel.
+// G5 Accessibility: no serious or critical axe violations, desktop and phone, every panel, and the made page.
 const browser=await chromium.launch(),violations=[];
 try {
   for(const viewport of [{width:1280,height:800},{width:390,height:844}]) {
@@ -157,13 +157,17 @@ try {
       violations.push(...found.map(v=>`${viewport.width}px${panel?` ${panel} panel`:''}: ${v.id} (${v.nodes.length})`));
       if(panel)await page.keyboard.press('Escape');
     }
+    // The made page is static reading: one scan per viewport.
+    await page.goto(`${base}/made/`);await page.evaluate(()=>document.fonts.ready);
+    const made=(await new AxeBuilder({page}).analyze()).violations.filter(v=>v.impact==='serious'||v.impact==='critical');
+    violations.push(...made.map(v=>`${viewport.width}px made page: ${v.id} (${v.nodes.length})`));
     await context.close();
   }
 } finally {await browser.close();}
-gate('G5','Accessibility',violations.length===0,violations.length?violations.join('; '):'no serious or critical violations on desktop or phone, with each panel open',{violations});
+gate('G5','Accessibility',violations.length===0,violations.length?violations.join('; '):'no serious or critical violations on desktop or phone, with each panel open, nor on the made page',{violations});
 
-// G6 Shareable: preview cards for every page, a share action and clip export.
-const pages=['index.html',...readdirSync('dist/places').map(slug=>`places/${slug}/index.html`)],cards=[];
+// G6 Shareable: preview cards for every page (home, four places, made), a share action and clip export.
+const pages=['index.html',...readdirSync('dist/places').map(slug=>`places/${slug}/index.html`),'made/index.html'],cards=[];
 for(const file of pages) {
   const html=readFileSync(`dist/${file}`,'utf8'),meta=key=>new RegExp(`<meta (?:property|name)="${key}" content="([^"]*)"`).exec(html)?.[1];
   const image=meta('og:image'),local=image?.startsWith('https://motes.sh/')?`dist/${image.slice('https://motes.sh/'.length)}`:undefined;
@@ -172,7 +176,7 @@ for(const file of pages) {
 }
 const app=readFileSync(`dist/${pages[0]}`,'utf8'),share=/data-share/.test(app),clip=/data-clip/.test(app);
 const clipChecked=full?failed.sharing.length===0:undefined;
-gate('G6','Shareable',cards.length===pages.length&&pages.length===5&&share&&clip&&clipChecked!==false,
+gate('G6','Shareable',cards.length===pages.length&&pages.length===6&&share&&clip&&clipChecked!==false,
   `preview cards ${cards.length}/${pages.length} pages, share action ${share?'present':'not built yet'}, clip export ${!clip?'not built yet':clipChecked===undefined?'present (clip files checked with --full)':clipChecked?'makes valid clips for every place':'FAILS verify-clip.mjs'}`,{cards,share,clip,clipChecked});
 gate('G4','Audio health',full?failed.audio.length===0:null,full?`${passed.audio.length}/${suite.audio.length} audio checks pass${failed.audio.length?` (failed: ${failed.audio.join(', ')})`:''}`:'not run (use --full)');
 gate('S1–S3','Judged picture, clip and music',null,'not automated yet');

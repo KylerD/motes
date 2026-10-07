@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {readFileSync,existsSync} from 'node:fs';
 import {SCENES,SCENE_IDS,placePath,sceneFromPath} from '../src/scenes/edition';
-import {SITE,pageMeta,withMeta} from '../src/share/pages';
+import {SITE,madeMeta,pageMeta,withMeta} from '../src/share/pages';
 
 const index=readFileSync('index.html','utf8');
 const tag=(html:string,attribute:string,name:string)=>new RegExp(`<meta ${attribute}="${name}" content="([^"]*)"`).exec(html)?.[1];
@@ -32,5 +32,16 @@ describe('place pages',()=>{
     expect(tag(html,'property','og:url')).toBe(`${SITE}/`);
     expect(html).not.toContain('rel="preload" as="image"');
     expect(withMeta(index,meta)).toBe(index);
+  });
+  it('gives the made page its own preview, kept in step with pages.ts',()=>{
+    const made=readFileSync('made/index.html','utf8'),html=withMeta(made,madeMeta);
+    expect(html).toBe(made);
+    expect(html).toContain(`<title>${madeMeta.title}</title>`);
+    expect(html).toContain(`<link rel="canonical" href="${SITE}/made/" />`);
+    expect(tag(html,'property','og:url')).toBe(`${SITE}/made/`);
+    expect(tag(html,'property','og:image')).toBe(`${SITE}/scenes/og/made.jpg`);
+    expect(tag(html,'name','twitter:card')).toBe('summary_large_image');
+    expect(html).not.toContain('rel="preload" as="image"');
+    expect(existsSync('public/scenes/og/made.jpg')).toBe(true);
   });
 });

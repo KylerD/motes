@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#211e1b" />
+  <meta name="description" content="How the music, the paintings and the living light of Motes are made, what is measured, and the licences." />
+  <title>How Motes is made</title>
+  <link rel="canonical" href="https://motes.sh/made/" />
+  <!-- Link previews: these values come from madeMeta in src/share/pages.ts; the build rewrites them from there. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Motes" />
+  <meta property="og:title" content="How Motes is made" />
+  <meta property="og:description" content="How the music, the paintings and the living light of Motes are made, what is measured, and the licences." />
+  <meta property="og:url" content="https://motes.sh/made/" />
+  <meta property="og:image" content="https://motes.sh/scenes/og/made.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="The four Motes places side by side: a rainy rooftop, a golden meadow, a snowy station and a bay at sunset." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="How Motes is made" />
+  <meta name="twitter:description" content="How the music, the paintings and the living light of Motes are made, what is measured, and the licences." />
+  <meta name="twitter:image" content="https://motes.sh/scenes/og/made.jpg" />
+  <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+  <link rel="preload" href="/fonts/nunito-sans.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/eb-garamond.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="./made.css" />
+</head>
+<body>
+  <header class="masthead">
+    <a class="home" href="/?ref=made"><img src="/brand/motes-logo.svg" alt="Motes" width="486" height="114" /></a>
+    <a class="open" href="/?ref=made">Open Motes</a>
+  </header>
+  <main class="sheet">
+    <h1>How Motes is made</h1>
+    <p class="lede">Motes is four painted places and music written while you listen. This is what made each part, and what Motes keeps about you.</p>
+
+    <dl class="summary">
+      <div><dt>Music</dt><dd>Composed in your browser as it plays, by Motes’ own open-source engine. No AI music model and no recorded songs.</dd></div>
+      <div><dt>Paintings</dt><dd>Made with an AI image tool from written prompts, then edited into matched pairs. Every prompt is published.</dd></div>
+      <div><dt>Privacy</dt><dd>No cookies, accounts or identifiers. A few anonymous milestones, and nothing at all if your browser asks not to be tracked.</dd></div>
+    </dl>
+
+    <section aria-labelledby="music">
+      <h2 id="music">The music</h2>
+      <p>Every song is written in your browser while it plays. Motes’ composer takes the date as a seed and plans an hour of eighteen connected arrangements: a short theme that is stated, answered and brought home, chord loops voiced so each chord leads into the next, and sections that build and thin out. The same place on the same day gives the same hour; tomorrow brings a new one.</p>
+      <p>The piano notes are real recordings: twelve notes of a Kawai upright, recorded for the FreePats project and dedicated to the public domain. Everything else, the electric keys, mallets, bass, drums and the whole synthwave style, is synthesised with Web Audio. There are no recorded songs or loops, and no AI music model.</p>
+      <p>The engine is open source under the MIT licence. <a href="https://github.com/KylerD/motes/tree/main/src/music">Read the music engine on GitHub</a>.</p>
+    </section>
+
+    <section aria-labelledby="paintings">
+      <h2 id="paintings">The paintings</h2>
+      <p>The paintings were made with an AI image-generation tool (OpenAI’s, used through Codex) from written prompts. There are sixteen: each of the four places has an arrival painting and an evening painting, and a Halloween pair for the last week of October.</p>
+      <p>The evening and Halloween paintings are edits of the originals, made so the camera, the shoreline, the windows and the water stay exactly where they are. That is what lets a place move from one to the other over an hour without anything sliding.</p>
+      <div class="pair">
+        <figure><img src="/scenes/made/neon-rain.webp" width="640" height="360" loading="lazy" decoding="async" alt="Neon rain on arrival: a rooftop tea shelter and pond under a bright blue rainy sky." /><figcaption>Neon rain, arrival</figcaption></figure>
+        <figure><img src="/scenes/made/neon-rain-night.webp" width="640" height="360" loading="lazy" decoding="async" alt="The same rooftop in the evening: indigo clouds, a darker city and warm lantern light." /><figcaption>Neon rain, evening</figcaption></figure>
+      </div>
+      <p>No image is generated while you listen: the same sixteen paintings are served from motes.sh. <a href="https://github.com/KylerD/motes/blob/main/public/scenes/ARTWORK.md">Every prompt is published</a>, including where a reference image set the mood.</p>
+    </section>
+
+    <section aria-labelledby="code">
+      <h2 id="code">What the code animates</h2>
+      <p>Everything that moves is drawn by Motes, in your browser.</p>
+      <dl class="terms">
+        <div><dt>Light</dt><dd>Over about fifty minutes of listening, each place moves from its arrival painting to its evening one. The sky, the distance, the sheltered foreground and the water change at their own pace, and lamps and windows warm on their own.</dd></div>
+        <div><dt>Water</dt><dd>Reflections move by sampling the painting as it is at that moment, so they darken with the sky. Tap the water and it ripples, only inside the painted shore.</dd></div>
+        <div><dt>Weather</dt><dd>Rain, snow, steam from a cup, drifting pollen and, later in the evening, fireflies.</dd></div>
+        <div><dt>Events</dt><dd>A train calls at the station, a boat crosses the bay, birds and butterflies pass through the meadow and a shower crosses the city, once or twice an hour rather than on a loop.</dd></div>
+      </dl>
+      <p>The date chooses the day’s place, weather, light and the timing of those events, so each day is its own edition. Seasonal objects, like Halloween’s jack-o’-lanterns, are always painted into the art; the code never draws objects over a painting.</p>
+    </section>
+
+    <section aria-labelledby="privacy">
+      <h2 id="privacy">Privacy</h2>
+      <p>Motes sets no cookies and has no accounts. It sends a handful of anonymous events to PostHog’s EU cloud: that you arrived (and the <code>ref</code> of the link you followed), your first Listen, 5, 20 and 60 minutes of listening, one event when you pass twenty minutes in a week, and shares. No identifier is sent or stored; PostHog counts visitors with a hash it makes on its own servers and changes every day.</p>
+      <p>Your browser keeps your sound and motion settings, and this week’s listening minutes with the week you first listened. That is how Motes counts weekly listeners without an ID.</p>
+      <p>If your browser sends Global Privacy Control or Do Not Track, Motes sends nothing at all. Clips are made on your device and never uploaded. Apart from those events, the fonts, paintings and piano all come from motes.sh.</p>
+    </section>
+
+    <section aria-labelledby="licences">
+      <h2 id="licences">Licences</h2>
+      <dl class="terms">
+        <div><dt>App</dt><dd><a href="https://github.com/KylerD/motes/blob/main/LICENSE">AGPL-3.0</a>. Code published up to commit <code>abf0a44</code> was dedicated to the public domain (CC0) and stays so.</dd></div>
+        <div><dt>Music engine</dt><dd><a href="https://github.com/KylerD/motes/blob/main/src/music/LICENSE">MIT</a>, so it can play elsewhere with a credit line.</dd></div>
+        <div><dt>Paintings and identity</dt><dd>The paintings, their masks and evening arcs, and the Motes name and logo: all rights reserved, to the extent rights exist. See <a href="https://github.com/KylerD/motes/blob/main/TRADEMARKS.md">trademarks</a>.</dd></div>
+        <div><dt>Piano</dt><dd><a href="https://github.com/KylerD/motes/blob/main/public/audio/README.md">CC0</a>, from FreePats’ Upright Piano KW.</dd></div>
+        <div><dt>Fonts</dt><dd>EB Garamond and Nunito Sans, under the <a href="https://github.com/KylerD/motes/blob/main/public/fonts/README.md">SIL Open Font License</a>.</dd></div>
+        <div><dt>Clips</dt><dd>Encoded with Mediabunny (MPL-2.0). Browsers without their own AAC encoder use Mediabunny’s, also MPL-2.0, a WebAssembly build of FFmpeg’s LGPL encoder.</dd></div>
+      </dl>
+      <p><a href="https://github.com/KylerD/motes">All the source is on GitHub</a>.</p>
+    </section>
+
+    <footer class="colophon"><a href="/?ref=made">Back to Motes</a><span>Updated 7 October 2026</span></footer>
+  </main>
+  <script type="module" src="./made.ts"></script>
+</body>
+</html>
