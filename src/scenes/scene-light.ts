@@ -81,6 +81,7 @@ export class SceneLight {
   private zones=new Float32Array(MASK_WIDTH*MASK_HEIGHT*4);
   private pixels=new ImageData(MASK_WIDTH,MASK_HEIGHT);
   private lastStep=-1;
+  private sharper?:{arrival:HTMLImageElement;evening:HTMLImageElement};
 
   constructor(private scene:SceneId,private arrival:HTMLImageElement,private evening:HTMLImageElement) {
     this.painting.width=arrival.naturalWidth;this.painting.height=arrival.naturalHeight;
@@ -90,11 +91,21 @@ export class SceneLight {
     }
   }
 
+  /** The same pair at a higher tier. It takes over at the next update, so the composite is
+   * resized rather than a second full-size one being made beside it. */
+  upgrade(arrival:HTMLImageElement,evening:HTMLImageElement):void {this.sharper={arrival,evening};}
+
+  private takeSharper():void {
+    if(!this.sharper)return;
+    ({arrival:this.arrival,evening:this.evening}=this.sharper);this.sharper=undefined;
+    this.painting.width=this.arrival.naturalWidth;this.painting.height=this.arrival.naturalHeight;
+  }
+
   frame(seconds:number):Painting {
-    if(!Number.isFinite(seconds)||seconds<=0)return this.arrival;
+    if(!Number.isFinite(seconds)||seconds<=0){this.takeSharper();return this.arrival;}
     const step=Math.floor(Math.min(3600,seconds)/2);
     if(step===this.lastStep)return this.painting;
-    this.lastStep=step;
+    this.lastStep=step;this.takeSharper();
     const light=sceneLightAt(this.scene,step*2),levels=[light.sky,light.distance,light.foreground,light.water];
     for(let i=0;i<this.pixels.data.length;i+=4) {
       this.pixels.data[i]=this.pixels.data[i+1]=this.pixels.data[i+2]=255;
@@ -112,5 +123,5 @@ export class SceneLight {
     return this.painting;
   }
 
-  dispose():void {this.painting.width=this.painting.height=this.mask.width=this.mask.height=1;}
+  dispose():void {this.sharper=undefined;this.painting.width=this.painting.height=this.mask.width=this.mask.height=1;}
 }

@@ -1,4 +1,5 @@
 import {SCENES,placePath,type SceneId} from '../scenes/edition';
+import {paintingUrl} from '../scenes/painting-source';
 
 /** Link previews are read by crawlers that never run the page, so every place is
  * built as its own static page carrying its own title, description and card. */
@@ -23,7 +24,7 @@ export function pageMeta(scene?:SceneId):PageMeta {
   return {
     title:`${place.name} · Motes`,description:descriptions[scene],path:placePath(scene),
     image:`/scenes/og/${place.slug}.jpg`,imageAlt:`${place.name}, from arrival to evening.`,
-    painting:place.image.replace(/\.png$/,'.avif'),
+    painting:paintingUrl(place.image,'avif'),
   };
 }
 

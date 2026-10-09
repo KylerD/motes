@@ -6,8 +6,8 @@
 generated, and the four places read as one set. Every state of a place (arrival, evening, Halloween)
 gets exactly the same treatment.
 
-    uv run scripts/finish.py [name ...]    art/scenes/<name>.png -> .cache/scenes/finished/<name>.png
-                                                                and .cache/scenes/finished/<name>@3840.png
+    uv run scripts/finish.py [name ...]    the masters in art/scenes -> finished PNGs in .cache/scenes/finished,
+                                           <name> (base, 1672) and <name>@3840 (full)
 
 Then `node scripts/encode-scenes.mjs` encodes the served tiers from the finished PNGs.
 
@@ -15,8 +15,10 @@ Kyle chose the look on 9 October 2026 from the test in spike/look/look.py: "goua
 models give themselves away by surface: detail everywhere at the same sharpness, colour pushed to the
 limit, pure blacks, and no medium. Gouache-light answers each of those and nothing more:
 
-1. brush: a generalised Kuwahara filter, radius 4 px at 1672 wide, scaled with the tier so the strokes
-   are the same size on every screen. Flat areas become soft dabs of paint; edges stay crisp.
+1. brush: a generalised Kuwahara filter, radius 3.2 px at 1672 wide, scaled with the tier so the
+   strokes are the same size on every screen. Flat areas become soft dabs of paint; edges stay crisp.
+   The test used radius 4; seeing it at full size, Kyle asked for the effect 20% lighter ("a smidge
+   too blurry"), so the brush is 20% smaller.
 2. inks: one set for every place. Chroma eased off the top, the darkest tone indigo and the lightest
    warm paper, shadows a little cool and lights a little warm.
 3. glow: the soft halo round every lamp, window and sign that lofi backgrounds share (strength 0.15).
@@ -61,7 +63,7 @@ UPSCALED = CACHE / 'scenes' / 'upscaled'
 
 BASE = 1672             # the masters' width, and the width the look was chosen at
 FULL = 3840
-BRUSH = 4.0             # Kuwahara radius at BASE
+BRUSH = 3.2             # Kuwahara radius at BASE
 GLOW = 0.15
 PAPER = 0.03
 INK = np.array([0.035, 0.03, 0.075], np.float32)      # the darkest a Motes painting goes: indigo, not black

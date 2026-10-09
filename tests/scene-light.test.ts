@@ -7,14 +7,16 @@ import {meadowLightAt} from '../src/scenes/meadow-light';
 describe('authored evening coverage',()=>{
   it.each(SCENE_IDS)('%s has its own matching, local evening painting',scene=>{
     const place=SCENES[scene];
-    expect(place.eveningImage).toMatch(/^\/scenes\/.+\.png$/);
+    expect(place.eveningImage).toMatch(/^\/scenes\/[a-z-]+$/);
     expect(place.eveningImage).not.toBe(place.image);
-    expect(existsSync(`public${place.eveningImage}`)).toBe(true);
-    const original=readFileSync(`public${place.image}`),evening=readFileSync(`public${place.eveningImage}`);
+    // The masters live in art/, unserved; the served files are finished from them.
+    const master=(name:string)=>`art${name}.png`;
+    expect(existsSync(master(place.eveningImage))).toBe(true);
+    const original=readFileSync(master(place.image)),evening=readFileSync(master(place.eveningImage));
     expect([evening.readUInt32BE(16),evening.readUInt32BE(20)])
       .toEqual([original.readUInt32BE(16),original.readUInt32BE(20)]);
-    const provenance=JSON.parse(readFileSync(`public${place.eveningImage}.json`,'utf8'));
-    expect(provenance.sourceAsset).toBe(`public${place.image}`);
+    const provenance=JSON.parse(readFileSync(`${master(place.eveningImage)}.json`,'utf8'));
+    expect(provenance.sourceAsset.endsWith(`${place.slug}.png`)).toBe(true);
     expect(provenance.prompt.length).toBeGreaterThan(100);
   });
 });

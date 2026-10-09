@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-import { mkdirSync,writeFileSync } from 'node:fs';
+import { mkdirSync,readdirSync,statSync,writeFileSync } from 'node:fs';
+import sharp from 'sharp';
 
 const base=process.env.MOTES_URL||'http://127.0.0.1:5175';
 const browser=await chromium.launch(),errors=[],report={};
@@ -90,14 +91,50 @@ try {
   assert.equal(await gpc.textContent('#counting-status'),'Your browser asks not to be tracked, so Motes counts nothing here.');
   assert.equal(await gpc.isHidden('#counting-toggle'),true);await gpc.close();report.countingSwitch=true;
 
+  // The finish ships two tiers of every painting, encoded from the finished PNGs; the masters are not served.
+  const masters=readdirSync('art/scenes').filter(file=>file.endsWith('.png')).map(file=>file.slice(0,-4));
+  assert.equal(masters.length,16);
+  assert.deepEqual(readdirSync('public/scenes').filter(file=>file.endsWith('.png')),[]);
+  for(const name of masters)for(const [tier,width,height] of [['',1672,941],['@3840',3840,2161]])for(const format of ['avif','webp']) {
+    const file=`public/scenes/${name}${tier}.${format}`,meta=await sharp(file).metadata();
+    assert.deepEqual([meta.width,meta.height],[width,height],`${file} must be exactly ${width}×${height}`);
+    if(!tier&&format==='avif')assert.ok(statSync(file).size<=350*1024,`${file} is over G3's 350 KB budget`);
+  }report.tierFiles=true;
+  // A 2560×1440 desktop window paints base first, then upgrades both states together.
+  const wide=await browser.newPage({viewport:{width:2560,height:1440}});
+  wide.on('pageerror',error=>errors.push(error.message));
+  const wideRequests=[];wide.on('request',request=>{if(/\/scenes\/[^/]+\.(avif|webp)$/.test(request.url()))wideRequests.push(new URL(request.url()).pathname);});
+  await wide.goto(`${base}/?debug&day=2026-09-17&scene=rain`);await ready(wide);
+  await wide.waitForFunction(()=>window.__motes.rendering.tier==='full'&&window.__motes.rendering.paintingWidth===3840,null,{timeout:30000});
+  assert.equal(wideRequests[0],'/scenes/neon-rain.avif','first paint must use base');
+  assert.ok(wideRequests.includes('/scenes/neon-rain@3840.avif')&&wideRequests.includes('/scenes/neon-rain-night@3840.avif'));
+  await wide.click('#listen');await wide.waitForFunction(()=>window.__motes.radio.playing);await wide.waitForTimeout(2500);
+  const listening=await wide.evaluate(()=>window.__motes.rendering);
+  assert.equal(listening.paintingWidth,3840,'the composite must be rebuilt at the full tier');
+  assert.ok(listening.composites<=1&&listening.fullImages<=2,`one full-size composite at most: ${JSON.stringify(listening)}`);
+  await wide.screenshot({path:'captures-scenes/rain-2560.png'});await wide.close();report.upgradeOnWideScreen=true;
+  // A full tier that arrives after leaving its place is dropped; one that fails keeps base, with no error shown.
+  const leaving=await browser.newPage({viewport:{width:2560,height:1440}});leaving.on('pageerror',error=>errors.push(error.message));
+  let release;const held=new Promise(resolve=>{release=resolve;});
+  await leaving.route('**/scenes/*@3840.*',async route=>{if(route.request().url().includes('neon-rain')){await held;await route.continue();}else await route.abort();});
+  await leaving.goto(`${base}/?debug&day=2026-09-17&scene=rain`,{waitUntil:'domcontentloaded'});await ready(leaving);
+  await leaving.waitForFunction(()=>window.__motes.rendering.fullImages===2);
+  await leaving.evaluate(()=>window.__motes.visit('2026-09-17','meadow'));await ready(leaving);await leaving.waitForTimeout(1500);
+  release();await leaving.waitForTimeout(2000);
+  const left=await leaving.evaluate(()=>({...window.__motes.rendering,failed:window.__motes.failed}));
+  assert.deepEqual([left.tier,left.paintingWidth,left.fullImages,left.failed],['base',1672,0,false],`late or failed full tiers must leave base on screen: ${JSON.stringify(left)}`);
+  assert.equal(await leaving.locator('#art-status').isVisible(),false);await leaving.close();report.lateAndFailedFullTier=true;
+
   const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   phone.on('pageerror',error=>errors.push(error.message));
+  const phoneTiers=[];phone.on('request',request=>{if(request.url().includes('@3840'))phoneTiers.push(request.url());});
   await phone.goto(`${base}/?debug&day=2026-09-17`);await ready(phone);
   for(const scene of ['rain','meadow','snow','coast']) {
     await phone.evaluate(scene=>window.__motes.visit('2026-09-17',scene),scene);await ready(phone);await settle(phone);
     assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await phone.screenshot({path:`captures-scenes/${scene}-mobile.png`});
   }
+  assert.deepEqual(phoneTiers,[],'a phone must never load the full tier');report.phoneStaysOnBase=true;
   // Phones re-resolve 100dvh after the first layout without any window resize event.
   // The bitmap must follow the canvas box, or the painting shows squashed until a reload.
   await phone.evaluate(()=>{document.querySelector('#experience').style.height='700px';});await settle(phone);
@@ -129,9 +166,9 @@ try {
 
   const fallback=await browser.newPage({reducedMotion:'reduce'});
   fallback.on('pageerror',error=>errors.push(error.message));
-  await fallback.route('**/scenes/*.{png,avif,webp}',route=>route.abort());await fallback.goto(`${base}/?debug`);
+  await fallback.route('**/scenes/*.{avif,webp}',route=>route.abort());await fallback.goto(`${base}/?debug`);
   await fallback.waitForFunction(()=>window.__motes?.failed);assert.equal(await fallback.locator('#retry-art').isVisible(),true);
-  await fallback.unroute('**/scenes/*.{png,avif,webp}');await fallback.click('#retry-art');await ready(fallback);await settle(fallback);
+  await fallback.unroute('**/scenes/*.{avif,webp}');await fallback.click('#retry-art');await ready(fallback);await settle(fallback);
   assert.equal(await fallback.locator('#art-status').isVisible(),false);report.artRetry=true;
   const rejected=await browser.newPage({reducedMotion:'reduce'});
   await rejected.addInitScript(()=>{const resume=AudioContext.prototype.resume;let failed=false;AudioContext.prototype.resume=function(){if(!failed){failed=true;return Promise.reject(new Error('Blocked playback'));}return resume.call(this);};});
