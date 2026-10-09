@@ -67,13 +67,13 @@ A change can ship only if every gate passes.
 | Gate | Pass when | Before (`main`, 2 Oct 2026) | Now (`feat/hillclimb-phase-0`) |
 | --- | --- | --- | --- |
 | G1 Correctness | `npm test`, `npm run build` and the verify scripts in README.md pass | Passing | **Pass** |
-| G2 Lightness | CPU while listening ≤ a YouTube lofi live tab on the same machine (ratio ≤ 1.0) | 94% of a core at 240 fps vs YouTube 33%, **ratio ≈2.8** | Lofi 21.6% at 35 fps, **ratio 0.65**; synthwave 24.6%, **ratio 0.75: pass** (`perf/synthwave-cpu`, 5 Oct). The same day, `main` measured 0.75 lofi and 1.82 synthwave. |
-| G3 First load | First painting ≤ 350 KB, on screen within 2.5 s on a phone with slow 4G and a 4× slower CPU | 2.4–2.8 MB PNG per painting | 204–241 KB AVIF, on screen at 2.0–2.4 s: **pass** |
+| G2 Lightness | CPU while listening ≤ a YouTube lofi live tab on the same machine (ratio ≤ 1.0) | 94% of a core at 240 fps vs YouTube 33%, **ratio ≈2.8** | Lofi 21.6% at 35 fps, **ratio 0.65**; synthwave 24.6%, **ratio 0.75: pass** (`perf/synthwave-cpu`, 5 Oct). The same day, `main` measured 0.75 lofi and 1.82 synthwave. With the finish (9 Oct): lofi 0.78, synthwave 0.91, and in a 2560×1440 window on the full painting tier 0.78–0.99 across four runs on a busy machine: **pass, with the full tier close to the line**. |
+| G3 First load | First painting ≤ 350 KB, on screen within 2.5 s on a phone with slow 4G and a 4× slower CPU | 2.4–2.8 MB PNG per painting | 153–169 KB AVIF (the finished base tier, 9 Oct), on screen at 1.86–1.99 s: **pass** |
 | G4 Audio health | Existing mix and synthwave checks pass, true peak ≤ −1 dBTP, no dropouts, voices bounded | Passing | **Pass** (5/5) |
 | G5 Accessibility | Zero serious or critical axe violations on desktop and phone, with every panel open | Not automated | **Pass** |
 | G6 Shareable | Every page has a preview card; a working share action; clip export makes a valid 15 s vertical video | 0 of 3 | Preview cards 5/5 pages, a share action, and clip export (15 s vertical H.264/AAC, checked for every place): **pass** |
 
-Measured on a Ryzen 9 9950X with Chrome 154 and a 240 Hz display, at a 1280×720 window with sound muted; last run 5 Oct 2026. G3 uses its own marker (`motes:painting`) because LCP can't see a canvas.
+Measured on a Ryzen 9 9950X with Chrome 154 and a 240 Hz display, at a 1280×720 window (G2 also at 2560×1440) with sound muted; last run 9 Oct 2026. G3 uses its own marker (`motes:painting`) because LCP can't see a canvas.
 
 ### Judged dimensions
 
@@ -158,7 +158,7 @@ Kyle's direction (3 Oct 2026): **new places must not depend on commissioning art
   2. Judge it pairwise against the current painting, with the S1 judges and Kyle's blind comparison at listening minutes 0, 20, 40 and 60.
   3. Adopt it only if it wins on cosiness and believable evening without losing on human touch. Otherwise iterate the look before building more places.
 - **After adoption:** about one new place a month as a place pack, directed by Kyle and built by Claude, with no commissions.
-- **Until then** the current paintings stay, with their prompts kept as provenance in `public/scenes/ARTWORK.md`.
+- **Until then** the current paintings stay, with their prompts kept as provenance in `art/scenes/ARTWORK.md`.
 - **Seasonal editions use authored paintings** (Kyle, 7 Oct 2026). The first Halloween build drew pumpkins over the paintings in code and was rejected as stickers. Each place now has a composition-matched Halloween pair, made with the same image tool as the current paintings and recorded in `ARTWORK.md`. Never draw recognisable objects over the art in code; light, weather and small distant silhouettes stay in code.
 - **Check every model and tool licence** used for textures, depth or masks. Depth Anything V2 Base, Large and Giant, and Depth Anything 3 Large and Giant, are non-commercial; Marigold code and Qwen-Image-Layered are Apache-2.0.
 

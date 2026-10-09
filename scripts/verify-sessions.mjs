@@ -86,7 +86,7 @@ try{
 
   const cache=await browser.newPage({reducedMotion:'reduce'}),requested=[];
   cache.on('pageerror',error=>errors.push(error.message));
-  cache.on('request',request=>{const file=new URL(request.url()).pathname.split('/').pop().replace(/\.(avif|webp|png)$/,'');if(Object.values(eveningFiles).includes(file))requested.push(file);});
+  cache.on('request',request=>{const file=new URL(request.url()).pathname.split('/').pop().replace(/\.(avif|webp)$/,'');if(Object.values(eveningFiles).includes(file))requested.push(file);});
   await visit(cache,'rain');
   assert.deepEqual(requested,[eveningFiles.rain],'Only the visited place loads its evening artwork.');
   for(const scene of ['snow','coast','meadow','rain','snow']) {

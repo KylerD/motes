@@ -30,8 +30,8 @@ describe('the Halloween season',()=>{
   it('paints each place with its own Halloween pair, and only in the season',()=>{
     for(const scene of SCENE_IDS) {
       const halloween=edition('2026-10-28',scene),ordinary=edition('2026-11-01',scene);
-      expect(arrivalImage(halloween)).toBe(`/scenes/${SCENES[scene].slug}-halloween.png`);
-      expect(eveningImage(halloween)).toBe(`/scenes/${SCENES[scene].slug}-halloween-evening.png`);
+      expect(arrivalImage(halloween)).toBe(`/scenes/${SCENES[scene].slug}-halloween`);
+      expect(eveningImage(halloween)).toBe(`/scenes/${SCENES[scene].slug}-halloween-evening`);
       expect(arrivalImage(ordinary)).toBe(SCENES[scene].image);
       expect(eveningImage(ordinary)).toBe(SCENES[scene].eveningImage);
     }

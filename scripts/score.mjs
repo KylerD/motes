@@ -58,10 +58,10 @@ async function launch(reference=false){
 }
 
 // G2 Lightness: CPU of a listening Motes tab against a YouTube lofi live tab, same machine, same browser.
-async function cpuOf(url,prepare,{warm=20,measure=60,reference=false,keep=()=>true}={}) {
+async function cpuOf(url,prepare,{warm=20,measure=60,reference=false,keep=()=>true,viewport={width:1280,height:720}}={}) {
   const browser=await launch(reference),cdp=await browser.newBrowserCDPSession();
   try {
-    const page=await browser.newPage({viewport:{width:1280,height:720}});
+    const page=await browser.newPage({viewport});
     if(!reference)await page.addInitScript(()=>{window.__frames=0;const raf=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=cb=>raf(t=>{window.__frames++;cb(t);});});
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
     const state=await prepare(page);
@@ -89,6 +89,11 @@ const motes=await cpuOf(`${base}${cpuPage}`,listen);
 const synthwave=await cpuOf(`${base}${cpuPage}`,async page=>{
   await page.evaluate(()=>localStorage.setItem('motes-listening',JSON.stringify({style:'synthwave'})));await page.reload();await listen(page);
 });
+// A 1280×720 window only ever shows the base tier, so the gate also listens on a 2560×1440 desktop,
+// where the full tier and its 3840 composite are drawn.
+const wide=await cpuOf(`${base}${cpuPage}${evening?'':'&debug'}`,async page=>{
+  await listen(page);await page.waitForFunction(()=>window.__motes.rendering.paintingWidth===3840,null,{timeout:60000});
+},{viewport:{width:2560,height:1440}});
 const referenceFile='captures/score-reference.json',machine=`${os.cpus()[0]?.model.trim()} · ${os.platform()} · Chrome ${motes.browser.split('.')[0]}`;
 let reference=existsSync(referenceFile)?JSON.parse(readFileSync(referenceFile,'utf8')):undefined;
 const fresh=reference&&reference.machine===machine&&reference.youtube?.cleanWindows>=3&&Date.now()-Date.parse(reference.measuredAt)<14*86400000;
@@ -113,7 +118,7 @@ if(!fresh||args.has('--refresh-reference')) for(let attempt=1;;attempt++) {
   console.log(`YouTube reference attempt ${attempt} was not steady (${youtube.note}); measuring again.`);
 }
 const ratioOf=measured=>Math.round(100*measured.percentOfCore/reference.youtube.percentOfCore)/100;
-const ratio=ratioOf(motes),synthwaveRatio=ratioOf(synthwave);
+const ratio=ratioOf(motes),synthwaveRatio=ratioOf(synthwave),wideRatio=ratioOf(wide);
 // --detail separates the picture's cost from the music's.
 const detail=args.has('--detail')?{
   visualsOnly:await cpuOf(`${base}${cpuPage}`,async()=>{}),
@@ -121,7 +126,7 @@ const detail=args.has('--detail')?{
     await page.click('#listen');await page.click('#mix-toggle');await page.click('#motion');await page.keyboard.press('Escape');
   }),
 }:undefined;
-gate('G2','Lightness',ratio<=1&&synthwaveRatio<=1,`${cpuDay==='2026-09-17'?'':`On ${cpuDay}: `}${evening?'At evening: ':''}Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps (lofi), ${synthwave.percentOfCore}% at ${synthwave.fps} fps (synthwave) vs YouTube lofi live ${reference.youtube.percentOfCore}% (${reference.youtube.cleanWindows} ad-free windows, ${reference.youtube.note}) → ratio ${ratio} lofi, ${synthwaveRatio} synthwave${detail?`; visuals only ${detail.visualsOnly.percentOfCore}%, listening with Still ${detail.listeningStill.percentOfCore}%`:''}${headless?' [headless]':''}`,{day:cpuDay,evening,motes,synthwave,youtube:reference.youtube,ratio,synthwaveRatio,machine,detail});
+gate('G2','Lightness',ratio<=1&&synthwaveRatio<=1&&wideRatio<=1,`${cpuDay==='2026-09-17'?'':`On ${cpuDay}: `}${evening?'At evening: ':''}Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps (lofi), ${synthwave.percentOfCore}% at ${synthwave.fps} fps (synthwave) vs YouTube lofi live ${reference.youtube.percentOfCore}% (${reference.youtube.cleanWindows} ad-free windows, ${reference.youtube.note}) → ratio ${ratio} lofi, ${synthwaveRatio} synthwave; at 2560×1440 on the full tier ${wide.percentOfCore}% at ${wide.fps} fps → ratio ${wideRatio}${detail?`; visuals only ${detail.visualsOnly.percentOfCore}%, listening with Still ${detail.listeningStill.percentOfCore}%`:''}${headless?' [headless]':''}`,{day:cpuDay,evening,motes,synthwave,wide,youtube:reference.youtube,ratio,synthwaveRatio,wideRatio,machine,detail});
 
 // G3 First load: a phone on Lighthouse's slow-4G profile with a 4× slower CPU.
 async function firstLoad(path) {
@@ -133,7 +138,7 @@ async function firstLoad(path) {
     await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:150,downloadThroughput:1.6e6/8,uploadThroughput:7.5e5/8});
     await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
     cdp.on('Network.responseReceived',event=>urls.set(event.requestId,event.response.url));
-    cdp.on('Network.loadingFinished',event=>{bytes+=event.encodedDataLength;if(/\/scenes\/[^/]+\.(avif|webp|png)$/.test(urls.get(event.requestId)??''))painting=Math.max(painting,event.encodedDataLength);});
+    cdp.on('Network.loadingFinished',event=>{bytes+=event.encodedDataLength;if(/\/scenes\/[^/@]+\.(avif|webp)$/.test(urls.get(event.requestId)??''))painting=Math.max(painting,event.encodedDataLength);});
     await page.goto(base+path,{waitUntil:'commit',timeout:120000});
     await page.waitForFunction(()=>performance.getEntriesByName('motes:painting').length>0,null,{timeout:120000,polling:100});
     const ms=Math.round(await page.evaluate(()=>performance.getEntriesByName('motes:painting')[0].startTime));

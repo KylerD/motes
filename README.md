@@ -52,7 +52,16 @@ Every place has a matched evening painting. Over roughly fifty minutes, the sky,
 
 Water animation samples the changing painting, so reflections follow the sky. Local lamps and scene captions follow each place's lighting arc. These are four original compositions with four additional lighting states, not eight separate places. Paintings load when their place is visited; revisits reuse the decoded images, and only the active place keeps a full-size composite. If evening artwork fails, the original remains visible with a retry action.
 
-Artwork and exact generation prompts live in [public/scenes](public/scenes/ARTWORK.md). [How Motes is made](https://motes.sh/made/) (`made/index.html`) tells visitors the same story plainly: the live-composed music, the paintings made with an AI image tool, what the code animates, what is measured and the licences. Keep it true whenever one of those changes. Paintings load on demand and crossfade between places. Each browser receives AVIF, WebP or the original PNG, whichever is the lightest it can decode. The evening painting waits until the arrival painting has loaded. If an image fails, sound and controls remain available with a retry action. After changing a painting, run `node scripts/encode-scenes.mjs` to rebuild its AVIF/WebP copies, the place thumbnail, the link-preview card and the app icons.
+The painting masters and their exact generation prompts live in [art/scenes](art/scenes/ARTWORK.md); they are not served. [How Motes is made](https://motes.sh/made/) (`made/index.html`) tells visitors the same story plainly: the live-composed music, the paintings made with an AI image tool, what the code animates, what is measured and the licences. Keep it true whenever one of those changes. Every painting is served with the **Motes finish**, one painting pass in code (a soft brush, shared inks, a glow round the lights and a faint paper grain), so the places look painted and read as one set. Each ships in two tiers: base (1672 wide) paints first everywhere, and desktop screens whose painting covers more device pixels than that then load full (3840) for the arrival and evening together. Paintings load on demand and crossfade between places. Each browser receives AVIF or WebP, whichever is the lighter it can decode. The evening painting waits until the arrival painting has loaded. If an image fails, sound and controls remain available with a retry action; a full tier that fails just leaves base on screen.
+
+After changing a painting:
+
+```sh
+uv run scripts/finish.py          # the finish, both tiers, into .cache/scenes/finished/
+node scripts/encode-scenes.mjs    # AVIF/WebP for both tiers, thumbnails, link-preview cards, made-page pictures, app icons
+```
+
+`finish.py` upscales the full tier with Real-ESRGAN on the local GPU (Vulkan). On first use it fetches the official portable build, checks its SHA-256 and keeps it in the gitignored `.cache/tools/`; upscales are cached in `.cache/scenes/upscaled/`. `encode-scenes.mjs` refuses to run on a missing or stale finish.
 
 The scene paints at a steady 30 frames a second, 60 during crossfades and ripples. A still picture is redrawn only when something about it changes, so a tab left open for hours stays light.
 
@@ -63,7 +72,7 @@ The scene paints at a steady 30 frames a second, 60 during crossfades and ripple
 | `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere, the Halloween season, its paintings and its words |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
 | `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
-| `src/scenes/painting-source.ts` | AVIF → WebP → PNG painting fallback |
+| `src/scenes/painting-source.ts` | Painting names, the base and full tiers, the upgrade rule and the AVIF → WebP fallback |
 | `src/share/pages.ts`, `vite.config.ts` | Per-place pages and link previews, built beside the home page; the made page's preview |
 | `made/` | How Motes is made: a static reading page with no app bundle, linked from the place browser |
 | `src/share/link.ts` | Share links and messages for the current place |
@@ -102,9 +111,9 @@ node scripts/render-music-preview.mjs
 
 The two clip scripts need installed Chrome and ffmpeg/ffprobe on the PATH; clips land in `captures/clips/`.
 
-`npm run score` scores a change against the gates in [GOAL.md](GOAL.md): CPU in both music styles against a YouTube lofi stream, first load on a slow phone, accessibility and link previews. `npm run score -- --full` also runs every check above. The CPU gate opens visible Chrome windows; installed Chrome is preferred. `--day 2026-10-31` measures CPU on another edition's day, and `--evening` holds the picture at its settled evening, so `npm run score -- --day 2026-10-31 --evening` prices the Halloween edition at its heaviest.
+`npm run score` scores a change against the gates in [GOAL.md](GOAL.md): CPU in both music styles against a YouTube lofi stream (and again in a 2560×1440 window, where the full painting tier is drawn), first load on a slow phone, accessibility and link previews. `npm run score -- --full` also runs every check above. The CPU gate opens visible Chrome windows; installed Chrome is preferred. `--day 2026-10-31` measures CPU on another edition's day, and `--evening` holds the picture at its settled evening, so `npm run score -- --day 2026-10-31 --evening` prices the Halloween edition at its heaviest.
 
-Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, canvas sizing after a late viewport change with no window resize, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
+Browser checks need Playwright Chromium (`npx playwright install chromium`). Scene/session checks use port 5175, overridable with `MOTES_URL`; music checks start their own temporary server. Checks cover all four scenes on desktop and phone, both painting tiers (files, the upgrade at 2560×1440, phones staying on base, late and failed full tiers), canvas sizing after a late viewport change with no window resize, intermediate/evening artwork, daily revisiting, control panels, pause (including song boundaries), retry for every evening asset, navigation during loading, bounded painting caches, preferences, visibility events, session continuity and bounded voice resources. The preview script renders a stereo WAV and reports peak/RMS/clipping; it takes duration, output path, seed, scene and zero-based track index arguments.
 
 Technical audio checks establish playback and signal health, not a claim that every generated track meets someone's musical taste. The listening experience remains the quality bar.
 
@@ -118,7 +127,7 @@ The mix check renders isolated music and atmosphere stems for all four scenes, w
 
 - **Application code:** [AGPL-3.0](LICENSE). Code published up to and including commit `abf0a44` was dedicated to the public domain (CC0) and remains so.
 - **Music engine** (`src/music/`): [MIT](src/music/LICENSE), so radio can be embedded elsewhere with a credit line.
-- **Paintings, masks, evening arcs and the Motes identity** (`public/scenes/`, `public/brand/`): all rights reserved, to the extent rights exist. The Motes name and logo are covered by [TRADEMARKS.md](TRADEMARKS.md).
+- **Paintings, masks, evening arcs and the Motes identity** (`art/scenes/`, `public/scenes/`, `public/brand/`): all rights reserved, to the extent rights exist. The Motes name and logo are covered by [TRADEMARKS.md](TRADEMARKS.md).
 - **The clip encoder uses Mediabunny (MPL-2.0)** and, where a browser lacks native AAC, `@mediabunny/aac-encoder` (MPL-2.0, a WebAssembly build of FFmpeg's LGPL AAC encoder).
 - **Third-party assets keep their own licences:** the piano recordings are CC0 ([provenance](public/audio/README.md)) and the fonts use the SIL Open Font License ([sources](public/fonts/README.md)).
 

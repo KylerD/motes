@@ -1,28 +1,39 @@
-// Derives every web copy of the paintings from their PNG masters: AVIF and WebP for
-// the scene, small place thumbnails, link-preview cards and app icons.
-// Run after changing a painting: node scripts/encode-scenes.mjs
+// Encodes every web copy of the paintings from the finished PNGs that scripts/finish.py makes from
+// the masters in art/scenes: AVIF and WebP for both tiers, small place thumbnails, link-preview
+// cards, the made page's pictures and app icons. Nothing is encoded from an unfinished master.
+// Run after changing a painting: uv run scripts/finish.py && node scripts/encode-scenes.mjs
 import sharp from 'sharp';
-import {mkdirSync,readdirSync,statSync} from 'node:fs';
+import {existsSync,mkdirSync,readdirSync,statSync} from 'node:fs';
 
-const scenes='public/scenes';
+const masters='art/scenes',finished='.cache/scenes/finished',scenes='public/scenes';
+const TIERS=['','@3840'];
 // Quality chosen by eye at 2× zoom against the masters; colour stays full resolution
 // so neon edges and lamp light do not bleed.
 const AVIF={quality:60,effort:6,chromaSubsampling:'4:4:4'},WEBP={quality:86,effort:6};
 // Each place's arrival and evening paintings, in the order a preview card reads them.
 const PLACES={'neon-rain':'neon-rain-night','golden-hour':'golden-hour-dusk','last-light-station':'last-light-station-night','the-last-chapter':'the-last-chapter-night'};
 const kb=file=>`${Math.round(statSync(file).size/1024)} KB`;
+const painting=name=>`${finished}/${name}.png`;
 
-for(const file of readdirSync(scenes).filter(name=>name.endsWith('.png'))) {
-  const master=`${scenes}/${file}`,base=master.slice(0,-4);
-  await sharp(master).avif(AVIF).toFile(`${base}.avif`);
-  await sharp(master).webp(WEBP).toFile(`${base}.webp`);
-  console.log(file.padEnd(32),'png',kb(master),'· avif',kb(`${base}.avif`),'· webp',kb(`${base}.webp`));
+// The served look must not drift from the masters, so a missing or stale finish stops the run.
+const names=readdirSync(masters).filter(file=>file.endsWith('.png')).map(file=>file.slice(0,-4));
+for(const name of names)for(const tier of TIERS) {
+  const file=painting(name+tier);
+  if(!existsSync(file)||statSync(file).mtimeMs<statSync(`${masters}/${name}.png`).mtimeMs)
+    throw new Error(`${file} is missing or older than its master. Run: uv run scripts/finish.py`);
+}
+
+for(const name of names)for(const tier of TIERS) {
+  const source=painting(name+tier),out=`${scenes}/${name}${tier}`;
+  await sharp(source).avif(AVIF).toFile(`${out}.avif`);
+  await sharp(source).webp(WEBP).toFile(`${out}.webp`);
+  console.log(`${name}${tier}`.padEnd(42),'avif',kb(`${out}.avif`),'· webp',kb(`${out}.webp`));
 }
 
 mkdirSync(`${scenes}/thumbs`,{recursive:true});
 for(const place of Object.keys(PLACES)) {
   // The place list shows thumbnails at 94×67 CSS pixels; this covers 2× displays.
-  await sharp(`${scenes}/${place}.png`).resize(240,170,{fit:'cover'}).webp({quality:80,effort:6}).toFile(`${scenes}/thumbs/${place}.webp`);
+  await sharp(painting(place)).resize(240,170,{fit:'cover'}).webp({quality:80,effort:6}).toFile(`${scenes}/thumbs/${place}.webp`);
 }
 
 // Link previews show the hook: the same place, arrival on the left, evening on the right.
@@ -32,7 +43,7 @@ const pixels=file=>sharp(file).resize(WIDTH,HEIGHT,{fit:'cover'}).removeAlpha().
 const smooth=x=>{const t=Math.max(0,Math.min(1,x));return t*t*(3-2*t);};
 const logo=await sharp('public/brand/motes-logo.svg',{density:300}).resize({width:220}).png().toBuffer();
 for(const [place,evening] of Object.entries(PLACES)) {
-  const day=await pixels(`${scenes}/${place}.png`),night=await pixels(`${scenes}/${evening}.png`),out=Buffer.alloc(day.length);
+  const day=await pixels(painting(place)),night=await pixels(painting(evening)),out=Buffer.alloc(day.length);
   for(let x=0;x<WIDTH;x++) {
     const mix=smooth((x/WIDTH-.32)/.36);
     for(let y=0;y<HEIGHT;y++)for(let c=0;c<3;c++) {const i=(y*WIDTH+x)*3+c;out[i]=Math.round(day[i]*(1-mix)+night[i]*mix);}
@@ -49,7 +60,7 @@ for(const [place,evening] of Object.entries(PLACES)) {
 const ANCHORS={'neon-rain':.43,'golden-hour':.60,'last-light-station':.43,'the-last-chapter':.56},BAND=WIDTH/4,FEATHER=36;
 const card=Buffer.alloc(WIDTH*HEIGHT*3),weight=new Float32Array(WIDTH*HEIGHT);
 for(const [i,[place,anchor]] of Object.entries(ANCHORS).entries()) {
-  const {data,info}=await sharp(`${scenes}/${place}.png`).resize({height:HEIGHT}).removeAlpha().raw().toBuffer({resolveWithObject:true});
+  const {data,info}=await sharp(painting(place)).resize({height:HEIGHT}).removeAlpha().raw().toBuffer({resolveWithObject:true});
   const start=i*BAND-FEATHER,width=BAND+2*FEATHER,left=Math.round(Math.min(info.width-width,Math.max(0,anchor*info.width-width/2)));
   for(let x=Math.max(0,start);x<Math.min(WIDTH,start+width);x++) {
     const w=Math.min(smooth((x-start)/(2*FEATHER)),smooth((start+width-x)/(2*FEATHER)))||1e-3;
@@ -68,7 +79,7 @@ console.log('preview card made',kb(`${scenes}/og/made.jpg`));
 // The made page shows one place's two paintings side by side, at its reading width.
 mkdirSync(`${scenes}/made`,{recursive:true});
 for(const file of ['neon-rain','neon-rain-night']) {
-  await sharp(`${scenes}/${file}.png`).resize(640,360,{fit:'cover'}).webp({quality:82,effort:6}).toFile(`${scenes}/made/${file}.webp`);
+  await sharp(painting(file)).resize(640,360,{fit:'cover'}).webp({quality:82,effort:6}).toFile(`${scenes}/made/${file}.webp`);
 }
 
 // Installable app icons: the shelter-and-mote symbol on the toasted-brown radio colour,

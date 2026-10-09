@@ -124,7 +124,7 @@ try {
 
   // A failed evening painting says so and offers Try again.
   const offline=await browser.newPage();offline.on('pageerror',error=>errors.push(error.message));
-  await offline.route(/neon-rain-night\.(avif|webp|png)$/,route=>route.fulfill({status:503,body:''}));
+  await offline.route(/neon-rain-night\.(avif|webp)$/,route=>route.fulfill({status:503,body:''}));
   await offline.goto(`${base}/places/neon-rain/?day=${day}&debug`);
   await offline.waitForFunction(()=>window.__motes?.ready&&window.__motes.rendering.lightingFailed,null,{timeout:60000});
   await openShare(offline);await offline.focus('#make-clip');await offline.keyboard.press('Enter');

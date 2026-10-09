@@ -24,7 +24,7 @@ describe('place pages',()=>{
     expect(tag(html,'property','og:image')).toBe(`${SITE}/scenes/og/${SCENES[scene].slug}.jpg`);
     expect(tag(html,'name','twitter:card')).toBe('summary_large_image');
     expect(html).toContain(`<link rel="canonical" href="${SITE}${placePath(scene)}" />`);
-    expect(html).toContain(`<link rel="preload" as="image" href="${SCENES[scene].image.replace(/\.png$/,'.avif')}" type="image/avif" fetchpriority="high" />`);
+    expect(html).toContain(`<link rel="preload" as="image" href="${SCENES[scene].image}.avif" type="image/avif" fetchpriority="high" />`);
     expect(existsSync(`public/scenes/og/${SCENES[scene].slug}.jpg`)).toBe(true);
   });
   it('keeps the home page as today’s edition',()=>{

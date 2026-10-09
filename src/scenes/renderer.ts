@@ -4,7 +4,7 @@ import {drawSessionEffects} from './session-effects';
 import {coverLayout} from './cover';
 import {meadowLightAt} from './meadow-light';
 import {SceneLight,sceneLightAt} from './scene-light';
-import {loadPainting} from './painting-source';
+import {loadPainting,tierDevice,wantsFullTier} from './painting-source';
 
 const TAU = Math.PI*2;
 const noise = (n: number) => { const f = Math.sin(n*127.1+311.7)*43758.5453; return f-Math.floor(f); };
@@ -27,6 +27,11 @@ export class SceneRenderer {
   private evenings=new Map<SceneId,{source:string;image:HTMLImageElement}>();
   private eveningFailures=new Set<string>();
   private sceneLight?:SceneLight;
+  /** The active place's full tier, once its screen asks for one. No other place keeps one. */
+  private full?:{key:string;images:HTMLImageElement[];ready:boolean};
+  private fullFailed=new Set<string>();
+  /** The width of the painting last drawn, so a change of tier can be crossfaded. */
+  private shownWidth=0;
   private observer?:ResizeObserver;
   /** What a still picture last showed; an unchanged still picture is not redrawn. */
   private drawn?:string;
@@ -53,19 +58,24 @@ export class SceneRenderer {
   /** Dimensions arrive before the pixels, so a painting is ready only once it has fully loaded. */
   /** The current edition's arrival painting, once it is the one in the cache. */
   private get arrival() { const cached=this.images.get(this.edition.scene); return cached?.source===arrivalImage(this.edition)?cached.image:undefined; }
+  private get evening() { const cached=this.evenings.get(this.edition.scene); return cached?.source===eveningImage(this.edition)?cached.image:undefined; }
+  private get pair() { return `${arrivalImage(this.edition)}|${eveningImage(this.edition)}`; }
   get ready() { const image=this.arrival; return !!image?.complete&&!!image.naturalWidth; }
   get lightingFailed() {return this.eveningFailures.has(eveningImage(this.edition));}
   get failed() { return this.failures.has(arrivalImage(this.edition))||this.lightingFailed; }
   /** Crossfades and ripples deserve smoother frames than the steady scene. */
   get smooth() { return !!this.previous||this.ripples.length>0; }
-  get diagnostics() { return { images:this.images.size,eveningImages:this.evenings.size,composites:this.sceneLight?1:0, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.sceneLight,lightingFailed:this.lightingFailed,bitmap:[this.canvas.width,this.canvas.height],box:[this.width,this.height],ratio:this.ratio }; }
+  get diagnostics() { return { images:this.images.size,eveningImages:this.evenings.size,composites:this.sceneLight?1:0, glows:this.glows.size, ripples:this.ripples.length,session:this.journey,lightingReady:!!this.sceneLight,lightingFailed:this.lightingFailed,bitmap:[this.canvas.width,this.canvas.height],box:[this.width,this.height],ratio:this.ratio,tier:this.full?.ready?'full':'base',fullImages:this.full?.images.length??0,paintingWidth:this.shownWidth }; }
+  /** Keeps the frame on screen, at screen size, to crossfade from. */
+  private hold():void {
+    this.previous = document.createElement('canvas');
+    this.previous.width = this.canvas.width; this.previous.height = this.canvas.height;
+    this.previous.getContext('2d')!.drawImage(this.canvas,0,0);
+    this.changedAt = 0;
+  }
   setEdition(next: Edition): void {
-    if(this.ready && this.motion) {
-      this.previous = document.createElement('canvas');
-      this.previous.width = this.canvas.width; this.previous.height = this.canvas.height;
-      this.previous.getContext('2d')!.drawImage(this.canvas,0,0);
-    }
-    this.sceneLight?.dispose();this.sceneLight=undefined;
+    if(this.ready && this.motion) this.hold();
+    this.sceneLight?.dispose();this.sceneLight=undefined;this.releaseFull();this.shownWidth=0;
     this.changedAt = 0; this.edition = next; this.ripples = []; this.journey=undefined;this.drawn=undefined;this.load(next.scene); this.layout();
   }
   retry(): void {
@@ -75,9 +85,37 @@ export class SceneRenderer {
   }
   private changed():void {this.drawn=undefined;this.onChange?.();}
   private prepareLight():void {
-    const id=this.edition.scene,arrival=this.arrival,cached=this.evenings.get(id);
-    const evening=cached?.source===eveningImage(this.edition)?cached.image:undefined;
-    if(!this.sceneLight&&arrival?.naturalWidth&&evening?.naturalWidth)this.sceneLight=new SceneLight(id,arrival,evening);
+    const arrival=this.arrival,evening=this.evening;
+    if(!this.sceneLight&&arrival?.naturalWidth&&evening?.naturalWidth) {
+      this.sceneLight=new SceneLight(this.edition.scene,arrival,evening);
+      if(this.full?.ready&&this.full.key===this.pair)this.sceneLight.upgrade(this.full.images[0],this.full.images[1]);
+    }
+    this.considerFull();
+  }
+  /** A big screen gets the full tier once base is on screen. The arrival and evening load and
+   * decode together, and the compositor takes them at its next update. Clips stay on base. */
+  private considerFull():void {
+    const key=this.pair;
+    if(this.size||this.full?.key===key||this.fullFailed.has(key)||!this.ready||!this.evening?.naturalWidth)return;
+    if(!wantsFullTier(this.iw*this.ratio,tierDevice()))return;
+    this.releaseFull();
+    const names=[arrivalImage(this.edition),eveningImage(this.edition)];
+    const entry={key,images:names.map(()=>new Image()),ready:false};let waiting=names.length;
+    // Base is enough, so a full tier that fails is dropped without a word.
+    const fail=()=>{if(this.full!==entry)return;this.fullFailed.add(key);this.releaseFull();};
+    this.full=entry;
+    entry.images.forEach((image,i)=>{
+      image.decoding='async';
+      // A full tier that arrives after the place has changed finds itself released, and is dropped.
+      image.onload=()=>{image.decode().then(()=>{
+        if(this.full!==entry||--waiting)return;
+        entry.ready=true;this.sceneLight?.upgrade(entry.images[0],entry.images[1]);this.changed();
+      },fail);};
+      loadPainting(image,names[i],fail,'full');
+    });
+  }
+  private releaseFull():void {
+    this.full?.images.forEach(image=>{image.onload=null;image.onerror=null;});this.full=undefined;
   }
   /** Loads the current edition's evening for its place, replacing another state's painting rather than adding one. */
   private loadEvening(id:SceneId):void {
@@ -123,6 +161,7 @@ export class SceneRenderer {
   private layout(): void {
     const image = this.arrival, aspect = image?.naturalWidth ? image.naturalWidth/image.naturalHeight : 16/9;
     ({iw:this.iw,ih:this.ih,ox:this.ox,oy:this.oy}=coverLayout(this.width,this.height,aspect,this.pan??SCENES[this.edition.scene].anchor));
+    this.considerFull();
   }
   point(u:number,v:number) { return { x:this.ox+u*this.iw, y:this.oy+v*this.ih }; }
   /** Moves a cover crop across the painting (0 left edge, 1 right edge); undefined restores the place's own framing. */
@@ -155,26 +194,30 @@ export class SceneRenderer {
     if(!this.fits())this.resize();
     if(session&&(!this.journey||this.motion))this.journey=session;
     if(!this.motion) {
-      const shown=[this.edition.scene,this.edition.seed,time,this.journey?.elapsed,this.ready,this.failed,!!this.sceneLight,this.width,this.height,this.ratio].join('|');
+      const shown=[this.edition.scene,this.edition.seed,time,this.journey?.elapsed,this.ready,this.failed,!!this.sceneLight,!!this.full?.ready,this.width,this.height,this.ratio].join('|');
       if(shown===this.drawn)return;
       this.drawn=shown;
     } else this.drawn=undefined;
     const ctx=this.ctx,{scene,warmth,seed}=this.edition,image=this.arrival;
     const intensity=this.edition.intensity*(this.journey?.weather??1);
+    const painting=image&&this.ready?this.sceneLight?.frame(this.journey?.elapsed??0)??image:undefined;
+    const [pw,ph]=painting instanceof HTMLImageElement?[painting.naturalWidth,painting.naturalHeight]:[painting?.width??0,painting?.height??0];
+    // A change of tier is crossfaded from the last frame, as a change of place is.
+    if(pw&&this.shownWidth&&pw!==this.shownWidth&&this.motion&&!this.previous)this.hold();
+    if(pw)this.shownWidth=pw;
     ctx.setTransform(this.ratio,0,0,this.ratio,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
     ctx.fillStyle=SCENES[scene].color;ctx.fillRect(0,0,this.width,this.height);
-    if(image&&this.ready) {
-      const painting=this.sceneLight&&this.journey?this.sceneLight.frame(this.journey.elapsed):image;
+    if(painting) {
       ctx.drawImage(painting,this.ox,this.oy,this.iw,this.ih);
       // First-load checks time the moment a painting first appears.
       if(!this.painted){this.painted=true;if(!this.size)performance.mark('motes:painting');}
       if(SCENES[scene].water.length) {
         ctx.save();this.waterPath();ctx.clip();
-        const strip=Math.ceil(image.naturalHeight/135),start=scene==='coast'?.38:.60;
-        for(let y=Math.floor(image.naturalHeight*start);y<image.naturalHeight;y+=strip) {
-          const h=Math.min(strip,image.naturalHeight-y),v=y/image.naturalHeight;
+        const strip=Math.ceil(ph/135),start=scene==='coast'?.38:.60;
+        for(let y=Math.floor(ph*start);y<ph;y+=strip) {
+          const h=Math.min(strip,ph-y),v=y/ph;
           const shift=(Math.sin(v*92+time*.58)*1.2+Math.sin(v*149-time*.37)*.7)*(scene==='coast'?1.5:1);
-          ctx.drawImage(painting,0,y,image.naturalWidth,h,this.ox+shift,this.oy+v*this.ih,this.iw,h/image.naturalHeight*this.ih+.6);
+          ctx.drawImage(painting,0,y,pw,h,this.ox+shift,this.oy+v*this.ih,this.iw,h/ph*this.ih+.6);
         }
         this.water(time,intensity);ctx.restore();
       }
@@ -285,6 +328,6 @@ export class SceneRenderer {
     this.observer?.disconnect();this.observer=undefined;
     this.images.forEach(({image})=>{image.onload=null;image.onerror=null;});this.images.clear();this.glows.clear();this.previous=null;
     this.evenings.forEach(({image})=>{image.onload=null;image.onerror=null;});this.evenings.clear();
-    this.sceneLight?.dispose();this.sceneLight=undefined;this.drawn=undefined;this.onChange=undefined;
+    this.sceneLight?.dispose();this.sceneLight=undefined;this.releaseFull();this.drawn=undefined;this.onChange=undefined;
   }
 }

@@ -21,3 +21,6 @@ quality-report*.json
 .claude/settings.local.json
 .claude/projects/
 .claude/plan.md
+
+# Local tools and build intermediates (Real-ESRGAN, upscaled and finished paintings)
+.cache/
