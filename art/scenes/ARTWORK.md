@@ -1,12 +1,19 @@
 # Original scene paintings
 
-The PNG files are the masters. Every other image here is made from them by `scripts/encode-scenes.mjs`, with no generation step:
+The PNG files here are the masters. They are not served. Since 9 October 2026 they live in `art/scenes/` (they were in `public/scenes/`, and the sidecars and the metadata embedded in each PNG keep the paths as they were when it was made).
 
-- the `.avif` and `.webp` copies served to browsers;
-- `thumbs/` for the place list;
-- `og/`, the link-preview cards, which blend each arrival painting into its evening painting from left to right and add the Motes wordmark.
+Every image Motes serves is made from them, with no generation step:
 
-Rebuild them whenever a master changes.
+1. `scripts/finish.py` gives each master the **Motes finish** and writes two tiers to `.cache/scenes/finished/`. The finish is a painting pass in code, the same for every painting: a generalised Kuwahara brush that turns detail into soft dabs of paint, one shared set of inks (chroma eased, indigo for the darkest tone and warm paper for the lightest), a soft glow round the lights and a faint paper grain. Kyle chose it ("gouache, light") from a look test on 9 October 2026 and asked for it 20% lighter. Its header records the settings and the looks that were tried and declined.
+   - **Base** is the master's own 1672 width.
+   - **Full** is 3840 wide. The master is upscaled four times with **Real-ESRGAN** (`realesrgan-x4plus`, through the portable `realesrgan-ncnn-vulkan` v0.2.5.0 build; BSD-3-Clause; https://github.com/xinntao/Real-ESRGAN), run locally, then downsampled with Lanczos and finished at that width. The brush smooths over the upscaler's invented micro-detail. The model was chosen by eye against `realesrgan-x4plus-anime`.
+2. `scripts/encode-scenes.mjs` encodes, from the finished PNGs:
+   - the `.avif` and `.webp` copies of both tiers in `public/scenes/` (`<name>` and `<name>@3840`);
+   - `thumbs/` for the place list;
+   - `og/`, the link-preview cards, which blend each arrival painting into its evening painting from left to right and add the Motes wordmark;
+   - `made/`, the pictures on How Motes is made.
+
+Run both whenever a master changes: `uv run scripts/finish.py && node scripts/encode-scenes.mjs`.
 
 Four original paintings generated with the built-in image generation tool for Motes: the rooftop and meadow on 6 September 2026, the station and reading room on 17 September 2026. The user's supplied screenshots served as mood and style references, not runtime assets. All finished paintings are local project assets. Water, weather, local light and small environmental events are drawn separately at runtime. The exact original prompts below and in the JSON sidecars are retained as provenance; the earlier prompts' cellular-light concept has since been removed from the application.
 
