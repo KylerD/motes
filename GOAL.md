@@ -67,13 +67,13 @@ A change can ship only if every gate passes.
 | Gate | Pass when | Before (`main`, 2 Oct 2026) | Now (`feat/hillclimb-phase-0`) |
 | --- | --- | --- | --- |
 | G1 Correctness | `npm test`, `npm run build` and the verify scripts in README.md pass | Passing | **Pass** |
-| G2 Lightness | CPU while listening ≤ a YouTube lofi live tab on the same machine (ratio ≤ 1.0) | 94% of a core at 240 fps vs YouTube 33%, **ratio ≈2.8** | Lofi 21.6% at 35 fps, **ratio 0.65**; synthwave 24.6%, **ratio 0.75: pass** (`perf/synthwave-cpu`, 5 Oct). The same day, `main` measured 0.75 lofi and 1.82 synthwave. With the finish (9 Oct): lofi 0.78, synthwave 0.91, and in a 2560×1440 window on the full painting tier 0.78–0.99 across four runs on a busy machine: **pass, with the full tier close to the line**. |
+| G2 Lightness | CPU while listening ≤ a YouTube lofi live tab on the same machine (ratio ≤ 1.0) | 94% of a core at 240 fps vs YouTube 33%, **ratio ≈2.8** | Lofi 21.6% at 35 fps, **ratio 0.65**; synthwave 24.6%, **ratio 0.75: pass** (`perf/synthwave-cpu`, 5 Oct). The same day, `main` measured 0.75 lofi and 1.82 synthwave. With the finish (9 Oct): lofi 0.78, synthwave 0.91, and in a 2560×1440 window on the full painting tier 0.78–0.99 across four runs on a busy machine: **pass, with the full tier close to the line**. With scene sounds (10 Oct): lofi 0.66, synthwave 0.79, 0.66 listening on headphones (HRTF), 0.66 at 2560×1440 on the full tier: **pass**. |
 | G3 First load | First painting ≤ 350 KB, on screen within 2.5 s on a phone with slow 4G and a 4× slower CPU | 2.4–2.8 MB PNG per painting | 153–169 KB AVIF (the finished base tier, 9 Oct), on screen at 1.86–1.99 s: **pass** |
 | G4 Audio health | Existing mix and synthwave checks pass, true peak ≤ −1 dBTP, no dropouts, voices bounded | Passing | **Pass** (5/5) |
 | G5 Accessibility | Zero serious or critical axe violations on desktop and phone, with every panel open | Not automated | **Pass** |
 | G6 Shareable | Every page has a preview card; a working share action; clip export makes a valid 15 s vertical video | 0 of 3 | Preview cards 5/5 pages, a share action, and clip export (15 s vertical H.264/AAC, checked for every place): **pass** |
 
-Measured on a Ryzen 9 9950X with Chrome 154 and a 240 Hz display, at a 1280×720 window (G2 also at 2560×1440) with sound muted; last run 9 Oct 2026. G3 uses its own marker (`motes:painting`) because LCP can't see a canvas.
+Measured on a Ryzen 9 9950X with Chrome 154 and a 240 Hz display, at a 1280×720 window (G2 also at 2560×1440) with sound muted; last run 10 Oct 2026. G3 uses its own marker (`motes:painting`) because LCP can't see a canvas.
 
 ### Judged dimensions
 
