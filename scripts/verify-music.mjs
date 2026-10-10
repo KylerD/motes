@@ -37,6 +37,8 @@ try {
   await page.evaluate(()=>window.radio.pause());await page.waitForTimeout(300);
   const paused=await page.evaluate(()=>({current:window.radio.current,diagnostics:window.radio.diagnostics}));
   assert.equal(paused.diagnostics.playing,false);assert.equal(paused.diagnostics.contextState,'suspended');assert.equal(paused.diagnostics.voices,0);
+  // Scene sounds own their sources and panners like voices: a pause leaves none, and no synthesised bed.
+  assert.equal(paused.diagnostics.sceneSounds.sources,0);assert.equal(paused.diagnostics.sceneSounds.panners,0);assert.equal(paused.diagnostics.synthesisedBeds,0);
   await page.waitForTimeout(300);
   assert.equal(await page.evaluate(()=>window.radio.current.progress),paused.current.progress);
   const sessionPaused=await page.evaluate(()=>window.radio.session.elapsed);
@@ -50,6 +52,7 @@ try {
   await page.waitForTimeout(450);
   const settled=await page.evaluate(()=>window.radio.diagnostics);
   assert.ok(settled.voices>0&&settled.voices<200);assert.equal(settled.scheduledSegments,1);assert.ok(settled.compositions>=13);
+  assert.ok(settled.sceneSounds.panners<=8&&settled.sceneSounds.sources<40,`scene sounds stay bounded: ${JSON.stringify(settled.sceneSounds)}`);
   results.push({name:'rapid track/mode/volume changes remain bounded',settled});
   const before=await page.evaluate(()=>window.radio.diagnostics);
   // A visible tab keeps a short look-ahead; hiding it extends the look-ahead at once, before timers are throttled.

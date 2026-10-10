@@ -3,9 +3,11 @@ import {createSession,composeSessionTrack,sessionAt,type SessionPlan,type MusicS
 import {EnvironmentClock} from '../session/environment';
 import type {Season} from '../scenes/edition';
 import { DEFAULT_MIX, createGraph, disposeGraph, holdParameter, loadPiano, scheduleNote, setSoundMode, startAmbience, stopVoices, type SoundGraph, type PianoBank } from './sound';
+import {SceneSounds,type ListeningSpace,type SceneSoundState} from './ambience';
 export { composeTrack } from './composer';
 export { DEFAULT_MIX } from './sound';
 export type { Mood, MusicMode, Track } from './composer';
+export type {ListeningSpace,SceneSoundState} from './ambience';
 
 // Plan identity distinguishes visits to the same deterministic edition without retaining a history.
 interface PlaybackTrack extends Track {sessionPlan:MusicSessionPlan}
@@ -17,6 +19,8 @@ const hidden=()=>typeof document!=='undefined'&&document.hidden;
 export class RadioAudio {
   private context?:AudioContext;
   private graph?:SoundGraph;
+  private sounds?:SceneSounds;
+  private space:ListeningSpace='speakers';
   private pending?:Promise<void>;
   private abort?:AbortController;
   private timer?:ReturnType<typeof setInterval>;
@@ -60,8 +64,14 @@ export class RadioAudio {
   }
   get diagnostics() {
     const currentTime=this.context?.currentTime??0,starts=[...this.graph?.voices??[]].map(voice=>voice.start);
-    return {playing:this.running,contextState:this.context?.state??'uninitialized',voices:this.graph?.voices.size??0,scheduledSegments:this.segments.length,ticks:this.ticks,compositions:this.compositions,scheduledThrough:this.segments[this.segments.length-1]?.start??0,scheduledAhead:Math.max(0,...starts)-currentTime,currentTime};
+    return {playing:this.running,contextState:this.context?.state??'uninitialized',voices:this.graph?.voices.size??0,scheduledSegments:this.segments.length,ticks:this.ticks,compositions:this.compositions,scheduledThrough:this.segments[this.segments.length-1]?.start??0,scheduledAhead:Math.max(0,...starts)-currentTime,currentTime,
+      sceneSounds:this.sounds?.diagnostics??{state:'synthesised' as SceneSoundState,places:0,sources:0,panners:0,started:{segments:0,spots:0},decodedBytes:0},synthesisedBeds:this.graph?.ambienceSources.length??0};
   }
+  /** Whether this place's recorded scene sounds are playing, still loading, or failed (its synthesised bed plays meanwhile). */
+  get sceneSounds():SceneSoundState {return this.sounds?.state??'synthesised';}
+  /** Retry recordings that failed; a paused radio loads them without starting sound. */
+  retrySceneSounds():Promise<void> {return this.sounds?.retry()??Promise.resolve();}
+  setSpace(space:ListeningSpace):void {this.space=space;this.sounds?.setSpace(space);}
 
   async enable():Promise<void> {
     if(this.disposed)throw new Error('This radio has been closed.');
@@ -89,6 +99,7 @@ export class RadioAudio {
         if(this.disposed||this.context!==context)return;
         if(!this.graph) {
           this.graph=createGraph(context,new Map(),this.seed);
+          this.sounds=new SceneSounds(this.graph,this.space,at=>this.environmentClock.seconds(at));
         }
         if(this.style==='lofi')try{await this.ensurePiano();}catch(error){if(this.style==='lofi')throw error;}
         if(!this.wanted||this.disposed){if(context.state!=='closed')await context.suspend();return;}
@@ -103,7 +114,7 @@ export class RadioAudio {
         stopVoices(graph,now,0.025);
         this.segments=[this.segment(this.track,now+0.09-this.beat*60/this.track.bpm,this.beat)];
         this.running=true;this.environmentClock.start(now);this.listeningClock.start(now);
-        startAmbience(graph,this.mood,now+0.02);
+        this.sounds!.start(this.mood,this.seed,now+0.02,this.environmentClock.seconds(now+0.02));
         holdParameter(graph.output.gain,now);graph.output.gain.linearRampToValueAtTime(1,now+0.35);
         this.tick();
         this.timer=setInterval(()=>this.tick(),250);
@@ -111,6 +122,7 @@ export class RadioAudio {
       }catch(error){
         this.environmentClock.pause(context.currentTime);this.listeningClock.pause(context.currentTime);
         this.running=false;this.wanted=false;this.abort?.abort();
+        this.sounds?.dispose();this.sounds=undefined;
         if(this.graph){disposeGraph(this.graph);this.graph=undefined;}
         if(context.state!=='closed')await context.close().catch(()=>undefined);
         if(this.context===context)this.context=undefined;
@@ -135,6 +147,7 @@ export class RadioAudio {
     holdParameter(graph.output.gain,context.currentTime);
     graph.output.gain.linearRampToValueAtTime(0,context.currentTime+0.13);
     stopVoices(graph,context.currentTime,0.13);
+    this.sounds?.pause(context.currentTime);
     this.suspendTimer=setTimeout(()=>{
       this.suspendTimer=undefined;
       if(!this.wanted&&!this.disposed&&context.state!=='closed')void context.suspend();
@@ -191,7 +204,7 @@ export class RadioAudio {
         stopVoices(this.graph,this.context.currentTime,0.1,ending);
         this.segments=[active];
       }
-      startAmbience(this.graph,mood);
+      this.sounds?.change(mood,seed,this.context.currentTime);
     }else{this.track=this.makeTrack();this.beat=0;}
   }
 
@@ -213,10 +226,10 @@ export class RadioAudio {
     if(this.disposed)return;
     this.pause();this.disposed=true;this.abort?.abort();
     if(this.suspendTimer!==undefined)clearTimeout(this.suspendTimer);
-    const graph=this.graph,context=this.context;
-    this.graph=undefined;this.context=undefined;this.segments=[];
+    const graph=this.graph,context=this.context,sounds=this.sounds;
+    this.graph=undefined;this.context=undefined;this.sounds=undefined;this.segments=[];
     // Let the short exit ramp finish before releasing the audio device.
-    if(context)setTimeout(()=>{if(graph)disposeGraph(graph);if(context.state!=='closed')void context.close();},160);
+    if(context)setTimeout(()=>{sounds?.dispose();if(graph)disposeGraph(graph);if(context.state!=='closed')void context.close();},160);
   }
 
   private makeTrack():PlaybackTrack {this.compositions++;return {...composeSessionTrack(this.plan,this.index++),sessionPlan:this.plan};}
@@ -243,6 +256,7 @@ export class RadioAudio {
     // ahead. A visible tab's timer is reliable and each scheduled voice costs CPU until it ends, so it keeps
     // two and a half. There is exactly one timer.
     const horizon=now+(hidden()?6:2.5);
+    this.sounds?.schedule(now,horizon);
     while(this.segments.length>1&&this.segments[1].start<=now)this.segments.shift();
     let segment=this.segments[this.segments.length-1];
     if(!segment)return;
@@ -269,7 +283,9 @@ export class RadioAudio {
  *  of a beat early, so a start partway in keeps events within 0.05 beats before it (far short of any written pickup). */
 export const eventsFrom=(events:readonly ScoreEvent[],from:number)=>{const early=from>0?.05:0;return events.filter(event=>event.beat>=from-early);};
 
-export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;season?:Season;ambience?:number;sampleRate?:number;standalone?:boolean;fromBeat?:number;fadeIn?:number;fadeOut?:number}={}) {
+/** Render a song offline with its place's scene sounds. Clips keep to the beds, through speakers; listening previews
+ * can add the spots and choose headphones. `music: false` renders the scene sounds alone. */
+export async function renderPreview(options:{seed?:number;mood?:Mood;index?:number;seconds?:number;mode?:MusicMode;style?:MusicStyle;season?:Season;ambience?:number;sampleRate?:number;standalone?:boolean;fromBeat?:number;fadeIn?:number;fadeOut?:number;spots?:boolean;space?:ListeningSpace;music?:boolean}={}) {
   const seconds=Math.max(1,Math.min(300,options.seconds??90)),sampleRate=options.sampleRate??44100;
   const plan=createSession(options.seed??20260917,options.mood??'rain',options.style??'lofi',options.season);
   const score=(index:number)=>options.standalone&&plan.style==='lofi'?composeTrack(plan.seed,plan.mood,index):composeSessionTrack(plan,index);
@@ -284,7 +300,12 @@ export async function renderPreview(options:{seed?:number;mood?:Mood;index?:numb
     const weather=Math.max(.75,Math.min(1.12,sessionAt(plan,track.session.offset+time).weather));
     graph.ambience.gain.setTargetAtTime((options.ambience??DEFAULT_MIX.ambience)*weather,time,3);
   }
-  startAmbience(graph,options.mood??'rain',0);
+  const mood=options.mood??'rain',sounds=new SceneSounds(graph,options.space??'speakers');
+  const recorded=await sounds.prepare(mood,plan.seed).catch(()=>false);
+  // A recording that can't load leaves the synthesised bed, as it does live.
+  if(recorded){sounds.start(mood,plan.seed,0,0,{spots:options.spots??false});sounds.schedule(0,seconds);}
+  else startAmbience(graph,mood,0);
+  if(options.music===false)graph.music.gain.value=0;
   // `fromBeat` starts the first song partway in, as a clip starts at its theme.
   let song=track,start=0.05,index=options.index??0,from=Math.max(0,options.fromBeat??0);
   while(start<seconds) {
@@ -295,6 +316,6 @@ export async function renderPreview(options:{seed?:number;mood?:Mood;index?:numb
     start+=(song.bars*4-from)*60/song.bpm;from=0;
     song=score(++index);
   }
-  const buffer=await context.startRendering();disposeGraph(graph);
-  return {buffer,track};
+  const buffer=await context.startRendering();sounds.dispose();disposeGraph(graph);
+  return {buffer,track,recorded};
 }

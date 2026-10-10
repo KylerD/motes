@@ -33,7 +33,7 @@ mkdirSync('captures',{recursive:true});
 // G1 Correctness: tests and a production build always; the browser suite with --full.
 const tested=run('npx',['vitest','run','--reporter=dot']),built=run('npm',['run','build']);
 if(!built){gate('G1','Correctness',false,'the production build failed');process.exit(1);}
-const suite={correctness:['verify-scenes.mjs','verify-sessions.mjs','verify-ios-audio.mjs'],audio:['verify-music.mjs','verify-mix.mjs','verify-mix.mjs synthwave','verify-synthwave.mjs','verify-synthwave-sound.mjs'],sharing:['verify-clip.mjs']};
+const suite={correctness:['verify-scenes.mjs','verify-sessions.mjs','verify-ios-audio.mjs'],audio:['verify-music.mjs','verify-ambience.mjs','verify-mix.mjs','verify-mix.mjs synthwave','verify-synthwave.mjs','verify-synthwave-sound.mjs'],sharing:['verify-clip.mjs']};
 const passed={correctness:[],audio:[],sharing:[]},failed={correctness:[],audio:[],sharing:[]};
 if(args.has('--full')) {
   const dev=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'error'});await dev.listen();
@@ -89,6 +89,10 @@ const motes=await cpuOf(`${base}${cpuPage}`,listen);
 const synthwave=await cpuOf(`${base}${cpuPage}`,async page=>{
   await page.evaluate(()=>localStorage.setItem('motes-listening',JSON.stringify({style:'synthwave'})));await page.reload();await listen(page);
 });
+// Headphones place Neon rain's scene sounds through HRTF panners, the costliest way to listen.
+const headphones=await cpuOf(`${base}${cpuPage}`,async page=>{
+  await page.evaluate(()=>localStorage.setItem('motes-listening',JSON.stringify({space:'headphones'})));await page.reload();await listen(page);
+});
 // A 1280×720 window only ever shows the base tier, so the gate also listens on a 2560×1440 desktop,
 // where the full tier and its 3840 composite are drawn.
 const wide=await cpuOf(`${base}${cpuPage}${evening?'':'&debug'}`,async page=>{
@@ -100,7 +104,10 @@ const fresh=reference&&reference.machine===machine&&reference.youtube?.cleanWind
 // The reference must be the stream itself: ads cost more and would flatter Motes, so
 // only windows where the stream played from start to end count.
 const streaming=state=>/^playing \d+p$/.test(state),steady=youtube=>youtube.cleanWindows>=3;
-if(!fresh||args.has('--refresh-reference')) for(let attempt=1;;attempt++) {
+// A machine that can't reach YouTube (offline, or a sandbox that blocks it) still measures every other gate;
+// G2 then reports Motes' own CPU and stays unmeasured rather than guessing a reference.
+let unreachable;
+if(!fresh||args.has('--refresh-reference')) for(let attempt=1;;attempt++) try {
   // Lofi Girl's 24/7 stream: the tab Motes is meant to replace.
   const youtube=await cpuOf('https://www.youtube.com/watch?v=rFZHOHl-L8A',async page=>{
     try{await page.locator('button:has-text("Accept all")').first().click({timeout:10000});}catch{/* No consent prompt in this region. */}
@@ -116,9 +123,12 @@ if(!fresh||args.has('--refresh-reference')) for(let attempt=1;;attempt++) {
   if(steady(youtube)){reference={machine,measuredAt:new Date().toISOString(),youtube};writeFileSync(referenceFile,JSON.stringify(reference,null,2));break;}
   if(attempt===3)throw new Error(`The YouTube reference never played steadily (${youtube.note}); run again with --refresh-reference.`);
   console.log(`YouTube reference attempt ${attempt} was not steady (${youtube.note}); measuring again.`);
+} catch(error) {
+  if(!/net::ERR_|Timeout/.test(String(error)))throw error;
+  unreachable=String(error).match(/net::ERR_[A-Z_]+|Timeout \d+ms exceeded/)?.[0]??'unreachable';reference=fresh?reference:undefined;break;
 }
-const ratioOf=measured=>Math.round(100*measured.percentOfCore/reference.youtube.percentOfCore)/100;
-const ratio=ratioOf(motes),synthwaveRatio=ratioOf(synthwave),wideRatio=ratioOf(wide);
+const ratioOf=measured=>reference?Math.round(100*measured.percentOfCore/reference.youtube.percentOfCore)/100:NaN;
+const ratio=ratioOf(motes),synthwaveRatio=ratioOf(synthwave),wideRatio=ratioOf(wide),headphonesRatio=ratioOf(headphones);
 // --detail separates the picture's cost from the music's.
 const detail=args.has('--detail')?{
   visualsOnly:await cpuOf(`${base}${cpuPage}`,async()=>{}),
@@ -126,7 +136,8 @@ const detail=args.has('--detail')?{
     await page.click('#listen');await page.click('#mix-toggle');await page.click('#motion');await page.keyboard.press('Escape');
   }),
 }:undefined;
-gate('G2','Lightness',ratio<=1&&synthwaveRatio<=1&&wideRatio<=1,`${cpuDay==='2026-09-17'?'':`On ${cpuDay}: `}${evening?'At evening: ':''}Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps (lofi), ${synthwave.percentOfCore}% at ${synthwave.fps} fps (synthwave) vs YouTube lofi live ${reference.youtube.percentOfCore}% (${reference.youtube.cleanWindows} ad-free windows, ${reference.youtube.note}) → ratio ${ratio} lofi, ${synthwaveRatio} synthwave; at 2560×1440 on the full tier ${wide.percentOfCore}% at ${wide.fps} fps → ratio ${wideRatio}${detail?`; visuals only ${detail.visualsOnly.percentOfCore}%, listening with Still ${detail.listeningStill.percentOfCore}%`:''}${headless?' [headless]':''}`,{day:cpuDay,evening,motes,synthwave,wide,youtube:reference.youtube,ratio,synthwaveRatio,wideRatio,machine,detail});
+if(!reference)gate('G2','Lightness',null,`not measured: the YouTube reference is unreachable here (${unreachable}). Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps (lofi), ${synthwave.percentOfCore}% (synthwave), ${headphones.percentOfCore}% on headphones; at 2560×1440 on the full tier ${wide.percentOfCore}% at ${wide.fps} fps${headless?' [headless]':''}`,{day:cpuDay,evening,motes,synthwave,headphones,wide,machine,unreachable});
+else gate('G2','Lightness',ratio<=1&&synthwaveRatio<=1&&wideRatio<=1&&headphonesRatio<=1,`${cpuDay==='2026-09-17'?'':`On ${cpuDay}: `}${evening?'At evening: ':''}Motes listening ${motes.percentOfCore}% of a core at ${motes.fps} fps (lofi), ${synthwave.percentOfCore}% at ${synthwave.fps} fps (synthwave) vs YouTube lofi live ${reference.youtube.percentOfCore}% (${reference.youtube.cleanWindows} ad-free windows, ${reference.youtube.note}) → ratio ${ratio} lofi, ${synthwaveRatio} synthwave, ${headphonesRatio} on headphones (${headphones.percentOfCore}%); at 2560×1440 on the full tier ${wide.percentOfCore}% at ${wide.fps} fps → ratio ${wideRatio}${detail?`; visuals only ${detail.visualsOnly.percentOfCore}%, listening with Still ${detail.listeningStill.percentOfCore}%`:''}${headless?' [headless]':''}`,{day:cpuDay,evening,motes,synthwave,headphones,wide,youtube:reference.youtube,ratio,synthwaveRatio,wideRatio,headphonesRatio,machine,detail});
 
 // G3 First load: a phone on Lighthouse's slow-4G profile with a 4× slower CPU.
 async function firstLoad(path) {

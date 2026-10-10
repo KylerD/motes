@@ -1,0 +1,56 @@
+[
+  {
+    "place": "rain",
+    "bytes": 1147830,
+    "files": [
+      {
+        "file": "rain/garden.mp3",
+        "seconds": 30,
+        "channels": 2,
+        "bytes": 420981,
+        "levelDb": -30,
+        "peakDb": -2.3
+      },
+      {
+        "file": "rain/roof.mp3",
+        "seconds": 26,
+        "channels": 1,
+        "bytes": 261045,
+        "levelDb": -30,
+        "peakDb": -5.4
+      },
+      {
+        "file": "rain/pond.mp3",
+        "seconds": 23.2,
+        "channels": 1,
+        "bytes": 232965,
+        "levelDb": -30,
+        "peakDb": -3.4
+      },
+      {
+        "file": "rain/drips.mp3",
+        "seconds": 4.8,
+        "channels": 1,
+        "bytes": 39213,
+        "levelDb": -34.5,
+        "peakDb": -9.6
+      },
+      {
+        "file": "rain/gutter.mp3",
+        "seconds": 12,
+        "channels": 1,
+        "bytes": 96813,
+        "levelDb": -30.1,
+        "peakDb": -6.6
+      },
+      {
+        "file": "rain/city.mp3",
+        "seconds": 12,
+        "channels": 1,
+        "bytes": 96813,
+        "levelDb": -29.5,
+        "peakDb": -15.8
+      }
+    ]
+  }
+]
