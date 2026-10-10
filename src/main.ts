@@ -1,5 +1,5 @@
 import './style.css';
-import { DEFAULT_MIX, RadioAudio } from './music/audio';
+import { DEFAULT_MIX, RadioAudio, type ListeningSpace } from './music/audio';
 import type {MusicStyle} from './music/composer';
 import { edition,dayLabel,localDay,validDay,isScene,placePath,sceneFromPath,seasonalWords,SCENES,SCENE_IDS,type SceneId } from './scenes/edition';
 import { SceneRenderer } from './scenes/renderer';
@@ -26,18 +26,20 @@ let renderer:SceneRenderer;
 try { renderer=new SceneRenderer(canvas,current); }
 catch(error) { $('failure').hidden=false;$('failure').textContent=error instanceof Error?error.message:'The scene could not start. Try reloading.';throw error; }
 
-interface Preferences { volume:number; ambience:number; mode:'beats'|'ambient'; style:MusicStyle }
-let preferences:Preferences={volume:DEFAULT_MIX.music,ambience:DEFAULT_MIX.ambience,mode:'beats',style:'lofi'};
+interface Preferences { volume:number; ambience:number; mode:'beats'|'ambient'; style:MusicStyle; space:ListeningSpace }
+// Browsers can't tell whether headphones are plugged in, so scene sounds start out placed for speakers.
+let preferences:Preferences={volume:DEFAULT_MIX.music,ambience:DEFAULT_MIX.ambience,mode:'beats',style:'lofi',space:'speakers'};
 try {
   const saved=JSON.parse(localStorage.getItem('motes-listening')||'null');
   if(saved && typeof saved==='object') {
     for(const key of ['volume','ambience'] as const)if(typeof saved[key]==='number'&&Number.isFinite(saved[key]))preferences[key]=Math.max(0,Math.min(1,saved[key]));
     if(saved.mode==='beats'||saved.mode==='ambient')preferences.mode=saved.mode;
     if(saved.style==='lofi'||saved.style==='synthwave')preferences.style=saved.style;
+    if(saved.space==='speakers'||saved.space==='headphones')preferences.space=saved.space;
   }
 } catch { /* Listening still works when browser storage is unavailable. */ }
 const savePreferences=()=>{try{localStorage.setItem('motes-listening',JSON.stringify(preferences));}catch{/* Private browsing may disable persistence. */}};
-audio.setVolume(preferences.volume);audio.setAmbience(preferences.ambience);audio.setMode(preferences.mode);
+audio.setVolume(preferences.volume);audio.setAmbience(preferences.ambience);audio.setMode(preferences.mode);audio.setSpace(preferences.space);
 void audio.setStyle(preferences.style);
 for(const [id,value] of [['music-volume',preferences.volume],['ambience-volume',preferences.ambience]] as const) {
   $<HTMLInputElement>(id).value=String(Math.round(value*100));
@@ -46,6 +48,7 @@ for(const [id,value] of [['music-volume',preferences.volume],['ambience-volume',
 $('music-level').textContent=`${Math.round(preferences.volume*100)}%`;$('ambience-level').textContent=`${Math.round(preferences.ambience*100)}%`;
 $<HTMLSelectElement>('music-mode').value=preferences.mode;
 $<HTMLSelectElement>('music-style').value=preferences.style;
+$<HTMLSelectElement>('listening-space').value=preferences.space;
 
 let visualTime=0,last=performance.now(),frame=0,starting=false,listened=false,quiet=false,disposed=false;
 let frameTimer:ReturnType<typeof setTimeout>|undefined;
@@ -146,6 +149,7 @@ function updatePlayer() {
   text('scene-subtitle',light.subtitle);
   $('track-progress').style.transform=`scaleX(${session.progress})`;
   $<HTMLButtonElement>('next-track').disabled=!listened||starting;
+  $('scene-sounds-failed').hidden=audio.sceneSounds!=='failed';
   if('mediaSession' in navigator) {
     navigator.mediaSession.playbackState=playing?'playing':'paused';
     if(navigator.mediaSession.metadata?.title!==track.title)navigator.mediaSession.metadata=new MediaMetadata({title:track.title,artist:'Motes',album:`${SCENES[current.scene].name} · ${dayLabel(current.day)}`});
@@ -228,6 +232,13 @@ $('clip-deliver').addEventListener('click',()=>void deliverClip());
 $('next-track').addEventListener('click',()=>{audio.next();updatePlayer();});
 $<HTMLInputElement>('music-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.volume=value/100;audio.setVolume(preferences.volume);$('music-level').textContent=`${value}%`;$('music-volume').style.setProperty('--level',`${value}%`);savePreferences();});
 $<HTMLInputElement>('ambience-volume').addEventListener('input',e=>{const value=Number((e.target as HTMLInputElement).value);preferences.ambience=value/100;audio.setAmbience(preferences.ambience);$('ambience-level').textContent=`${value}%`;$('ambience-volume').style.setProperty('--level',`${value}%`);savePreferences();});
+$<HTMLSelectElement>('listening-space').addEventListener('change',e=>{preferences.space=(e.target as HTMLSelectElement).value==='headphones'?'headphones':'speakers';audio.setSpace(preferences.space);savePreferences();});
+$('retry-scene-sounds').addEventListener('click',()=>{
+  const retry=audio.retrySceneSounds();$('scene-sounds-failed').hidden=true;
+  // Focus moves to the panel's next control rather than dropping to the page, where Space would pause the music.
+  $('motion').focus();
+  void retry.catch(()=>undefined).finally(updatePlayer);
+});
 $<HTMLSelectElement>('music-mode').addEventListener('change',e=>{preferences.mode=(e.target as HTMLSelectElement).value==='ambient'?'ambient':'beats';audio.setMode(preferences.mode);savePreferences();updatePlayer();});
 $<HTMLSelectElement>('music-style').addEventListener('change',async e=>{
   const select=e.target as HTMLSelectElement,style:MusicStyle=select.value==='synthwave'?'synthwave':'lofi';

@@ -66,6 +66,8 @@
       <label class="slider-row" for="ambience-volume"><span>Scene sounds</span><input id="ambience-volume" type="range" min="0" max="100" value="38" /><output id="ambience-level" for="ambience-volume">38%</output></label>
       <div class="mix-options"><label for="music-style">Music style</label><select id="music-style"><option value="lofi">Warm lofi</option><option value="synthwave">Dreamy synthwave</option></select></div>
       <div class="mix-options"><label for="music-mode">Drums</label><select id="music-mode"><option value="beats">On</option><option value="ambient">Off</option></select></div>
+      <div class="mix-options"><label for="listening-space">Listening on</label><select id="listening-space"><option value="speakers">Speakers</option><option value="headphones">Headphones</option></select></div>
+      <p id="scene-sounds-failed" class="scene-sounds-failed" role="status" hidden><span>The recorded scene sounds didn’t load, so a softer version is playing.</span><button id="retry-scene-sounds">Try again</button></p>
       <button id="motion" class="motion-button" aria-pressed="true"><span>Scene motion<small>Let the picture breathe.</small></span><span class="motion-state"><span id="motion-label">On</span><span class="switch" aria-hidden="true"></span></span></button>
       <p class="panel-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="4" height="8" rx="2"/><rect x="17" y="12" width="4" height="8" rx="2"/></svg>Music stays with you when you switch tabs.</p>
     </aside>
