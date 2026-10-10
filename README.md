@@ -75,7 +75,7 @@ The scene paints at a steady 30 frames a second, 60 during crossfades and ripple
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
 | `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
 | `src/scenes/painting-source.ts` | Painting names, the base and full tiers, the upgrade rule and the AVIF → WebP fallback |
-| `src/share/pages.ts`, `vite.config.ts` | Per-place pages and link previews, built beside the home page; the made page's preview |
+| `src/share/pages.ts`, `vite.config.ts`, `public/robots.txt` | Per-place pages with their own link previews and captions, built beside the home page; the made page's preview; `sitemap.xml` and the site name for search |
 | `made/` | How Motes is made: a static reading page with no app bundle, linked from the place browser |
 | `src/share/link.ts` | Share links and messages for the current place |
 | `src/clip/` | Clip timeline, offline music, overlays, H.264/AAC encoding and the export job |

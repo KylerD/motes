@@ -1,10 +1,10 @@
 import { defineConfig, type Plugin } from "vite";
 import { SCENES, SCENE_IDS } from "./src/scenes/edition";
-import { madeMeta, pageMeta, withMeta } from "./src/share/pages";
+import { madeMeta, pageMeta, sitemap, withMeta } from "./src/share/pages";
 
 /** Emits /places/<slug>/index.html beside the home page, each with its own link
  * preview. The pages share the same app bundle; the path pins the place. The
- * made page takes its preview from pages.ts too. */
+ * made page takes its preview from pages.ts too, and so does sitemap.xml. */
 function placePages(): Plugin {
   return {
     name: "motes-place-pages",
@@ -18,6 +18,7 @@ function placePages(): Plugin {
       for (const scene of SCENE_IDS) {
         this.emitFile({ type: "asset", fileName: `places/${SCENES[scene].slug}/index.html`, source: withMeta(String(index.source), pageMeta(scene)) });
       }
+      this.emitFile({ type: "asset", fileName: "sitemap.xml", source: sitemap() });
     },
   };
 }
