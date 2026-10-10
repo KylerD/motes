@@ -19,7 +19,9 @@ Analytics are off unless the build sets `VITE_POSTHOG_KEY` (the PostHog project 
 
 Choose **Warm lofi** or **Dreamy synthwave** under **Sound & motion → Music style**. **Drums** is a separate On/Off choice for either style. Both preferences are remembered. Switching styles gently fades to a new musical hour while the scenery keeps its place in the evening; changing styles while paused stays paused. Synthwave starts without downloading piano samples. If a switch to lofi cannot load its piano, the current music continues and selecting lofi again retries.
 
-**Listen** starts the radio. **Next track** moves to another arrangement. **Sound & motion** controls music and scene sounds separately, offers a version without drums, and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. **Share** passes the current place on: send a link, or make a 15-second vertical clip of its arrival-to-evening light with its music. **Just the scene** hides the controls; Escape restores them.
+**Listen** starts the radio. **Next track** moves to another arrangement. **Sound & motion** controls music and scene sounds separately, offers a version without drums, places scene sounds for **Speakers** or **Headphones** (**Listening on**), and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. **Share** passes the current place on: send a link, or make a 15-second vertical clip of its arrival-to-evening light with its music. **Just the scene** hides the controls; Escape restores them.
+
+**Scene sounds** put you in the place. Neon rain is heard from where its painting's viewer stands: rain all round on the garden, on the tea-house roof above to the left and on the pond ahead, drips from the eave, the gutter running over now and then, and the city far off to the right, from CC0 field recordings ([provenance](public/audio/ambience/README.md)). Each bed plays from two readings of its recording that swap with an equal-power crossfade every 6–22 seconds; spots recur with small changes of pitch, level and place. All of it comes from the day's seed, so an hour never loops and nothing takes randomness from the audio clock. Levels follow the place's evening light and hold after hours. With **Headphones** sounds are placed binaurally (HRTF); **Speakers** pulls them a third of the way toward the middle. Recordings load the first time a place is played; until then, or if they fail (the panel offers Try again), the place's quieter synthesised bed plays. The other three places keep their synthesised beds for now. Nothing plays before Listen.
 
 The shelter-and-mote logo, warm brown radio, amber playback button and cream settings panels give every place the same welcoming interface. Original SVG brand masters live in [public/brand](public/brand/README.md); the self-hosted Nunito Sans and EB Garamond fonts retain their [licenses and sources](public/fonts/README.md). Desktop, phone and short landscape layouts keep the listening controls within reach.
 
@@ -84,7 +86,8 @@ The scene paints at a steady 30 frames a second, 60 during crossfades and ripple
 | `src/session/environment.ts` | Listening-time clock independent of track skips and rendering |
 | `src/session/session.ts` | Deterministic hour-long arrangement, chapters and environmental timeline |
 | `src/music/composer/` | Pure, deterministic song planning (forms, loops, rootless voicings, themes) and realisation of piano, bass, melody and drums on one swung grid |
-| `src/music/sound.ts` | Upright/felt piano, electric keys, mallets, bass, drums, reverb and atmosphere |
+| `src/music/sound.ts` | Upright/felt piano, electric keys, mallets, bass, drums, reverb and the synthesised atmosphere |
+| `src/music/ambience.ts`, `src/music/ambience-maps.ts` | Recorded scene sounds: loading, beds, spots, panning, the evening arc, and each place's sound map |
 | `src/music/synthwave/` | Authored synthwave vocabulary, deterministic song planning/composition and synthesized voices |
 | `src/music/audio.ts` | Playback clock, track continuity, loading, volume and lifecycle |
 | `src/main.ts`, `src/style.css` | Listening interface, daily navigation, preferences and accessibility |
@@ -98,6 +101,7 @@ npm test
 npm run build
 node scripts/verify-scenes.mjs
 node scripts/verify-music.mjs
+node scripts/verify-ambience.mjs
 node scripts/verify-ios-audio.mjs
 node scripts/verify-mix.mjs
 node scripts/verify-mix.mjs synthwave
@@ -106,8 +110,11 @@ node scripts/verify-synthwave-sound.mjs
 node scripts/verify-sessions.mjs
 node scripts/verify-clip.mjs
 node scripts/render-clip.mjs [day] [place] [style]
-node scripts/render-music-preview.mjs
+node scripts/render-music-preview.mjs [seconds] [out.wav] [seed] [place] [index] [style] [--headphones] [--scene-only] [--no-spots]
+node scripts/encode-ambience.mjs
 ```
+
+`encode-ambience.mjs` rebuilds the scene recordings in `public/audio/ambience/` from their CC0 sources (downloaded once into `.cache/ambience/` and checked by hash). `verify-mix.mjs lofi rain` measures one place while calibrating.
 
 The two clip scripts need installed Chrome and ffmpeg/ffprobe on the PATH; clips land in `captures/clips/`.
 

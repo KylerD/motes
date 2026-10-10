@@ -127,3 +127,14 @@ A position is an azimuth (0° ahead, positive to the right), an elevation and a 
 - *the `AudioListener` defaults (forward −z, up +y);*
 - *`decodeAudioData` resampling to the context's rate;*
 - *`AudioBufferSourceNode.start(when, offset)` with `loop`.*
+
+## Phase 1 as built (10 October 2026)
+
+Branch `feat/scene-sounds`. Kyle asked Claude to make the calls in "For Kyle": recorded CC0 ambience, Listening on defaulting to Speakers, and scene sounds alone still not counting toward WEL. Where the build departs from the spec above:
+
+- **Sources.** The environment's network policy blocks freesound.org, so the three CC0 Freesound recordings come from Ambie's repository (pinned commit, SHA-256 checked), which ships them with their Freesound attributions. One rain recording feeds the garden (two distant stretches, one per ear), the roof (EQ for its body) and the pond's fizz; a brook gives the pond and the gutter; a city park's traffic gives the city. No CC0 drip recording was reachable, so the eave drips are modelled (a bubble model, deterministic, in `encode-ambience.mjs`) and labelled as such. Dedicated recordings (rain on a tin roof, rain on water, single drips) should replace them once freesound.org is allowed.
+- **Swaps every 6–22 s** (14 ± 4 s from the plan), not 20–40 s, with 4 s equal-power crossfades: a reading never runs longer than its 23–30 s recording before the next takes over, so the loop seam is rarely reached. Beds still loop through the folded seam if the scheduler stalls.
+- **The city is a spot family** (passing traffic far right, low-passed 1.4 kHz → 800 Hz through the evening) rather than a continuous hum, which keeps Neon rain at six panners.
+- **Spot plan.** Spots and bed segments are sampled statelessly from the edition seed by position (`spotsBetween`, `bedSegment` in `session.ts`), beside the events, so `createSession` and its music are unchanged and any stretch of listening (including after hours) is planned without state.
+- **Mix.** Neon rain's trim is 0.1. Worst cases in `verify-mix` (lofi, speakers and headphones, arrival and evening): opening −20.9 dB, theme −24.1 dB, sparsest six seconds −18.8 dB, loudest spot −18.7 dB under the music. The sparse-window and spot checks are now assertions for every place.
+- **Clips** fetch their own copy of the recordings (from the browser cache) instead of borrowing the live decoded buffers.
