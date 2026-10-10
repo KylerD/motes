@@ -91,6 +91,14 @@ try {
   assert.equal((await state()).state,'recorded');
   results.push({name:'pause frees every source and panner',paused});
 
+  // A place left while paused gives back its decoded sounds when the next place starts.
+  await page.evaluate(()=>window.radio.pause());await page.waitForTimeout(300);
+  await page.evaluate(()=>window.radio.setEdition(71,'snow'));
+  await page.click('#play');await page.evaluate(()=>window.activation);await page.waitForTimeout(300);
+  const elsewhere=await state();
+  assert.equal(elsewhere.state,'synthesised');assert.equal(elsewhere.decodedBytes,0,`decoded ${elsewhere.decodedBytes}`);
+  results.push({name:'a place left while paused gives back its decoded sounds',elsewhere});
+
   // A failed load keeps the synthesised bed; Retry brings the recordings.
   await fresh();await page.route('**/audio/ambience/rain/garden.mp3',route=>route.fulfill({status:503,body:'Unavailable'}));
   await page.click('#play');assert.equal((await page.evaluate(()=>window.activation)).ok,true,'Scene sounds never block the music.');

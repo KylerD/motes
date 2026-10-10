@@ -80,6 +80,8 @@ export class SceneSounds {
   start(mood:Mood,seed:number,at:number,seconds:number,options:{spots?:boolean;beds?:boolean}={}):void {
     if(this.disposed)return;
     this.current={mood,seed,spots:options.spots??true,beds:options.beds??true};this.running=true;
+    // Decoded sounds belong to this place and one still fading out; a place left while paused gives them back here.
+    for(const other of [...this.graph.scenes.keys()])if(other!==mood&&![...this.leaving].some(place=>place.mood===other))this.graph.scenes.delete(other);
     if(this.graph.scenes.has(mood)){fadeSynthesisedBed(this.graph,at,RESUME);this.arrive(at,seconds,RESUME);return;}
     startAmbience(this.graph,mood,at);
     if(SOUND_MAPS[mood]&&!this.failed.has(mood))void this.load(mood);
