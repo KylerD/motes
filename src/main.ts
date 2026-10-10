@@ -8,12 +8,14 @@ import {sceneLightAt} from './scenes/scene-light';
 import {frameDelay} from './scenes/frame-budget';
 import {shareLink,shareMessage} from './share/link';
 import {canMakeClips} from './clip/support';
+import {canOpenSmallWindow,openSmallWindow,type SmallWindow} from './scenes/small-window';
 import {WEEK_KEY,measuring,refOf,track} from './measure/analytics';
 import {addListening,crossed,expired,parseWeek,weekOf,weeksSinceFirst,type WeekRecord} from './measure/listening';
 
 const $ = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const text = (id:string,value:string) => {const element=$(id);if(element.textContent!==value)element.textContent=value;};
-const attribute = (id:string,name:string,value:string) => {const element=$(id);if(element.getAttribute(name)!==value)element.setAttribute(name,value);};
+const set = (element:Element,name:string,value:string) => {if(element.getAttribute(name)!==value)element.setAttribute(name,value);};
+const attribute = (id:string,name:string,value:string) => set($(id),name,value);
 const params = new URLSearchParams(location.search), reduced = matchMedia('(prefers-reduced-motion: reduce)');
 // A place page (/places/<slug>/) pins its place; ?scene= links from before place pages still work.
 const queryDay = params.get('day'), queryScene = params.get('scene'), chosenScene = sceneFromPath(location.pathname)??(isScene(queryScene)?queryScene:undefined);
@@ -51,7 +53,9 @@ $<HTMLSelectElement>('music-style').value=preferences.style;
 $<HTMLSelectElement>('listening-space').value=preferences.space;
 
 let visualTime=0,last=performance.now(),frame=0,starting=false,listened=false,quiet=false,disposed=false;
-let frameTimer:ReturnType<typeof setTimeout>|undefined;
+let frameTimer:number|undefined;
+/** The small window, while the scene is in it; the window that painting was last scheduled on. */
+let small:SmallWindow|undefined,smallWindowUsed=false,paintHost:Window=window;
 let previewSeconds:number|undefined;
 let statusTimer:ReturnType<typeof setTimeout>|undefined;
 let styleRequest=0,switchingStyle=false;
@@ -91,6 +95,7 @@ function updateUrl() {
 function updateEdition() {
   const place=SCENES[current.scene];
   $('experience').dataset.scene=current.scene;$('scene-title').textContent=place.title;$('scene-subtitle').textContent=place.subtitle;
+  $('experience').style.setProperty('--place',place.color);if(small)small.window.document.title=`${place.name} · Motes`;
   $('atmosphere-description').textContent=current.light;
   $('edition-label').textContent=`${current.day===localDay()?'Today · ':''}${dayLabel(current.day)}`;
   $('edition-short-label').textContent=new Date(`${current.day}T12:00:00`).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
@@ -138,6 +143,11 @@ function updatePlayer() {
   $<HTMLButtonElement>('listen').disabled=starting;
   attribute('listen','aria-pressed',String(playing));attribute('listen','aria-label',playing?'Pause music':'Listen to music');
   attribute('listen-path','d',playing?'M8 5v14M16 5v14':'m9 5 11 7-11 7Z');
+  if(small) {
+    const button=small.listen;button.disabled=starting;
+    set(button,'aria-pressed',String(playing));set(button,'aria-label',playing?'Pause music':'Listen to music');set(button,'title',playing?'Pause music':'Listen to music');
+    set(button.querySelector('path')!,'d',playing?'M8 5v14M16 5v14':'m9 5 11 7-11 7Z');
+  }
   text('listen-label',starting?'Tuning in…':playing?'Pause':listened?'Resume':'Listen');
   text('track-title',track.title);
   text('track-detail',switchingStyle?'Tuning into your music…':starting?(track.style==='synthwave'?'Warming up the synths…':'Preparing the piano…'):!listened?'An hour, unfolding here':`${voice} · ${session.chapter}`);
@@ -264,6 +274,38 @@ $('fullscreen').addEventListener('click',async()=>{
   catch{say('Fullscreen isn’t available here. Hide controls for an uninterrupted view.');}
 });
 document.addEventListener('fullscreenchange',()=>{const label=document.fullscreenElement?'Exit fullscreen':'Enter fullscreen';$('fullscreen').setAttribute('aria-label',label);$('fullscreen').title=label;renderer.resize();repaint();});
+// The small window takes the scene's own canvas, so nothing is drawn twice (src/scenes/small-window.ts).
+function setAway(away:boolean) {
+  $('experience').dataset.away=String(away);$('away').hidden=!away;$('art-status').hidden=away||renderer.ready&&!renderer.failed;
+  const label=away?'Bring this place back':'Keep this place in a small window';
+  attribute('small-window-toggle','aria-label',label);attribute('small-window-toggle','title',label);
+}
+function smallWindowClosed() {
+  // Keyboard focus in the card would be lost as it hides, so it moves to the header action.
+  const refocus=$('away').contains(document.activeElement);
+  stopPainting();small=undefined;paintHost=window;setAway(false);
+  if(refocus)$('small-window-toggle').focus();
+  renderer.resize();repaint();updatePlayer();
+}
+let openingSmallWindow=false;
+async function toggleSmallWindow() {
+  if(small){small.close();return;}
+  if(openingSmallWindow)return;
+  openingSmallWindow=true;
+  try {
+    small=await openSmallWindow(canvas,{title:`${SCENES[current.scene].name} · Motes`,onListen:()=>void toggleListening(),onClose:smallWindowClosed});
+    if(quiet)setQuiet(false);
+    closePanels(false);setAway(true);
+    small.window.addEventListener('resize',()=>{renderer.resize();repaint();});
+    small.window.document.addEventListener('visibilitychange',visibilityChanged);
+    if(!smallWindowUsed){smallWindowUsed=true;track('small_window',{place:current.scene});}
+    renderer.resize();repaint();updatePlayer();
+  } catch { say('The small window couldn’t open. The place is still here.'); }
+  finally { openingSmallWindow=false; }
+}
+$('small-window-toggle').hidden=!canOpenSmallWindow();
+$('small-window-toggle').addEventListener('click',()=>void toggleSmallWindow());
+$('bring-back').addEventListener('click',()=>small?.close());
 document.addEventListener('keydown',e=>{
   const target=e.target as HTMLElement;
   if(e.key==='Escape'){if(openPanel)closePanels();else if(quiet)setQuiet(false);return;}
@@ -275,19 +317,25 @@ if('mediaSession' in navigator) {
   navigator.mediaSession.setActionHandler('pause',()=>{audio.pause();updatePlayer();});
   navigator.mediaSession.setActionHandler('nexttrack',()=>{audio.next();updatePlayer();});
 }
-function stopPainting() {cancelAnimationFrame(frame);if(frameTimer)clearTimeout(frameTimer);frameTimer=undefined;}
-/** Paint again after the frame budget allows; animation frames still align drawing with the display. */
+function stopPainting() {paintHost.cancelAnimationFrame(frame);if(frameTimer)paintHost.clearTimeout(frameTimer);frameTimer=undefined;}
+/** Paint again after the frame budget allows; animation frames still align drawing with the display.
+ * Painting follows the window that shows the canvas: a hidden tab's timers are throttled, and a
+ * place in the small window keeps moving while its tab is hidden. */
 function schedulePaint(delay:number) {
-  stopPainting();if(disposed||document.hidden)return;
-  if(delay<=1)frame=requestAnimationFrame(paint);
-  else frameTimer=setTimeout(()=>{frameTimer=undefined;frame=requestAnimationFrame(paint);},delay);
+  stopPainting();const view=small?.window??window;
+  if(disposed||view.document.hidden)return;
+  paintHost=view;
+  if(delay<=1)frame=view.requestAnimationFrame(paint);
+  else frameTimer=view.setTimeout(()=>{frameTimer=undefined;frame=view.requestAnimationFrame(paint);},delay);
 }
 function repaint() {schedulePaint(0);}
-function paint(now:number) {
+function paint() {
   if(disposed)return;
+  // The two windows' frame timestamps have different origins, so time is read from the page.
+  const now=performance.now();
   if(renderer.motion)visualTime+=Math.min(.07,Math.max(0,(now-last)/1000));last=now;
   renderer.draw(visualTime,now,previewSeconds===undefined?audio.environment:sessionAt(createSession(current.seed,current.scene,'lofi',current.season),previewSeconds));
-  $('art-status').hidden=renderer.ready&&!renderer.failed;$('retry-art').hidden=!renderer.failed;
+  $('art-status').hidden=!!small||renderer.ready&&!renderer.failed;$('retry-art').hidden=!renderer.failed;
   $('art-message').textContent=renderer.ready&&renderer.lightingFailed?'The evening light couldn’t load. You can still stay here.':renderer.failed?'The painting couldn’t load. The music is still here.':'Finding a quiet place…';
   schedulePaint(frameDelay({motion:renderer.motion,smooth:renderer.smooth,spent:performance.now()-now}));
 }
@@ -315,11 +363,11 @@ function measureListening() {
 track('$pageview',{ref:arrivalRef,$referrer:document.referrer||undefined,place:current.scene,pinned:scenePinned});
 const uiTimer=setInterval(()=>{updatePlayer();checkDay();measureListening();},700);
 window.addEventListener('resize',()=>{renderer.resize();repaint();});
-document.addEventListener('visibilitychange',()=>{
-  stopPainting();last=performance.now();checkDay();
-  if(!document.hidden)repaint();
+function visibilityChanged() {
+  stopPainting();last=performance.now();checkDay();repaint();
   // The radio owns its own audio clock. A hidden tab must never stop the music.
-});
+}
+document.addEventListener('visibilitychange',visibilityChanged);
 let cachedPlayback=false;
 window.addEventListener('pagehide',e=>{
   stopPainting();

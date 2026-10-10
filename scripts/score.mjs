@@ -33,7 +33,7 @@ mkdirSync('captures',{recursive:true});
 // G1 Correctness: tests and a production build always; the browser suite with --full.
 const tested=run('npx',['vitest','run','--reporter=dot']),built=run('npm',['run','build']);
 if(!built){gate('G1','Correctness',false,'the production build failed');process.exit(1);}
-const suite={correctness:['verify-scenes.mjs','verify-sessions.mjs','verify-ios-audio.mjs'],audio:['verify-music.mjs','verify-ambience.mjs','verify-mix.mjs','verify-mix.mjs synthwave','verify-synthwave.mjs','verify-synthwave-sound.mjs'],sharing:['verify-clip.mjs']};
+const suite={correctness:['verify-scenes.mjs','verify-sessions.mjs','verify-ios-audio.mjs','verify-small-window.mjs'],audio:['verify-music.mjs','verify-ambience.mjs','verify-mix.mjs','verify-mix.mjs synthwave','verify-synthwave.mjs','verify-synthwave-sound.mjs'],sharing:['verify-clip.mjs']};
 const passed={correctness:[],audio:[],sharing:[]},failed={correctness:[],audio:[],sharing:[]};
 if(args.has('--full')) {
   const dev=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'error'});await dev.listen();

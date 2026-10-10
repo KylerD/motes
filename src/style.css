@@ -134,7 +134,18 @@ input[type=date]{display:block;width:100%;min-height:48px;background:#fff9ef;col
 .new-day{position:absolute;z-index:3;right:var(--inset);top:103px;padding:13px 18px;color:var(--paper-text);background:var(--paper);border-radius:10px;font-size:12px}
 .return-controls{position:absolute;z-index:3;right:var(--inset);bottom:24px;display:flex;align-items:center;gap:9px;min-height:44px;font-size:12px;color:var(--cream);padding:10px 15px;background:var(--ink);border-radius:10px}
 .return-controls:hover{background:var(--ink-soft)}.return-controls svg{width:18px;height:18px;color:var(--amber)}
-.quiet .chrome{display:none}.failure{position:absolute;top:40%;left:10%;right:10%;padding:25px;background:var(--ink);border-radius:12px}
+.quiet .chrome{display:none}
+/* While the place is in its small window, the page rests on the place's own colour. */
+#experience[data-away=true]{background:var(--place,var(--ink-deep))}
+#experience[data-away=true] :is(#fullscreen,#quiet){display:none}
+/* The small window: the painting and the radio's Listen action, nothing else. */
+.small-window{position:fixed;inset:0;overflow:hidden;background:var(--ink-deep)}
+.small-window-listen{position:absolute;left:12px;bottom:12px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;background:var(--amber);color:var(--ink);box-shadow:0 6px 20px #110e0b59;transition:opacity 160ms ease,background-color 160ms ease}
+.small-window-listen:hover{background:var(--amber-hover)}.small-window-listen:focus-visible{outline-color:var(--cream)}
+.small-window-listen svg{width:22px;height:22px;fill:currentColor;stroke-width:1}
+.small-window-listen[aria-pressed=true] svg{fill:none;stroke-width:2.5}
+.small-window:not(:hover):not(:focus-within) .small-window-listen[aria-pressed=true]{opacity:0}
+.failure{position:absolute;top:40%;left:10%;right:10%;padding:25px;background:var(--ink);border-radius:12px}
 
 @media(max-width:1250px){#atmosphere-description{display:none}.player-inner{gap:20px}}
 @media(max-width:850px){
@@ -146,7 +157,7 @@ input[type=date]{display:block;width:100%;min-height:48px;background:#fff9ef;col
  .header-actions{gap:6px;padding-top:0}
  #edition-label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
  #edition-short-label{display:inline}#edition-toggle{padding-inline:10px;gap:6px;font-size:11px}#edition-toggle svg{width:15px;height:15px}
- #fullscreen,#quiet span,#share-toggle span{display:none}#quiet,#share-toggle{width:42px;padding:10px}
+ #fullscreen,#small-window-toggle,#quiet span,#share-toggle span{display:none}#quiet,#share-toggle{width:42px;padding:10px}
  .scene-caption{left:22px;right:22px;bottom:207px}.scene-caption h2{font-size:38px}.scene-caption p{font-size:13px;max-width:32ch}
  .player{bottom:18px}.player::before{bottom:-18px}.player-inner{flex-direction:column;align-items:stretch;gap:13px;padding:14px 14px 12px}
  .listening{display:grid;grid-template-columns:auto minmax(0,1fr) 34px;gap:12px;width:100%}

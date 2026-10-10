@@ -145,7 +145,8 @@ export class SceneRenderer {
     // Every caller wants the next still picture redrawn, including after a lost context.
     this.drawn=undefined;
     const box = this.size ?? this.canvas.getBoundingClientRect(), width = Math.max(1,box.width), height = Math.max(1,box.height);
-    const ratio = this.size?.ratio ?? Math.min(devicePixelRatio || 1,2,2560/width);
+    // The canvas may sit in the small window, on another display.
+    const ratio = this.size?.ratio ?? Math.min((this.canvas.ownerDocument.defaultView??window).devicePixelRatio || 1,2,2560/width);
     const bitmapWidth = Math.round(width*ratio), bitmapHeight = Math.round(height*ratio);
     const sameBitmap = bitmapWidth===this.canvas.width && bitmapHeight===this.canvas.height;
     if(sameBitmap && width===this.width && height===this.height && ratio===this.ratio) return;

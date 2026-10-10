@@ -19,7 +19,7 @@ Analytics are off unless the build sets `VITE_POSTHOG_KEY` (the PostHog project 
 
 Choose **Warm lofi** or **Dreamy synthwave** under **Sound & motion → Music style**. **Drums** is a separate On/Off choice for either style. Both preferences are remembered. Switching styles gently fades to a new musical hour while the scenery keeps its place in the evening; changing styles while paused stays paused. Synthwave starts without downloading piano samples. If a switch to lofi cannot load its piano, the current music continues and selecting lofi again retries.
 
-**Listen** starts the radio. **Next track** moves to another arrangement. **Sound & motion** controls music and scene sounds separately, offers a version without drums, places scene sounds for **Speakers** or **Headphones** (**Listening on**), and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. **Share** passes the current place on: send a link, or make a 15-second vertical clip of its arrival-to-evening light with its music. **Just the scene** hides the controls; Escape restores them.
+**Listen** starts the radio. **Next track** moves to another arrangement. **Sound & motion** controls music and scene sounds separately, offers a version without drums, places scene sounds for **Speakers** or **Headphones** (**Listening on**), and freezes scene motion without stopping the music. Preferences stay in this browser. **Find a place** changes scenery; the current song finishes and the next one belongs to the new edition. The date control revisits a day. **Share** passes the current place on: send a link, or make a 15-second vertical clip of its arrival-to-evening light with its music. **Just the scene** hides the controls; Escape restores them. In Chrome and Edge on a computer, **Keep this place in a small window** floats the living painting in a small always-on-top window with its own Listen button, so the place stays in the corner of the screen while you work; the page keeps every control, and Bring it back (or closing the window) returns it.
 
 **Scene sounds** put you in the place, heard from where its painting's viewer stands, from CC0 field recordings ([provenance](public/audio/ambience/README.md)). Neon rain has rain all round on the garden, on the tea-house roof above to the left and on the pond ahead, drips from the eave, the gutter running over now and then, and the city far off to the right. The station has wind in the snowy trees, the clock and a hissing lantern above to the left, a peal or a dog carried up from the village now and then, and the evening train, which runs in from the left, waits and pulls away to the right. Golden hour has the meadow all round, the big tree's leaves above to the right, the pond lapping below, a blackbird in the tree, by the arch and down the valley, bees by day giving way to crickets, and house martins calling as they cross the sky. The last chapter has the bay washing on the rocks below, the harbour town's evening far off to the right, the curtain stirring close on the left, the moored boat's chains, a bell buoy out on the bay, gulls, and a boat's engine along the horizon. Each bed plays from two readings of its recording that swap with an equal-power crossfade every 6–22 seconds; spots recur with small changes of pitch, level and place. All of it comes from the day's seed, so an hour never loops and nothing takes randomness from the audio clock. Levels follow the place's evening light and hold after hours. With **Headphones** sounds are placed binaurally (HRTF); **Speakers** pulls them a third of the way toward the middle, and changing it crossfades the place into its new space. Moving events (the train, the boat, the birds) travel the path the picture draws, from the same plan, Halloween's included. Recordings load the first time a place is played; until then, or if they fail (the panel offers Try again), the place's quieter synthesised bed plays. Nothing plays before Listen.
 
@@ -65,7 +65,7 @@ node scripts/encode-scenes.mjs    # AVIF/WebP for both tiers, thumbnails, link-p
 
 `finish.py` upscales the full tier with Real-ESRGAN on the local GPU (Vulkan). On first use it fetches the official portable build, checks its SHA-256 and keeps it in the gitignored `.cache/tools/`; upscales are cached in `.cache/scenes/upscaled/`. `encode-scenes.mjs` refuses to run on a missing or stale finish.
 
-The scene paints at a steady 30 frames a second, 60 during crossfades and ripples. A still picture is redrawn only when something about it changes, so a tab left open for hours stays light.
+The scene paints at a steady 30 frames a second, 60 during crossfades and ripples. A still picture is redrawn only when something about it changes, so a tab left open for hours stays light. A hidden tab paints nothing, unless the place is in its small window: then painting follows that window, which keeps the scene's one canvas, so nothing is drawn twice.
 
 ## Code
 
@@ -74,6 +74,7 @@ The scene paints at a steady 30 frames a second, 60 during crossfades and ripple
 | `src/scenes/edition.ts` | Scene catalogue, validated local dates, deterministic daily atmosphere, the Halloween season, its paintings and its words |
 | `src/scenes/renderer.ts` | Paintings, water, light, weather, small events, transitions and ripples |
 | `src/scenes/frame-budget.ts` | Steady, smooth and still frame rates |
+| `src/scenes/small-window.ts` | The small window (Document Picture-in-Picture): moves the scene's canvas in and back, with its Listen button |
 | `src/scenes/painting-source.ts` | Painting names, the base and full tiers, the upgrade rule and the AVIF → WebP fallback |
 | `src/share/pages.ts`, `vite.config.ts`, `public/robots.txt` | Per-place pages with their own link previews and captions, built beside the home page; the made page's preview; `sitemap.xml` and the site name for search |
 | `made/` | How Motes is made: a static reading page with no app bundle, linked from the place browser |
@@ -108,6 +109,7 @@ node scripts/verify-mix.mjs synthwave
 node scripts/verify-synthwave.mjs
 node scripts/verify-synthwave-sound.mjs
 node scripts/verify-sessions.mjs
+node scripts/verify-small-window.mjs
 node scripts/verify-clip.mjs
 node scripts/render-clip.mjs [day] [place] [style]
 node scripts/render-music-preview.mjs [seconds] [out.wav] [seed] [place] [index] [style] [--headphones] [--scene-only] [--no-spots]

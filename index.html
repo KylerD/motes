@@ -44,6 +44,7 @@
       <div class="header-actions">
         <button id="edition-toggle" class="text-button header-button" aria-expanded="false" aria-controls="edition-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="15" rx="2"/><path d="M8 3v6m8-6v6M4 12h16"/></svg><span id="edition-label">Today’s edition</span><span id="edition-short-label" aria-hidden="true">Today</span></button>
         <button id="share-toggle" class="text-button header-button" aria-expanded="false" aria-controls="share-panel" aria-label="Share this place" title="Share this place"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Share</span></button>
+        <button id="small-window-toggle" class="icon-button header-button" aria-label="Keep this place in a small window" title="Keep this place in a small window" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="11.5" width="6" height="4.5" rx="1"/></svg></button>
         <button id="fullscreen" class="icon-button header-button" aria-label="Enter fullscreen" title="Enter fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m8 0h4v-4"/></svg></button>
         <button id="quiet" class="text-button header-button" aria-label="Hide controls" title="Hide controls · Escape to return"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10 10a3 3 0 0 0 4 4M9 5a13 13 0 0 1 3-.4c6 0 10 7.4 10 7.4a20 20 0 0 1-4 4M6 6a23 23 0 0 0-4 6s4 7.4 10 7.4a12 12 0 0 0 5-1"/></svg><span>Just the scene</span></button>
       </div>
@@ -98,6 +99,7 @@
     </aside>
     <button id="return-controls" class="return-controls" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11a8 8 0 0 1 16 0v9M3 20h18"/><circle cx="12" cy="12" r="2"/></svg>Show controls</button>
     <div id="art-status" class="art-status" role="status"><p id="art-message">Finding a quiet place…</p><button id="retry-art" class="small-button" hidden>Try again</button></div>
+    <div id="away" class="art-status" role="status" hidden><p>This place is in its small window.</p><button id="bring-back" class="small-button">Bring it back</button></div>
     <p id="status" class="status" role="status" aria-live="polite" hidden></p>
     <button id="new-day" class="new-day chrome" hidden>A new day is here. Visit today’s edition <span aria-hidden="true">→</span></button>
     <div id="failure" class="failure" role="alert" hidden></div>
