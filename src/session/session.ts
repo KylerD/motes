@@ -114,6 +114,9 @@ const captions:Record<Mood,string[]>={
   coast:['A sea breeze at sunset','Pages turning slowly','A boat crossing the bay','The harbour grows quiet','Lamplight over the water','One more chapter, then another'],
 };
 
+/** How strongly an event shows (and sounds) at its progress: it eases in and out over its first and last eighth. */
+export const eventStrength=(progress:number)=>smooth(progress/.12)*smooth((1-progress)/.12);
+
 /** Stateless sampling makes hidden-tab recovery and seeking skip old events instead of replaying them. */
 export function sessionAt(plan:MusicSessionPlan,seconds:number):SessionState {
   const elapsed=Math.max(0,Number.isFinite(seconds)?seconds:0),progress=clamp(elapsed/plan.duration);
@@ -121,7 +124,7 @@ export function sessionAt(plan:MusicSessionPlan,seconds:number):SessionState {
   const chapterIndex=Math.floor(slot.index/3),dusk=smooth((progress-.10)/.85);
   const events=plan.events.flatMap(event=>{
     const p=(elapsed-event.start)/event.duration;
-    return p>=0&&p<1?[{kind:event.kind,progress:p,strength:smooth(p/.12)*smooth((1-p)/.12)}]:[];
+    return p>=0&&p<1?[{kind:event.kind,progress:p,strength:eventStrength(p)}]:[];
   });
   const shower=events.find(e=>e.kind==='shower')?.strength??0;
   const weather=plan.mood==='rain'?.88+.38*Math.sin(Math.PI*progress)-.28*dusk+.36*shower
@@ -138,13 +141,15 @@ function ambienceRandom(seed:number,name:string,index:number) {
   for(let i=0;i<name.length;i++)hash=Math.imul(hash^name.charCodeAt(i),0x01000193);
   return randomSource(hash^Math.imul(index+1,0x9e3779b1));
 }
-export interface SpotFamily {name:string;period:number;chance:number;variants:number;spread:number}
-export interface PlannedSpot {time:number;variant:number;detune:number;gain:number;azimuth:number;elevation:number}
+export interface SpotFamily {name:string;period:number;chance:number;variants:number;spread:number;places?:number}
+/** A spot: when, which variant, small changes of pitch, level and direction, and which of the family's places. */
+export interface PlannedSpot {time:number;variant:number;detune:number;gain:number;azimuth:number;elevation:number;place:number}
 function spotIn(seed:number,family:SpotFamily,slot:number):PlannedSpot|undefined {
   const random=ambienceRandom(seed,family.name,slot);
   if(random()>=family.chance)return undefined;
   return {time:(slot+random()*.8)*family.period,variant:Math.floor(random()*family.variants),detune:(random()*2-1)*50,
-    gain:10**((random()*2-1)*2.5/20),azimuth:(random()*2-1)*family.spread,elevation:(random()*2-1)*family.spread*.3};
+    gain:10**((random()*2-1)*2.5/20),azimuth:(random()*2-1)*family.spread,elevation:(random()*2-1)*family.spread*.3,
+    place:Math.floor(random()*(family.places??1))};
 }
 /** The spots of one family that start within [from, to) seconds of listening. */
 export function spotsBetween(seed:number,family:SpotFamily,from:number,to:number):PlannedSpot[] {
@@ -158,6 +163,12 @@ export function spotsBetween(seed:number,family:SpotFamily,from:number,to:number
     spots.push(spot);
   }
   return spots;
+}
+/** Calls that belong to one planned event (birds over the bay): the family's spots that fall within it, with their progress. */
+export function eventSpotsBetween(seed:number,family:SpotFamily,event:SessionEvent,index:number,from:number,to:number) {
+  const start=Math.max(from,event.start),end=Math.min(to,event.start+event.duration);
+  if(end<=start)return [];
+  return spotsBetween(seed,{...family,name:`${family.name}:${event.kind}:${index}`},start,end).map(spot=>({...spot,progress:(spot.time-event.start)/event.duration}));
 }
 /** Beds swap between two readings of their recording about every BED_SWAP seconds. */
 export const BED_SWAP=14,BED_SWAP_JITTER=4;

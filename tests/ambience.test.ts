@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {readFileSync,statSync} from 'node:fs';
-import {BED_SWAP,BED_SWAP_JITTER,bedSegment,bedSegmentAt,createSession,spotsBetween} from '../src/session/session';
-import {SOUND_MAPS} from '../src/music/ambience-maps';
+import {BED_SWAP,BED_SWAP_JITTER,bedSegment,bedSegmentAt,createSession,eventSpotsBetween,eventStrength,sessionAt,spotsBetween} from '../src/session/session';
+import {SOUND_MAPS,across,pathAt} from '../src/music/ambience-maps';
 import {PANNER_BUDGET,SPOT_PANNERS,arcAt,placeAt} from '../src/music/ambience';
 
 const rain=SOUND_MAPS.rain!;
@@ -24,7 +24,36 @@ describe('scene sounds',()=>{
   });
 
   it('keeps within the panner budget, leaving one for a moving event',()=>{
-    for(const map of Object.values(SOUND_MAPS))expect(map!.beds.filter(bed=>bed.position).length+SPOT_PANNERS+1).toBeLessThanOrEqual(PANNER_BUDGET);
+    for(const map of Object.values(SOUND_MAPS)) {
+      expect(map!.beds.filter(bed=>bed.position).length+SPOT_PANNERS+1).toBeLessThanOrEqual(PANNER_BUDGET);
+      // Movers of one kind never overlap, and a place moves one kind of thing.
+      expect(new Set((map!.movers??[]).map(mover=>mover.kind)).size).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('follows an event along the path the picture draws',()=>{
+    const path=[[0,across(.21),0,200,.3],[.32,across(.66),0,120,1],[.59,across(.66),0,120,1],[1,across(1.05),0,200,.2]] as const;
+    expect(pathAt(path,0).position.azimuth).toBeCloseTo(-17.4);
+    expect(pathAt(path,.45).position.azimuth).toBeCloseTo(across(.66));
+    expect(pathAt(path,.16).level).toBeCloseTo(.65,1);
+    expect(pathAt(path,2).position.azimuth).toBeCloseTo(across(1.05));
+    // Sound and picture share one envelope.
+    const plan=createSession(9,'snow'),train=plan.events.find(e=>e.kind==='train')!;
+    const midway=train.start+train.duration*.3;
+    expect(eventStrength(.3)).toBe(sessionAt(plan,midway).events.find(e=>e.kind==='train')!.strength);
+  });
+
+  it('lets an event call only while it runs, the same way every time',()=>{
+    const plan=createSession(11,'coast'),birds=plan.events.filter(e=>e.kind==='birds');
+    const family={name:'gulls',period:2,chance:.6,variants:4,spread:5};
+    const calls=eventSpotsBetween(11,family,birds[0],0,0,3600);
+    expect(calls.length).toBeGreaterThan(3);
+    for(const call of calls){expect(call.time).toBeGreaterThanOrEqual(birds[0].start);expect(call.time).toBeLessThan(birds[0].start+birds[0].duration);expect(call.progress).toBeGreaterThanOrEqual(0);expect(call.progress).toBeLessThan(1);}
+    expect(eventSpotsBetween(11,family,birds[0],0,0,3600)).toEqual(calls);
+    expect(eventSpotsBetween(11,family,birds[1],1,0,3600).map(c=>c.progress)).not.toEqual(calls.map(c=>c.progress));
+    // A spot family can sound from several places.
+    const places=new Set(spotsBetween(3,{...family,places:3},0,600).map(s=>s.place));
+    expect([...places].sort()).toEqual([0,1,2]);
   });
 
   it('plans spots from the edition seed alone, the same every time',()=>{

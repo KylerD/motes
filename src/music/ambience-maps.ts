@@ -1,4 +1,5 @@
 import type {Mood} from './composer';
+import type {EventKind} from '../session/session';
 
 /** Where a sound is, heard from where the painting's viewer stands: degrees right of straight ahead,
  * degrees above the ear, and metres away. Positions follow the painting. */
@@ -10,9 +11,27 @@ interface Shape {name:string;file:string;arrival:number;evening:number;arc:Arc;l
 /** A continuous texture of `seconds` that loops seamlessly. Enveloping beds are stereo files played as they are; placed beds are mono, with a direction. */
 export interface Bed extends Shape {position?:Position;seconds:number}
 /** Short sounds that recur. The file holds `variants` equal slots of `slot` seconds. Every `period` seconds
- * a spot plays with this `chance`, `spread` degrees either side of its position. */
-export interface Spots extends Shape {variants:number;slot:number;period:number;chance:number;spread:number;position:Position}
-export interface SoundMap {beds:readonly Bed[];spots:readonly Spots[];trim:number}
+ * a spot plays with this `chance`, `spread` degrees either side of its position, or of one of `elsewhere`. */
+export interface Spots extends Shape {variants:number;slot:number;period:number;chance:number;spread:number;position:Position;elsewhere?:readonly Position[]}
+/** Where an event's sound is as the event progresses (0–1), following the path the picture draws, and how loud
+ * it is there. Positions between keys are interpolated. */
+export type PathKey=readonly [progress:number,azimuth:number,elevation:number,distance:number,level:number];
+/** A planned event that moves (the train, the boat): one looping recording travelling along its path. */
+export interface Mover {kind:EventKind;name:string;file:string;seconds:number;level:number;lowpass?:number;path:readonly PathKey[]}
+/** A planned event that calls (birds): spots that play only while it runs, scattered along its path. */
+export interface Calls {kind:EventKind;name:string;file:string;variants:number;slot:number;period:number;chance:number;spread:number;level:number;lowpass?:number;path:readonly PathKey[]}
+export interface SoundMap {beds:readonly Bed[];spots:readonly Spots[];movers?:readonly Mover[];calls?:readonly Calls[];trim:number}
+
+/** The painting spans about sixty degrees: a point across its width (0–1) is this many degrees right of ahead. */
+export const across=(u:number)=>(u-.5)*60;
+/** Interpolate a path at an event's progress. */
+export function pathAt(path:readonly PathKey[],progress:number):{position:Position;level:number} {
+  const p=Math.max(0,Math.min(1,progress));
+  let i=0;while(i<path.length-2&&path[i+1][0]<=p)i++;
+  const a=path[i],b=path[Math.min(i+1,path.length-1)],t=b[0]>a[0]?Math.max(0,Math.min(1,(p-a[0])/(b[0]-a[0]))):0;
+  const mix=(k:1|2|3|4)=>a[k]+(b[k]-a[k])*t;
+  return {position:{azimuth:mix(1),elevation:mix(2),distance:mix(3)},level:mix(4)};
+}
 
 /** Neon rain: standing on the stones by the pond, the tea house to the left, the city off to the right. */
 const rain:SoundMap={

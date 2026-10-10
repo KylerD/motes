@@ -1,7 +1,7 @@
 import type {Mood} from './composer';
-import {SOUND_MAPS,type Arc,type Bed,type Position,type SoundMap,type Spots} from './ambience-maps';
+import {SOUND_MAPS,pathAt,type Arc,type Bed,type Mover,type Position,type SoundMap} from './ambience-maps';
 import {fadeSynthesisedBed,holdParameter,startAmbience,type SoundGraph} from './sound';
-import {BED_SWAP,bedSegment,bedSegmentAt,spotsBetween,type BedSegment,type PlannedSpot} from '../session/session';
+import {BED_SWAP,bedSegment,bedSegmentAt,createSession,eventSpotsBetween,eventStrength,spotsBetween,type BedSegment,type SessionEvent} from '../session/session';
 import {sceneLightAt} from '../scenes/scene-light';
 
 export type ListeningSpace='speakers'|'headphones';
@@ -27,14 +27,19 @@ export function arcAt(mood:Mood,arc:Arc,seconds:number):number {
   return typeof value==='number'&&Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
 }
 const mixAt=(shape:{arrival:number;evening:number},value:number)=>shape.arrival+(shape.evening-shape.arrival)*value;
-const filesOf=(map:SoundMap)=>[...map.beds,...map.spots].map(sound=>sound.file);
+const filesOf=(map:SoundMap)=>[...map.beds,...map.spots,...map.movers??[],...map.calls??[]].map(sound=>sound.file);
+/** One short sound to play: from slot `offset` of `file`, at a level and place worked out from the plan. */
+interface Shot {time:number;file:string;offset:number;slot:number;detune:number;level:number;lowpass?:number;position:Position}
 
 interface BedVoice {bed:Bed;buffer:AudioBuffer;loop:[start:number,end:number];level:GainNode;filter?:BiquadFilterNode;panner?:PannerNode;next:number;value:number}
 interface Panner {node:PannerNode;until:number}
+interface MoverVoice {mover:Mover;event:SessionEvent;start:number;gain:GainNode;panner:PannerNode}
 interface Place {
   mood:Mood;seed:number;map:SoundMap;buffers:Map<string,AudioBuffer>;output:GainNode;beds:BedVoice[];pool:Panner[];
   /** Audio time at which this place's listening began: audio time = origin + listening seconds. */
   origin:number;spotsThrough:number;spots:boolean;sources:Set<AudioScheduledSourceNode>;nodes:AudioNode[];
+  /** The edition's planned events, those moving now, and those already begun (an event never starts twice). */
+  events:readonly SessionEvent[];movers:Map<number,MoverVoice>;moved:Set<number>;
   /** When the place is freed once released; a pause during a handover brings it forward. */
   freeAt?:number;timer?:ReturnType<typeof setTimeout>;
 }
@@ -52,7 +57,7 @@ export class SceneSounds {
   private running=false;
   private disposed=false;
   /** Bed readings and spots started so far, for verification. */
-  private started={segments:0,spots:0};
+  private started={segments:0,spots:0,movers:0};
 
   /** `listening` maps audio time to the place's listening seconds (the environment clock). */
   constructor(private graph:SoundGraph,private space:ListeningSpace='speakers',private listening:(at:number)=>number=at=>at) {}
@@ -66,7 +71,7 @@ export class SceneSounds {
   get diagnostics() {
     const places=[...(this.place?[this.place]:[]),...this.leaving];
     return {state:this.state,places:places.length,sources:places.reduce((sum,place)=>sum+place.sources.size,0),
-      panners:places.reduce((sum,place)=>sum+place.pool.length+place.beds.filter(bed=>bed.panner).length,0),
+      panners:places.reduce((sum,place)=>sum+place.pool.length+place.beds.filter(bed=>bed.panner).length+place.movers.size,0),movers:places.reduce((sum,place)=>sum+place.movers.size,0),
       started:{...this.started},decodedBytes:[...this.graph.scenes.values()].reduce((sum,buffers)=>sum+[...buffers.values()].reduce((s,b)=>s+b.length*b.numberOfChannels*4,0),0)};
   }
 
@@ -108,10 +113,32 @@ export class SceneSounds {
       for(let segment=bedSegment(place.seed,voice.bed.name,voice.next);place.origin+segment.start-CROSSFADE/2<=horizon;segment=bedSegment(place.seed,voice.bed.name,++voice.next))
         this.segment(place,voice,segment,place.origin+segment.start-CROSSFADE/2,CROSSFADE,0);
     }
-    if(!place.spots||through<=place.spotsThrough)return;
-    const planned=place.map.spots.flatMap(family=>spotsBetween(place.seed,family,place.spotsThrough,through).map(spot=>({family,spot})));
+    // Spots and events stay out of clips.
+    if(!place.spots)return;
+    for(const mover of place.map.movers??[])place.events.forEach((event,index)=>{
+      if(event.kind!==mover.kind||place.moved.has(index))return;
+      const start=place.origin+event.start,end=start+event.duration;
+      if(end>now+.5&&start<=horizon)this.mover(place,mover,event,index,Math.max(start,now+.02));
+    });
+    if(through<=place.spotsThrough)return;
+    const shots:Shot[]=place.map.spots.flatMap(family=>spotsBetween(place.seed,{...family,places:1+(family.elsewhere?.length??0)},place.spotsThrough,through).map(spot=>{
+      const value=arcAt(place.mood,family.arc,spot.time),at=[family.position,...family.elsewhere??[]][spot.place];
+      return {time:spot.time,file:family.file,offset:spot.variant*family.slot,slot:family.slot,detune:spot.detune,level:mixAt(family,value)*spot.gain,
+        lowpass:family.lowpass&&mixAt({arrival:family.lowpass[0],evening:family.lowpass[1]},value),
+        position:{azimuth:at.azimuth+spot.azimuth,elevation:at.elevation+spot.elevation,distance:at.distance}};
+    }));
+    // Calls belong to their event: they sound along its path, as strongly as it shows.
+    for(const family of place.map.calls??[])place.events.forEach((event,index)=>{
+      if(event.kind!==family.kind)return;
+      for(const spot of eventSpotsBetween(place.seed,family,event,index,place.spotsThrough,through)) {
+        const {position,level}=pathAt(family.path,spot.progress);
+        shots.push({time:spot.time,file:family.file,offset:spot.variant*family.slot,slot:family.slot,detune:spot.detune,lowpass:family.lowpass,
+          level:family.level*level*eventStrength(spot.progress)*spot.gain,
+          position:{azimuth:position.azimuth+spot.azimuth,elevation:position.elevation+spot.elevation,distance:position.distance}});
+      }
+    });
     place.spotsThrough=through;
-    for(const {family,spot} of planned.sort((a,b)=>a.spot.time-b.spot.time))this.spot(place,family,spot,now);
+    for(const shot of shots.sort((a,b)=>a.time-b.time))this.spot(place,shot,now);
   }
 
   setSpace(space:ListeningSpace):void {
@@ -120,6 +147,8 @@ export class SceneSounds {
     for(const place of [...(this.place?[this.place]:[]),...this.leaving]) {
       for(const voice of place.beds)if(voice.panner&&voice.bed.position){voice.panner.panningModel=this.model;this.position(voice.panner,voice.bed.position,now);}
       for(const panner of place.pool)panner.node.panningModel=this.model;
+      // A moving event re-plots the rest of its path for the new space.
+      for(const voice of place.movers.values()){voice.panner.panningModel=this.model;this.travel(voice,now,false);}
     }
   }
 
@@ -196,7 +225,7 @@ export class SceneSounds {
       node.connect(output);nodes.push(node);return node;
     };
     const place:Place={mood:current.mood,seed:current.seed,map,buffers,output,beds:[],pool:[],origin:at-seconds,spotsThrough:seconds,
-      spots:current.spots,sources:new Set(),nodes};
+      spots:current.spots,sources:new Set(),nodes,events:map.movers?.length||map.calls?.length?createSession(current.seed,current.mood).events:[],movers:new Map(),moved:new Set()};
     // Verification can render the spots alone.
     for(const bed of current.beds?map.beds:[]) {
       const buffer=buffers.get(bed.file)!,level=context.createGain(),value=mixAt(bed,arcAt(place.mood,bed.arc,seconds));
@@ -233,25 +262,57 @@ export class SceneSounds {
     source.start(at,offset);source.stop(Math.max(out,at+fade+.01)+CROSSFADE+.05);
   }
 
-  private spot(place:Place,family:Spots,spot:PlannedSpot,now:number) {
-    const at=place.origin+spot.time;
-    if(at<now+.01)return;
-    const rate=2**(spot.detune/1200),duration=family.slot/rate;
+  private spot(place:Place,shot:Shot,now:number) {
+    const at=place.origin+shot.time;
+    // A spot in the past, or one too quiet to hear (bees after dark), is skipped.
+    if(at<now+.01||shot.level<.005)return;
+    const rate=2**(shot.detune/1200),duration=shot.slot/rate;
     const panner=place.pool.find(entry=>entry.until<=at);
     // A spot that finds every panner busy is skipped.
     if(!panner)return;
     panner.until=at+duration+.02;
-    const context=this.graph.context,buffer=place.buffers.get(family.file)!;
+    const context=this.graph.context,buffer=place.buffers.get(shot.file)!;
     const source=context.createBufferSource(),gain=context.createGain(),nodes:AudioNode[]=[gain];
-    source.buffer=buffer;source.playbackRate.value=rate;
-    const value=arcAt(place.mood,family.arc,Math.max(0,spot.time));
-    gain.gain.value=mixAt(family,value)*spot.gain;
+    source.buffer=buffer;source.playbackRate.value=rate;gain.gain.value=shot.level;
     source.connect(gain);let tail:AudioNode=gain;
-    if(family.lowpass){const filter=context.createBiquadFilter();filter.type='lowpass';filter.frequency.value=mixAt({arrival:family.lowpass[0],evening:family.lowpass[1]},value);tail.connect(filter);tail=filter;nodes.push(filter);}
+    if(shot.lowpass){const filter=context.createBiquadFilter();filter.type='lowpass';filter.frequency.value=shot.lowpass;tail.connect(filter);tail=filter;nodes.push(filter);}
     tail.connect(panner.node);
-    this.position(panner.node,{azimuth:family.position.azimuth+spot.azimuth,elevation:family.position.elevation+spot.elevation,distance:family.position.distance},at);
+    this.position(panner.node,shot.position,at);
     this.own(place,source,nodes);this.started.spots++;
-    source.start(at,spot.variant*family.slot,family.slot);source.stop(at+duration+.01);
+    source.start(at,shot.offset,shot.slot);source.stop(at+duration+.01);
+  }
+
+  /** A moving event: its recording loops while the event runs, its own panner travelling the picture's path. */
+  private mover(place:Place,mover:Mover,event:SessionEvent,index:number,at:number) {
+    const context=this.graph.context,buffer=place.buffers.get(mover.file)!,start=place.origin+event.start,end=start+event.duration;
+    const source=context.createBufferSource(),gain=context.createGain(),panner=context.createPanner(),nodes:AudioNode[]=[gain,panner];
+    const [loopStart,loopEnd]=loopOf(buffer,{seconds:mover.seconds});
+    source.buffer=buffer;source.loop=true;source.loopStart=loopStart;source.loopEnd=loopEnd;
+    panner.panningModel=this.model;panner.distanceModel='inverse';panner.refDistance=1;panner.maxDistance=10000;panner.rolloffFactor=0;
+    source.connect(gain);let tail:AudioNode=gain;
+    if(mover.lowpass){const filter=context.createBiquadFilter();filter.type='lowpass';filter.frequency.value=mover.lowpass;tail.connect(filter);tail=filter;nodes.push(filter);}
+    tail.connect(panner);panner.connect(place.output);
+    const voice:MoverVoice={mover,event,start,gain,panner};
+    place.movers.set(index,voice);place.moved.add(index);
+    this.travel(voice,at,true);
+    this.own(place,source,nodes,()=>place.movers.delete(index));this.started.movers++;
+    source.start(at,loopStart+((at-start)%(loopEnd-loopStart)));source.stop(end+.05);
+  }
+
+  /** Plot a mover's level and position from `from` to the end of its event, half a second at a time. */
+  private travel(voice:MoverVoice,from:number,level:boolean) {
+    const {mover,event,start,gain,panner}=voice,end=start+event.duration,params=panner.positionX?[panner.positionX,panner.positionY,panner.positionZ]:undefined;
+    if(params)for(const param of params){param.cancelScheduledValues(from);}
+    const at=(time:number)=>{const progress=(time-start)/event.duration,{position,level:key}=pathAt(mover.path,progress);return {xyz:placeAt(position,this.space),level:mover.level*key*eventStrength(progress)};};
+    const first=at(from);
+    if(params)params.forEach((param,i)=>param.setValueAtTime(Object.values(first.xyz)[i],from));else panner.setPosition(first.xyz.x,first.xyz.y,first.xyz.z);
+    // Joining partway (after a pause) rises from silence rather than starting with a step.
+    if(level){gain.gain.value=0;gain.gain.setValueAtTime(0,from);}
+    for(let time=from+(level?.4:.5);time<end+.25;time+=.5) {
+      const t=Math.min(time,end),point=at(t);
+      if(params)params.forEach((param,i)=>param.linearRampToValueAtTime(Object.values(point.xyz)[i],t));
+      if(level)gain.gain.linearRampToValueAtTime(point.level,t);
+    }
   }
 
   private position(node:PannerNode,position:Position,at:number) {
@@ -260,9 +321,9 @@ export class SceneSounds {
     else node.setPosition(x,y,z);
   }
 
-  private own(place:Place,source:AudioBufferSourceNode,nodes:AudioNode[]) {
+  private own(place:Place,source:AudioBufferSourceNode,nodes:AudioNode[],ended?:()=>void) {
     place.sources.add(source);
-    source.onended=()=>{source.disconnect();for(const node of nodes)node.disconnect();place.sources.delete(source);};
+    source.onended=()=>{source.disconnect();for(const node of nodes)node.disconnect();place.sources.delete(source);ended?.();};
   }
 
   private leave(place:Place,at:number) {
@@ -279,7 +340,7 @@ export class SceneSounds {
     const free=()=>{
       if(place.timer!==undefined)clearTimeout(place.timer);
       for(const node of place.nodes)node.disconnect();
-      place.pool.length=0;for(const voice of place.beds)voice.panner=undefined;
+      place.pool.length=0;place.movers.clear();for(const voice of place.beds)voice.panner=undefined;
       this.leaving.delete(place);
       if(this.current?.mood!==place.mood)this.graph.scenes.delete(place.mood);
     };
@@ -291,7 +352,7 @@ export class SceneSounds {
 
 /** Seamless loops: the encoder folds each bed's tail into its head. Browsers that keep an MP3's encoder delay
  * decode a little longer than the file's written length; the loop then skips that silent lead-in. */
-function loopOf(buffer:AudioBuffer,bed:Bed):[number,number] {
+function loopOf(buffer:AudioBuffer,bed:{seconds:number}):[number,number] {
   const extra=buffer.duration-bed.seconds;
   if(extra<.002)return [0,Math.min(buffer.duration,bed.seconds)];
   const data=buffer.getChannelData(0),limit=Math.min(data.length,Math.round(buffer.sampleRate*.08));
