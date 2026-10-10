@@ -138,3 +138,17 @@ Branch `feat/scene-sounds`. Kyle asked Claude to make the calls in "For Kyle": r
 - **Spot plan.** Spots and bed segments are sampled statelessly from the edition seed by position (`spotsBetween`, `bedSegment` in `session.ts`), beside the events, so `createSession` and its music are unchanged and any stretch of listening (including after hours) is planned without state.
 - **Mix.** Neon rain's trim is 0.1. Worst cases in `verify-mix` (lofi, speakers and headphones, arrival and evening): opening −20.9 dB, theme −24.1 dB, sparsest six seconds −18.8 dB, loudest spot −18.7 dB under the music. The sparse-window and spot checks are now assertions for every place.
 - **Clips** fetch their own copy of the recordings (from the browser cache) instead of borrowing the live decoded buffers.
+
+## Phases 2 and 3: where each sound goes (planned 10 October 2026)
+
+The engine now supports everything these places need: spot families with several places (`elsewhere`), movers that travel an event's path on their own panner (`movers`, keyed by event progress, swelling with the picture's strength envelope), and calls that scatter spots along an event's path (`calls`). A point across a painting (0–1) is `across(u)` = (u − 0.5) × 60 degrees. Positions are azimuth°, elevation°, metres.
+
+| Place | Beds | Spots | Events |
+| --- | --- | --- | --- |
+| Last light station | valley wind (stereo, enveloping); falling-snow hush (stereo) | station clock high left (−20, 25, 3); lamp hum on its post (−18, 10, 2.5); a far bell or dog in the village (0, −2, 800, low-passed), rarely | train: `across(.21)` → `across(.66)` (stops for the middle of the event) → `across(1.05)`, about 300 m, low-passed |
+| Golden hour | grass and leaves (stereo); breeze in the big tree (18, 25, 8); water lapping in the pond (0, −20, 4) | birds in the tree (20, 20, 12), by the arch (−22, 12, 15) and down the valley (−5, 5, 60); bees in the flowers either side (±25–28, −15, 2), giving way to crickets in the grass (−35, −10, 5 / 30, −8, 6 / 5, −5, 10) as the light goes | birds: calls along `across(.37)` → `across(.80)`, 18° up, 30 m |
+| The last chapter | waves on the rocks below (10, −20, 20); the harbour town far right (25, 0, 150) | the curtain close on the left (−12, 10, 2); rigging and buoy clinks from the moored boat (14, −5, 60); gulls overhead | boat engine: `across(.52)` → `across(.68)` on the horizon, about 300 m, faint; gulls call along the birds' path |
+
+Panners: the station uses 4 for spots and 1 for the train; the meadow 2 placed beds and 4 for spots; the coast 2 placed beds, 4 for spots and 1 for the boat, all within 8.
+
+**Sources.** The reachable CC0 recordings (via Ambie and Blanket on GitHub) cover valley wind (felix.blume), streams and a river, songbirds (kvgarlic, hargissssound), a beach's waves (jordir, high-passed above its traffic hum) and a moored boat's creaks (Falcet). Crickets, bees, gulls, the train, a boat engine, a clock, a bell and a curtain need Freesound or BigSoundBank (CC0), which this environment's network policy blocks: `freesound.org`, `cdn.freesound.org` and `bigsoundbank.com` must be allowed before phases 2 and 3 can be finished with real recordings.
