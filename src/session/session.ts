@@ -129,3 +129,48 @@ export function sessionAt(plan:MusicSessionPlan,seconds:number):SessionState {
   return {elapsed,progress,chapter:elapsed>=plan.duration?'After hours':slot.chapter,caption:captions[plan.mood][chapterIndex],
     dusk,warmth:Math.sin(Math.PI*progress)*.7,weather,lamps:smooth((progress-.25)/.55),events};
 }
+
+/** Scene sounds take their randomness from the edition's seed, never from the audio clock. Each sound has its own
+ * stream, sampled by position, so any stretch of listening plans the same way without keeping state, and after
+ * hours carries on with new draws rather than replaying the hour. */
+function ambienceRandom(seed:number,name:string,index:number) {
+  let hash=seed^0x3c6ef372;
+  for(let i=0;i<name.length;i++)hash=Math.imul(hash^name.charCodeAt(i),0x01000193);
+  return randomSource(hash^Math.imul(index+1,0x9e3779b1));
+}
+export interface SpotFamily {name:string;period:number;chance:number;variants:number;spread:number}
+export interface PlannedSpot {time:number;variant:number;detune:number;gain:number;azimuth:number;elevation:number}
+function spotIn(seed:number,family:SpotFamily,slot:number):PlannedSpot|undefined {
+  const random=ambienceRandom(seed,family.name,slot);
+  if(random()>=family.chance)return undefined;
+  return {time:(slot+random()*.8)*family.period,variant:Math.floor(random()*family.variants),detune:(random()*2-1)*50,
+    gain:10**((random()*2-1)*2.5/20),azimuth:(random()*2-1)*family.spread,elevation:(random()*2-1)*family.spread*.3};
+}
+/** The spots of one family that start within [from, to) seconds of listening. */
+export function spotsBetween(seed:number,family:SpotFamily,from:number,to:number):PlannedSpot[] {
+  const spots:PlannedSpot[]=[];
+  for(let slot=Math.max(0,Math.floor(from/family.period));slot*family.period<to;slot++) {
+    const spot=spotIn(seed,family,slot);
+    if(!spot||spot.time<from||spot.time>=to)continue;
+    // Neighbours never repeat a variant, so a short family doesn't sound like a loop.
+    const previous=slot>0?spotIn(seed,family,slot-1):undefined;
+    if(family.variants>1&&previous?.variant===spot.variant)spot.variant=(spot.variant+1)%family.variants;
+    spots.push(spot);
+  }
+  return spots;
+}
+/** Beds swap between two readings of their recording about every BED_SWAP seconds. */
+export const BED_SWAP=14,BED_SWAP_JITTER=4;
+export interface BedSegment {index:number;start:number;offset:number;drift:number}
+/** Segment `index` of a bed: when it takes over, where in the recording it reads from (0–1), and its level drift in dB. */
+export function bedSegment(seed:number,bed:string,index:number):BedSegment {
+  const random=ambienceRandom(seed,`bed:${bed}`,index),jitter=(random()*2-1)*BED_SWAP_JITTER;
+  return {index,start:index?index*BED_SWAP+jitter:0,offset:random(),drift:(random()*2-1)*1.5};
+}
+/** The segment playing at `seconds` of listening. */
+export function bedSegmentAt(seed:number,bed:string,seconds:number):BedSegment {
+  let index=Math.max(0,Math.floor(Math.max(0,seconds)/BED_SWAP));
+  while(index>0&&bedSegment(seed,bed,index).start>seconds)index--;
+  while(bedSegment(seed,bed,index+1).start<=seconds)index++;
+  return bedSegment(seed,bed,index);
+}

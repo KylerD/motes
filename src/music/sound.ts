@@ -20,6 +20,8 @@ export interface SoundGraph {
   effectSources: AudioScheduledSourceNode[]; synthEchoes: SynthEcho[];
   echoDelay: DelayNode; echoBeat: number;
   ambienceSources: {source:AudioBufferSourceNode;gain:GainNode}[]; voices: Set<Voice>; bank: PianoBank;
+  /** Decoded scene recordings by place: only the active place, and the outgoing one during a handover. */
+  scenes: Map<string,Map<string,AudioBuffer>>;
   drumBuffers: Map<string,AudioBuffer>; nodes: AudioNode[]; seed: number;
 }
 
@@ -81,7 +83,7 @@ export function createGraph(context: BaseAudioContext, bank:PianoBank, seed:numb
   drumBuffers.set('rim',noiseBuffer(context,0.075,seed^99,(t,n)=>(n*0.4+Math.sin(2*Math.PI*1700*t)*0.6)*Math.exp(-t*110)));
   drumBuffers.set('synth-snare',noiseBuffer(context,.32,seed^0x813,(t,n)=>(n*.75+Math.sin(2*Math.PI*180*t)*.25)*Math.exp(-t*17)*(1-Math.exp(-t*1800))));
   drumBuffers.set('synth-hat',noiseBuffer(context,.1,seed^0x808,(t,n)=>n*Math.exp(-t*55)*(1-Math.exp(-t*2000))));
-  return {context,output,music,ambience,piano,melody,bass,drums,synth:synthEffects.input,synthSnare:synthEffects.snare,effectSources:synthEffects.sources,synthEchoes:[],echoDelay:delay,echoBeat:0,bank,drumBuffers,nodes,seed,voices:new Set(),ambienceSources:[]};
+  return {context,output,music,ambience,piano,melody,bass,drums,synth:synthEffects.input,synthSnare:synthEffects.snare,effectSources:synthEffects.sources,synthEchoes:[],echoDelay:delay,echoBeat:0,bank,drumBuffers,nodes,seed,voices:new Set(),ambienceSources:[],scenes:new Map()};
 }
 
 export function setSoundMode(graph:SoundGraph,mode:MusicMode) {
@@ -187,14 +189,20 @@ export function startAmbience(graph:SoundGraph,mood:Mood,at=graph.context.curren
   const source=context.createBufferSource();source.buffer=buffer;source.loop=true;source.loopStart=0.04;source.loopEnd=24;
   const gain=context.createGain();gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(ambienceTrim[mood],at+0.6);
   source.connect(gain);gain.connect(graph.ambience);
-  for(const old of graph.ambienceSources) {
-    holdParameter(old.gain.gain,at);old.gain.gain.linearRampToValueAtTime(0,at+0.6);
-    try{old.source.stop(at+0.65);}catch{/* Already ended. */}
-  }
+  fadeSynthesisedBed(graph,at,0.6);
   graph.ambienceSources=[{source,gain}];
   source.onended=()=>{source.disconnect();gain.disconnect();};source.start(at);
   // Retain this pair only until it ends; the graph owns the current source.
   return {source,gain};
+}
+
+/** Fade the synthesised bed out, as recordings take over or the radio pauses. */
+export function fadeSynthesisedBed(graph:SoundGraph,at:number,seconds:number) {
+  for(const old of graph.ambienceSources) {
+    holdParameter(old.gain.gain,at);old.gain.gain.linearRampToValueAtTime(0,at+seconds);
+    try{old.source.stop(at+seconds+.05);}catch{/* Already ended. */}
+  }
+  graph.ambienceSources=[];
 }
 
 export function stopVoices(graph:SoundGraph,at:number,fade=0.12,from=-Infinity) {
@@ -221,6 +229,6 @@ export function disposeGraph(graph:SoundGraph) {
   for(const echo of graph.synthEchoes)for(const node of echo.nodes)node.disconnect();
   graph.synthEchoes=[];
   for(const {source,gain} of graph.ambienceSources){try{source.stop();}catch{/* Already stopped. */}source.disconnect();gain.disconnect();}
-  graph.ambienceSources=[];
+  graph.ambienceSources=[];graph.scenes.clear();
   for(const node of graph.nodes)node.disconnect();
 }
