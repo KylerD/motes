@@ -14,4 +14,4 @@ The felt piano uses these same recordings with a softer attack and filtering. El
 
 # Scene sounds
 
-Neon rain's scene sounds (rain on the garden, the roof and the pond, the gutter and the distant city) are cut from CC0 field recordings; its eave drips are modelled. Provenance, edits and the encode script are in [ambience/README.md](ambience/README.md). Places without recordings yet keep a quiet synthesised bed, which also plays while recordings load or if they fail.
+Every place's scene sounds are cut from CC0 field recordings: Neon rain's rain, gutter and city; the station's wind, clock, lantern, village and train; the meadow's grass, tree, pond, blackbird, bees, crickets and martins; the coast's sea, harbour town, curtain, chains, bell buoy, gulls and boat engine. Only Neon rain's eave drips are modelled. Provenance, edits and the encode script are in [ambience/README.md](ambience/README.md). Each place keeps a quiet synthesised bed, which plays while its recordings load or if they fail.
