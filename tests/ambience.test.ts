@@ -8,10 +8,17 @@ const rain=SOUND_MAPS.rain!;
 const encoded=JSON.parse(readFileSync('public/audio/ambience/encoded.json','utf8')) as {place:string;bytes:number;files:{file:string;seconds:number;channels:number}[]}[];
 
 describe('scene sounds',()=>{
+  it('gives every place recorded scene sounds',()=>{
+    expect(Object.keys(SOUND_MAPS).sort()).toEqual(['coast','meadow','rain','snow']);
+  });
+
   it('ships every recording a sound map names, inside its 1.2 MB place budget',()=>{
     for(const [place,map] of Object.entries(SOUND_MAPS)) {
-      const files=[...map!.beds,...map!.spots].map(sound=>`public/audio/ambience/${place}/${sound.file}.mp3`);
+      const names=new Set([...map!.beds,...map!.spots,...map!.movers??[],...map!.calls??[]].map(sound=>sound.file));
+      const files=[...names].map(name=>`public/audio/ambience/${place}/${name}.mp3`);
       expect(files.reduce((sum,file)=>sum+statSync(file).size,0)).toBeLessThanOrEqual(1.2e6);
+      // Nothing ships that no map plays.
+      expect(encoded.find(entry=>entry.place===place)!.files.map(f=>f.file).sort()).toEqual([...names].map(name=>`${place}/${name}.mp3`).sort());
       const written=encoded.find(entry=>entry.place===place)!;
       for(const bed of map!.beds) {
         const file=written.files.find(f=>f.file===`${place}/${bed.file}.mp3`)!;
@@ -19,7 +26,24 @@ describe('scene sounds',()=>{
         expect(bed.seconds).toBeCloseTo(file.seconds,2);
         expect(file.channels).toBe(bed.position?1:2);
       }
-      for(const spots of map!.spots)expect(written.files.find(f=>f.file===`${place}/${spots.file}.mp3`)!.seconds).toBeCloseTo(spots.variants*spots.slot,2);
+      for(const spots of [...map!.spots,...map!.calls??[]])expect(written.files.find(f=>f.file===`${place}/${spots.file}.mp3`)!.seconds).toBeCloseTo(spots.variants*spots.slot,2);
+      for(const mover of map!.movers??[])expect(written.files.find(f=>f.file===`${place}/${mover.file}.mp3`)!.seconds).toBeCloseTo(mover.seconds,2);
+    }
+  });
+
+  it('gives a voice only to events the place plans, along paths that run start to end',()=>{
+    for(const [place,map] of Object.entries(SOUND_MAPS)) {
+      const kinds=new Set(createSession(1,place as keyof typeof SOUND_MAPS).events.map(e=>e.kind));
+      for(const sound of [...map!.movers??[],...map!.calls??[]]) {
+        expect(kinds.has(sound.kind),`${place} plans no ${sound.kind}`).toBe(true);
+        const progress=sound.path.map(key=>key[0]);
+        expect(progress[0]).toBe(0);expect(progress.at(-1)).toBe(1);
+        for(let i=1;i<progress.length;i++)expect(progress[i]).toBeGreaterThan(progress[i-1]);
+      }
+      // Every sound is placed somewhere a listener can hear it come from.
+      const positions=[...map!.beds.flatMap(b=>b.position?[b.position]:[]),...map!.spots.flatMap(s=>[s.position,...s.elsewhere??[]]),
+        ...[...map!.movers??[],...map!.calls??[]].flatMap(s=>s.path.map(([,azimuth,elevation,distance])=>({azimuth,elevation,distance})))];
+      for(const p of positions){expect(Math.abs(p.azimuth)).toBeLessThanOrEqual(90);expect(Math.abs(p.elevation)).toBeLessThanOrEqual(60);expect(p.distance).toBeGreaterThan(0);}
     }
   });
 
@@ -97,10 +121,11 @@ describe('scene sounds',()=>{
   });
 
   it('follows the evening and holds it after hours',()=>{
-    for(const sound of [...rain.beds,...rain.spots]) {
-      expect(arcAt('rain',sound.arc,0)).toBeLessThan(.05);
-      expect(arcAt('rain',sound.arc,3600)).toBeCloseTo(1,5);
-      expect(arcAt('rain',sound.arc,9000)).toBe(arcAt('rain',sound.arc,3600));
+    for(const [place,map] of Object.entries(SOUND_MAPS))for(const sound of [...map!.beds,...map!.spots]) {
+      const mood=place as keyof typeof SOUND_MAPS;
+      expect(arcAt(mood,sound.arc,0)).toBeLessThan(.05);
+      expect(arcAt(mood,sound.arc,3600)).toBeCloseTo(1,5);
+      expect(arcAt(mood,sound.arc,9000)).toBe(arcAt(mood,sound.arc,3600));
     }
   });
 
