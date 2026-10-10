@@ -3,11 +3,14 @@ import {SOUND_MAPS,pathAt,type Arc,type Bed,type Mover,type Position,type SoundM
 import {fadeSynthesisedBed,holdParameter,startAmbience,type SoundGraph} from './sound';
 import {BED_SWAP,bedSegment,bedSegmentAt,createSession,eventSpotsBetween,eventStrength,spotsBetween,type BedSegment,type SessionEvent} from '../session/session';
 import {sceneLightAt} from '../scenes/scene-light';
+import type {Season} from '../scenes/edition';
 
 export type ListeningSpace='speakers'|'headphones';
 export type SceneSoundState='synthesised'|'loading'|'recorded'|'failed';
-/** Decoded scene sounds may hold at most this for the active place (plus the outgoing one during a handover). */
+/** Decoded scene sounds may hold at most this for the active place (plus the outgoing one during a handover),
+ * counted at 48 kHz: a device running faster holds proportionally more of the same sounds. */
 export const DECODED_CAP=32*1024*1024;
+export const decodedSize=(buffers:Iterable<AudioBuffer>)=>[...buffers].reduce((sum,b)=>sum+Math.round(b.duration*48000)*b.numberOfChannels*4,0);
 /** Placed beds take one panner each; spots share a pool of four; a moving event takes one. */
 export const PANNER_BUDGET=8,SPOT_PANNERS=4;
 /** Beds crossfade over CROSSFADE seconds; recordings arrive over ARRIVE; a place left behind fades over LEAVE. */
@@ -27,7 +30,8 @@ export function arcAt(mood:Mood,arc:Arc,seconds:number):number {
   return typeof value==='number'&&Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
 }
 const mixAt=(shape:{arrival:number;evening:number},value:number)=>shape.arrival+(shape.evening-shape.arrival)*value;
-const filesOf=(map:SoundMap)=>[...map.beds,...map.spots,...map.movers??[],...map.calls??[]].map(sound=>sound.file);
+/** Each recording once, though several families may play it (the coast's gulls call alone and with the birds). */
+const filesOf=(map:SoundMap)=>[...new Set([...map.beds,...map.spots,...map.movers??[],...map.calls??[]].map(sound=>sound.file))];
 /** One short sound to play: from slot `offset` of `file`, at a level and place worked out from the plan. */
 interface Shot {time:number;file:string;offset:number;slot:number;detune:number;level:number;lowpass?:number;position:Position}
 
@@ -53,7 +57,7 @@ export class SceneSounds {
   private encoded=new Map<Mood,ArrayBuffer[]>();
   private loading?:{mood:Mood;promise:Promise<void>;abort:AbortController};
   private failed=new Set<Mood>();
-  private current?:{mood:Mood;seed:number;spots:boolean;beds:boolean};
+  private current?:{mood:Mood;seed:number;season?:Season;spots:boolean;beds:boolean};
   private running=false;
   private disposed=false;
   /** Bed readings and spots started so far, for verification. */
@@ -71,15 +75,15 @@ export class SceneSounds {
   get diagnostics() {
     const places=[...(this.place?[this.place]:[]),...this.leaving];
     return {state:this.state,places:places.length,sources:places.reduce((sum,place)=>sum+place.sources.size,0),
-      panners:places.reduce((sum,place)=>sum+place.pool.length+place.beds.filter(bed=>bed.panner).length+place.movers.size,0),movers:places.reduce((sum,place)=>sum+place.movers.size,0),
-      started:{...this.started},decodedBytes:[...this.graph.scenes.values()].reduce((sum,buffers)=>sum+[...buffers.values()].reduce((s,b)=>s+b.length*b.numberOfChannels*4,0),0)};
+      panners:this.panners(),movers:places.reduce((sum,place)=>sum+place.movers.size,0),
+      started:{...this.started},decodedBytes:[...this.graph.scenes.values()].reduce((sum,buffers)=>sum+decodedSize(buffers.values()),0),decoded:[...this.graph.scenes.keys()]};
   }
 
   /** Start listening to a place at audio time `at`, `seconds` into its listening time. Recordings load the first
    * time a place is played; until they arrive (or if they fail) its synthesised bed plays. */
-  start(mood:Mood,seed:number,at:number,seconds:number,options:{spots?:boolean;beds?:boolean}={}):void {
+  start(mood:Mood,seed:number,at:number,seconds:number,options:{spots?:boolean;beds?:boolean;season?:Season}={}):void {
     if(this.disposed)return;
-    this.current={mood,seed,spots:options.spots??true,beds:options.beds??true};this.running=true;
+    this.current={mood,seed,season:options.season,spots:options.spots??true,beds:options.beds??true};this.running=true;
     // Decoded sounds belong to this place and one still fading out; a place left while paused gives them back here.
     for(const other of [...this.graph.scenes.keys()])if(other!==mood&&![...this.leaving].some(place=>place.mood===other))this.graph.scenes.delete(other);
     if(this.graph.scenes.has(mood)){fadeSynthesisedBed(this.graph,at,RESUME);this.arrive(at,seconds,RESUME);return;}
@@ -88,9 +92,9 @@ export class SceneSounds {
   }
 
   /** Move to another place now: the old one fades out while its song finishes, the new one starts at once. */
-  change(mood:Mood,seed:number,at:number):void {
+  change(mood:Mood,seed:number,at:number,season?:Season):void {
     if(this.place){this.leave(this.place,at);this.place=undefined;}
-    this.start(mood,seed,at,0,{spots:this.current?.spots,beds:this.current?.beds});
+    this.start(mood,seed,at,0,{spots:this.current?.spots,beds:this.current?.beds,season});
   }
 
   /** Pause: stop every source after the radio's own fade. Decoded sounds for the current place are kept for resume. */
@@ -143,15 +147,16 @@ export class SceneSounds {
     for(const shot of shots.sort((a,b)=>a.time-b.time))this.spot(place,shot,now);
   }
 
+  /** A panner clicks if its model changes under a sound, so the place is built again in the new space, at the same
+   * moment of the same plan, and crossfaded in over RESUME as the old one fades. A place already leaving keeps its space. */
   setSpace(space:ListeningSpace):void {
+    if(space===this.space)return;
     this.space=space;
+    const place=this.place;
+    if(!place||!this.running)return;
     const now=this.graph.context.currentTime;
-    for(const place of [...(this.place?[this.place]:[]),...this.leaving]) {
-      for(const voice of place.beds)if(voice.panner&&voice.bed.position){voice.panner.panningModel=this.model;this.position(voice.panner,voice.bed.position,now);}
-      for(const panner of place.pool)panner.node.panningModel=this.model;
-      // A moving event re-plots the rest of its path for the new space.
-      for(const voice of place.movers.values()){voice.panner.panningModel=this.model;this.travel(voice,now,false);}
-    }
+    this.leave(place,now);this.place=undefined;
+    this.arrive(now,now-place.origin,RESUME);
   }
 
   /** Try the recordings again after a failure. A paused radio loads but stays silent. */
@@ -164,7 +169,7 @@ export class SceneSounds {
 
   /** Recordings for offline renders and clips: fetched (or reused) and decoded before anything plays. */
   async prepare(mood:Mood,seed:number):Promise<boolean> {
-    this.current={mood,seed,spots:this.current?.spots??true,beds:this.current?.beds??true};
+    this.current={mood,seed,season:this.current?.season,spots:this.current?.spots??true,beds:this.current?.beds??true};
     if(!SOUND_MAPS[mood])return false;
     await this.load(mood);
     return this.graph.scenes.has(mood);
@@ -196,7 +201,7 @@ export class SceneSounds {
         }
         // decodeAudioData detaches its input, so the kept bytes are copied for each decode.
         const decoded=await Promise.all(encoded.map(bytes=>context.decodeAudioData(bytes.slice(0))));
-        if(decoded.reduce((sum,b)=>sum+b.length*b.numberOfChannels*4,0)>DECODED_CAP)throw new Error('The scene sounds are larger than their memory budget.');
+        if(decodedSize(decoded)>DECODED_CAP)throw new Error('The scene sounds are larger than their memory budget.');
         // A late load prepares only the place being listened to, and never starts sound after a pause.
         if(abort.signal.aborted||this.disposed||this.current?.mood!==mood)return;
         this.graph.scenes.set(mood,new Map(files.map((file,i)=>[file,decoded[i]])));
@@ -221,20 +226,17 @@ export class SceneSounds {
     const current=this.current!,map=SOUND_MAPS[current.mood]!,buffers=this.graph.scenes.get(current.mood)!,context=this.graph.context;
     const nodes:AudioNode[]=[],output=context.createGain();nodes.push(output);
     output.gain.setValueAtTime(0,at);output.gain.linearRampToValueAtTime(map.trim,at+fade);output.connect(this.graph.ambience);
-    const panner=()=>{
-      const node=context.createPanner();
-      node.panningModel=this.model;node.distanceModel='inverse';node.refDistance=1;node.maxDistance=10000;node.rolloffFactor=0;
-      node.connect(output);nodes.push(node);return node;
-    };
+    // Events come from the same plan the picture draws, Halloween's included.
+    const events=map.movers?.length||map.calls?.length?createSession(current.seed,current.mood,'lofi',current.season).events:[];
     const place:Place={mood:current.mood,seed:current.seed,map,buffers,output,beds:[],pool:[],origin:at-seconds,spotsThrough:seconds,
-      spots:current.spots,sources:new Set(),nodes,events:map.movers?.length||map.calls?.length?createSession(current.seed,current.mood).events:[],movers:new Map(),moved:new Set()};
+      spots:current.spots,sources:new Set(),nodes,events,movers:new Map(),moved:new Set()};
     // Verification can render the spots alone.
     for(const bed of current.beds?map.beds:[]) {
       const buffer=buffers.get(bed.file)!,level=context.createGain(),value=mixAt(bed,arcAt(place.mood,bed.arc,seconds));
       level.gain.value=value;nodes.push(level);
       let tail:AudioNode=level,filter:BiquadFilterNode|undefined,node:PannerNode|undefined;
       if(bed.lowpass){filter=context.createBiquadFilter();filter.type='lowpass';filter.frequency.value=mixAt({arrival:bed.lowpass[0],evening:bed.lowpass[1]},arcAt(place.mood,bed.arc,seconds));tail.connect(filter);tail=filter;nodes.push(filter);}
-      if(bed.position){node=panner();this.position(node,bed.position,at);tail.connect(node);}else tail.connect(output);
+      if(bed.position){node=this.panner(place);this.position(node,bed.position,at);tail.connect(node);}else tail.connect(output);
       const voice:BedVoice={bed,buffer,loop:loopOf(buffer,bed),level,filter,panner:node,next:0,value};
       place.beds.push(voice);
       // Join the plan where it is: the segment playing now, unless its swap is about to begin.
@@ -244,7 +246,6 @@ export class SceneSounds {
       this.segment(place,voice,segment,at,fade,seconds-(segment.start-CROSSFADE/2));
       voice.next=segment.index+1;
     }
-    for(let i=0;i<SPOT_PANNERS;i++)place.pool.push({node:panner(),until:0});
     this.place=place;
     this.schedule(at,at+.05);
   }
@@ -269,7 +270,9 @@ export class SceneSounds {
     // A spot in the past, or one too quiet to hear (bees after dark), is skipped.
     if(at<now+.01||shot.level<.005)return;
     const rate=2**(shot.detune/1200),duration=shot.slot/rate;
-    const panner=place.pool.find(entry=>entry.until<=at);
+    // Spots share a pool of panners, made as they are first needed and within the budget a fading place still holds.
+    let panner=place.pool.find(entry=>entry.until<=at);
+    if(!panner&&place.pool.length<SPOT_PANNERS&&this.panners()<PANNER_BUDGET)place.pool.push(panner={node:this.panner(place),until:0});
     // A spot that finds every panner busy is skipped.
     if(!panner)return;
     panner.until=at+duration+.02;
@@ -328,7 +331,20 @@ export class SceneSounds {
     source.onended=()=>{source.disconnect();for(const node of nodes)node.disconnect();place.sources.delete(source);ended?.();};
   }
 
+  private panner(place:Place):PannerNode {
+    const node=this.graph.context.createPanner();
+    node.panningModel=this.model;node.distanceModel='inverse';node.refDistance=1;node.maxDistance=10000;node.rolloffFactor=0;
+    node.connect(place.output);place.nodes.push(node);return node;
+  }
+
+  /** Panners held by the place playing and any still fading out. */
+  private panners():number {
+    return [...(this.place?[this.place]:[]),...this.leaving].reduce((sum,place)=>sum+place.pool.length+place.beds.filter(bed=>bed.panner).length+place.movers.size,0);
+  }
+
   private leave(place:Place,at:number) {
+    // Idle spot panners go at once, so the place arriving has room for its own.
+    place.pool=place.pool.filter(entry=>{if(entry.until>at)return true;entry.node.disconnect();return false;});
     holdParameter(place.output.gain,at);place.output.gain.linearRampToValueAtTime(0,at+LEAVE);
     this.leaving.add(place);this.release(place,at+LEAVE+.02);
   }
@@ -339,16 +355,17 @@ export class SceneSounds {
     place.freeAt=at;
     for(const source of place.sources){try{source.stop(at);}catch{/* Already ended. */}}
     const context=this.graph.context,delay=Math.max(0,at-context.currentTime)*1000+80;
-    const free=()=>{
+    const free=(disconnect:boolean)=>{
       if(place.timer!==undefined)clearTimeout(place.timer);
-      for(const node of place.nodes)node.disconnect();
+      if(disconnect)for(const node of place.nodes)node.disconnect();
       place.pool.length=0;place.movers.clear();for(const voice of place.beds)voice.panner=undefined;
       this.leaving.delete(place);
       if(this.current?.mood!==place.mood)this.graph.scenes.delete(place.mood);
     };
     if(place.timer!==undefined)clearTimeout(place.timer);
-    // Offline renders have no timers that follow their clock; their graphs are released with them.
-    if(context instanceof AudioContext)place.timer=setTimeout(free,delay);else free();
+    // Offline renders have no timers that follow their clock: the place's sources stop on schedule, its fade plays out,
+    // and its graph is released with the render.
+    if(context instanceof AudioContext)place.timer=setTimeout(()=>free(true),delay);else free(false);
   }
 }
 
