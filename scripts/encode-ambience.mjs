@@ -10,10 +10,32 @@ import {existsSync,mkdirSync,readFileSync,statSync,writeFileSync} from 'node:fs'
 const cache='.cache/ambience',out='public/audio/ambience',RATE=48000;
 // Ambie (jenius-apps/ambie) ships these Freesound CC0 recordings in its repository; pinned to one commit.
 const ambie='https://raw.githubusercontent.com/jenius-apps/ambie/eb29bd9946b414f7b7988d43ea5e77c537e9ab7d/src/AmbientSounds.Uwp/Assets/Sounds/';
+// The other places' recordings are Freesound's own high-quality previews of CC0 sounds (about 200 kbps Ogg Vorbis).
+const freesound=path=>`https://cdn.freesound.org/previews/${path}-hq.ogg`;
 const SOURCES={
   rain:{url:ambie+'rain.wav',sha256:'5a68ea94b6e1d83e77db80fbc55d7c2f7abef192879dfb6a9b859c1c3f753fa0'},
   brook:{url:ambie+'creek.wav',sha256:'3926d7cf09975740dc39baec395a4117ea06a8f4a322978a44798b3245863777'},
   city:{url:ambie+'citystreet.wav',sha256:'05346bcef4768a8a5590a2bf64b21301f9832212f19bd351e3c6b805ae23b353'},
+  'snowy-afternoon':{url:freesound('719/719852_2250422'),sha256:'798293eb0ff9e9369a511235312322b6c571f322ef2dd7a22c7b3451a82ada64'},
+  'propane-lantern':{url:freesound('159/159386_2379373'),sha256:'aa8f8669ee7b3b98feeb9cdb3f3ce749bf6aed8a86c32ecf387a67a0beb7f8f2'},
+  'grandfather-clock':{url:freesound('125/125968_981397'),sha256:'1396506d0cdefa53881d48954aeed0b8e57594004f112d65a3fa728197c5a95d'},
+  'church-peal':{url:freesound('411/411489_109726'),sha256:'c59460994ac235cf9bf8a902b5fb1103036aaa94d66a83ca23a31908e2432d31'},
+  'far-dog':{url:freesound('453/453433_612689'),sha256:'22613d84f2f88b152557930abcb5393010cd7d08862a303cb829dce1384cb4e0'},
+  'distant-train':{url:freesound('380/380671_5734792'),sha256:'815d9be638fe35a6182e13e9930df0405e1a8c29f6530360fe036355a3a3e699'},
+  'summer-meadow':{url:freesound('409/409143_85211'),sha256:'daeeb9f2c84a860fe840717e5271b54bec022383d42c376ba2d7ac50de6e4d30'},
+  'tree-in-wind':{url:freesound('523/523389_2010973'),sha256:'d57fddeea123289a35edb5e98ce6f6e01187f356b8d79627a4b7d4f895040ba8'},
+  'lake-waves':{url:freesound('326/326097_1050391'),sha256:'783364edf557331c87c2ba85c361a537da7564e709b6bcd307e95742fa65d0dc'},
+  blackbird:{url:freesound('431/431911_1340199'),sha256:'6b66edb5d7bcc8575e0ed18c40ff94b1e86a090e110cbcc55e25b877a9942aea'},
+  bumblebees:{url:freesound('152/152789_2479316'),sha256:'60b5b537d7c2fbe94782aead215bf5d619a53839cf20a64d3a3f822a8cac2801'},
+  'night-crickets':{url:freesound('175/175020_2979997'),sha256:'c5ce8cc71b693f35d03b71d400c856b487ecd60a4ace4d7bdd2f257567d541f5'},
+  'house-martins':{url:freesound('196/196363_2824510'),sha256:'76417b64984c1c7c6b8ffe37e83a74b83f7016d22daf5f81bb05ce2c3f62ebf2'},
+  'sardinia-rocks':{url:freesound('188/188509_1558130'),sha256:'7b10b41afc543328634fdd3791d54ff90453d9b5ba3796a46c8d12c871578c35'},
+  'trogir-square':{url:freesound('195/195725_623488'),sha256:'93a8acfd99cc9f2f8057ca156b351581fe9a9ac32b91a2ba51c88b555b89421a'},
+  fabric:{url:freesound('701/701647_9616576'),sha256:'0e6897dc3cb6afd397f85e089a041ebfd2bf3fd3f649add074c56c5bebf95146'},
+  'genova-chains':{url:freesound('55/55034_680310'),sha256:'a09d3e1c8e4bbc6a81222f852310b7b4af0ba7645cc33361f86ea1021b4e96c4'},
+  'bell-buoy':{url:freesound('675/675693_2524442'),sha256:'fddb35a9af96c42b515ca70fc3ddc1e20d5c4cc92a60da946a7c30b8ddc4fa47'},
+  'gulls-wildtrack':{url:freesound('462/462462_2752236'),sha256:'660c7a8606f69b45230c4e982938046afec22264a58e884583b017df3ebe4e74'},
+  'marine-diesel':{url:freesound('264/264864_1934171'),sha256:'13165f1434c00e01014cfed95e4fdbf6019c0531081ff23833e47d4f61ad2072'},
 };
 /** One shared loudness for beds, and one for the loudest moment of a spot, so per-place trims start equal. */
 const BED_RMS=-30,SPOT_PEAK_RMS=-24,FOLD=1.5,BUDGET=1.2e6;
@@ -30,16 +52,20 @@ function source(name) {
   return file;
 }
 
-/** Decode a stretch of a recording to mono 48 kHz floats through an FFmpeg filter chain. */
-function decode(name,start,seconds,filters='') {
-  const args=['-v','error','-ss',String(start),'-t',String(seconds),'-i',source(name),'-ac','1','-ar',String(RATE)];
+/** Decode a stretch of a recording to 48 kHz floats through an FFmpeg filter chain: mono, or [left, right] for
+ * stereo. A filter that slows the sound down makes `out` seconds from `seconds` of the recording. */
+function decode(name,start,seconds,filters='',channels=1,out=seconds) {
+  // Read a little past the stretch: compressed sources can seek a few milliseconds short.
+  const args=['-v','error','-ss',String(start),'-t',String(seconds+.05),'-i',source(name),'-ac',String(channels),'-ar',String(RATE)];
   if(filters)args.push('-af',filters);
   const result=spawnSync('ffmpeg',[...args,'-f','f32le','-'],{maxBuffer:1<<30});
   if(result.status!==0)throw new Error(result.stderr.toString());
   const bytes=result.stdout;
   const samples=new Float32Array(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
-  if(samples.length<Math.floor((seconds-.01)*RATE))throw new Error(`${name} is shorter than ${start+seconds}s`);
-  return samples.subarray(0,Math.floor(seconds*RATE));
+  const frames=Math.floor(out*RATE);
+  if(samples.length<Math.floor((out-.01)*RATE)*channels)throw new Error(`${name} is shorter than ${start+seconds}s`);
+  if(channels===1)return samples.subarray(0,frames);
+  return Array.from({length:channels},(_,c)=>Float32Array.from({length:frames},(_,i)=>samples[i*channels+c]));
 }
 
 const rms=(data,from=0,to=data.length)=>{let sum=0;for(let i=from;i<to;i++)sum+=data[i]*data[i];return Math.sqrt(sum/Math.max(1,to-from));};
@@ -143,10 +169,79 @@ const PLACES={
       city:[[slots(city,4)],64,32000],
     };
   },
+  // Last light station: wind in the snowy trees all round, a lantern hissing on its post to the left, the clock
+  // ticking high on the left, a peal or a dog carried up from the village now and then, and the evening train.
+  snow:()=>{
+    // A calm stretch running into a gust, so the bed breathes; the high-pass takes out the wind's buffeting.
+    const wind=decode('snowy-afternoon',30,32+FOLD,'highpass=f=70,highpass=f=70',2);
+    const lantern=decode('propane-lantern',4,12+FOLD,'highpass=f=200,lowpass=f=7000');
+    const clock=[.5,5.2,9.9].map(start=>edges(normaliseSpot(decode('grandfather-clock',start,3,'highpass=f=150,lowpass=f=8000')),.25,.4));
+    // Moments of a peal, faded slowly at both ends: the wind carries them up from the valley and away again.
+    const peal=[10,40,75].map(start=>edges(normaliseSpot(decode('church-peal',start,6,'highpass=f=250,lowpass=f=3000')),1.5,1.8));
+    const dog=[7.3,19.4,63.15,72.95].map(start=>edges(normaliseSpot(decode('far-dog',start,2.5,'highpass=f=200,lowpass=f=2500')),.05,.6));
+    // The train rolling past, from the loudest stretch of its pass.
+    const train=decode('distant-train',10,12+FOLD,'highpass=f=40,lowpass=f=3000');
+    return {
+      wind:[normaliseBed(wind.map(fold)),96,44100],
+      lantern:[normaliseBed([fold(lantern)]),64,32000],
+      clock:[[slots(clock,3)],56,32000],
+      peal:[[slots(peal,6)],56,32000],
+      dog:[[slots(dog,2.5)],56,32000],
+      train:[normaliseBed([fold(train)]),64,32000],
+    };
+  },
+  // Golden hour: grass and the meadow's distant birds all round, the big tree's leaves above to the right, the pond
+  // lapping below; a blackbird in the tree, by the arch and down the valley; bees by day and crickets as the light goes.
+  meadow:()=>{
+    const grass=decode('summer-meadow',60,26+FOLD,'highpass=f=80,highpass=f=80',2);
+    // A stretch with one gust swelling through the leaves and dying back.
+    const tree=decode('tree-in-wind',26,24+FOLD,'highpass=f=90');
+    const pond=decode('lake-waves',14,20+FOLD,'highpass=f=120,lowpass=f=7000');
+    const birds=[2.5,10,19.6,28.4,36.5].map(start=>edges(normaliseSpot(decode('blackbird',start,3.5,'highpass=f=600')),.1,.5));
+    const bees=[8.5,12.5,24,30].map(start=>edges(normaliseSpot(decode('bumblebees',start,4,'highpass=f=90,lowpass=f=5000')),.6,.8));
+    const crickets=[5,15,25,40].map(start=>edges(normaliseSpot(decode('night-crickets',start,3,'highpass=f=1500')),.7,.9));
+    // House martins chirping on the wing, for the flock that crosses the sky.
+    const martins=[1,4.5,8,12,16,20].map(start=>edges(normaliseSpot(decode('house-martins',start,2,'highpass=f=1500')),.15,.4));
+    return {
+      grass:[normaliseBed(grass.map(fold)),96,44100],
+      tree:[normaliseBed([fold(tree)]),64,32000],
+      pond:[normaliseBed([fold(pond)]),64,32000],
+      birds:[[slots(birds,3.5)],56,32000],
+      bees:[[slots(bees,4)],56,32000],
+      crickets:[[slots(crickets,3)],56,32000],
+      martins:[[slots(martins,2)],56,32000],
+    };
+  },
+  // The last chapter: the bay washing on the rocks below, the harbour town's evening far off to the right; the
+  // curtain stirring close on the left, the moored boat's chains, a bell buoy out on the bay, gulls and the boat's engine.
+  coast:()=>{
+    // The calmest stretch: elsewhere the waves slap under the rocks 30 dB over the wash, which would come through as pops.
+    const sea=decode('sardinia-rocks',262.5,21+FOLD,'highpass=f=60,highpass=f=60',2);
+    const town=decode('trogir-square',40,24+FOLD,'highpass=f=120,lowpass=f=3000');
+    // Fabric slowed to four fifths, so it is a heavier curtain lifting rather than a flag.
+    const curtain=[1.1,3.5,7.5,10.8].map(start=>edges(normaliseSpot(decode('fabric',start,2.4,'highpass=f=150,lowpass=f=5000,aresample=48000,asetrate=38400,aresample=48000',1,3)),.4,.7));
+    const chains=[.3,2.9,4.5].map(start=>edges(normaliseSpot(decode('genova-chains',start,2.2,'highpass=f=200')),.1,.5));
+    const buoy=[.5,3.9,23.6,54.75].map(start=>edges(normaliseSpot(decode('bell-buoy',start,2.6,'highpass=f=400,highpass=f=400,lowpass=f=6000')),.03,.6));
+    const gulls=[2,5.4,7.8,24.5,39.6,51.6].map(start=>edges(normaliseSpot(decode('gulls-wildtrack',start,2.2,'highpass=f=400,highpass=f=400')),.1,.4));
+    const engine=decode('marine-diesel',20,10+FOLD,'highpass=f=30,lowpass=f=1500');
+    return {
+      sea:[normaliseBed(sea.map(fold)),96,44100],
+      town:[normaliseBed([fold(town)]),64,32000],
+      curtain:[[slots(curtain,3)],56,32000],
+      chains:[[slots(chains,2.2)],56,32000],
+      buoy:[[slots(buoy,2.6)],56,32000],
+      gulls:[[slots(gulls,2.2)],56,32000],
+      engine:[normaliseBed([fold(engine)]),64,32000],
+    };
+  },
 };
 
+// `node scripts/encode-ambience.mjs snow coast` rebuilds just those places; encoded.json keeps the others' entries.
+const only=process.argv.slice(2),unknown=only.filter(place=>!PLACES[place]);
+if(unknown.length)throw new Error(`No sound recipe for ${unknown.join(', ')}.`);
+const kept=only.length&&existsSync(`${out}/encoded.json`)?JSON.parse(readFileSync(`${out}/encoded.json`,'utf8')).filter(entry=>!only.includes(entry.place)):[];
 const report=[];
-for(const [place,make] of Object.entries(PLACES)) {
+for(const [place,make] of Object.entries(PLACES).filter(([place])=>!only.length||only.includes(place))) {
   mkdirSync(`${out}/${place}`,{recursive:true});
   const files=Object.entries(make()).map(([name,[channels,kbps,rate]])=>encode(`${out}/${place}/${name}.mp3`,channels,kbps,rate));
   const total=files.reduce((sum,f)=>sum+f.bytes,0);
@@ -155,4 +250,6 @@ for(const [place,make] of Object.entries(PLACES)) {
   if(total>BUDGET)throw new Error(`${place} is ${(total/1e6).toFixed(2)} MB, over its 1.2 MB budget.`);
   report.push({place,total,files});
 }
-writeFileSync(`${out}/encoded.json`,JSON.stringify(report.map(({place,total,files})=>({place,bytes:total,files:files.map(({file,...rest})=>({file:file.slice(out.length+1),...rest}))})),null,2)+'\n');
+const written=report.map(({place,total,files})=>({place,bytes:total,files:files.map(({file,...rest})=>({file:file.slice(out.length+1),...rest}))}));
+const order=Object.keys(PLACES);
+writeFileSync(`${out}/encoded.json`,JSON.stringify([...kept,...written].sort((a,b)=>order.indexOf(a.place)-order.indexOf(b.place)),null,2)+'\n');

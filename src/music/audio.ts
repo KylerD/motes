@@ -65,7 +65,7 @@ export class RadioAudio {
   get diagnostics() {
     const currentTime=this.context?.currentTime??0,starts=[...this.graph?.voices??[]].map(voice=>voice.start);
     return {playing:this.running,contextState:this.context?.state??'uninitialized',voices:this.graph?.voices.size??0,scheduledSegments:this.segments.length,ticks:this.ticks,compositions:this.compositions,scheduledThrough:this.segments[this.segments.length-1]?.start??0,scheduledAhead:Math.max(0,...starts)-currentTime,currentTime,
-      sceneSounds:this.sounds?.diagnostics??{state:'synthesised' as SceneSoundState,places:0,sources:0,panners:0,started:{segments:0,spots:0},decodedBytes:0},synthesisedBeds:this.graph?.ambienceSources.length??0};
+      sceneSounds:this.sounds?.diagnostics??{state:'synthesised' as SceneSoundState,places:0,sources:0,panners:0,started:{segments:0,spots:0},decodedBytes:0,decoded:[] as string[]},synthesisedBeds:this.graph?.ambienceSources.length??0};
   }
   /** Whether this place's recorded scene sounds are playing, still loading, or failed (its synthesised bed plays meanwhile). */
   get sceneSounds():SceneSoundState {return this.sounds?.state??'synthesised';}
@@ -114,7 +114,7 @@ export class RadioAudio {
         stopVoices(graph,now,0.025);
         this.segments=[this.segment(this.track,now+0.09-this.beat*60/this.track.bpm,this.beat)];
         this.running=true;this.environmentClock.start(now);this.listeningClock.start(now);
-        this.sounds!.start(this.mood,this.seed,now+0.02,this.environmentClock.seconds(now+0.02));
+        this.sounds!.start(this.mood,this.seed,now+0.02,this.environmentClock.seconds(now+0.02),{season:this.season});
         holdParameter(graph.output.gain,now);graph.output.gain.linearRampToValueAtTime(1,now+0.35);
         this.tick();
         this.timer=setInterval(()=>this.tick(),250);
@@ -204,7 +204,7 @@ export class RadioAudio {
         stopVoices(this.graph,this.context.currentTime,0.1,ending);
         this.segments=[active];
       }
-      this.sounds?.change(mood,seed,this.context.currentTime);
+      this.sounds?.change(mood,seed,this.context.currentTime,season);
     }else{this.track=this.makeTrack();this.beat=0;}
   }
 
@@ -303,7 +303,7 @@ export async function renderPreview(options:{seed?:number;mood?:Mood;index?:numb
   const mood=options.mood??'rain',sounds=new SceneSounds(graph,options.space??'speakers');
   const recorded=await sounds.prepare(mood,plan.seed).catch(()=>false);
   // A recording that can't load leaves the synthesised bed, as it does live.
-  if(recorded){sounds.start(mood,plan.seed,0,0,{spots:options.spots??false});sounds.schedule(0,seconds);}
+  if(recorded){sounds.start(mood,plan.seed,0,0,{spots:options.spots??false,season:options.season});sounds.schedule(0,seconds);}
   else startAmbience(graph,mood,0);
   if(options.music===false)graph.music.gain.value=0;
   // `fromBeat` starts the first song partway in, as a clip starts at its theme.

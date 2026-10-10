@@ -17,13 +17,15 @@ try {
   const report=await page.evaluate(async({style,only})=>{
     const {DEFAULT_MIX,createGraph,loadPiano,scheduleNote,setSoundMode,startAmbience,disposeGraph}=await import('/src/music/sound.ts');
     const {SceneSounds}=await import('/src/music/ambience.ts');
+    const {SOUND_MAPS}=await import('/src/music/ambience-maps.ts');
     const {createSession,composeSessionTrack}=await import('/src/session/session.ts');
     const {edition}=await import('/src/scenes/edition.ts');
     const sampleRate=44100,seconds=48;
     const bank=style==='lofi'?await loadPiano(new OfflineAudioContext(2,1,sampleRate)):new Map();
-    // Layers: the music alone; the scene sounds at arrival or in the settled evening; or their spots alone (over a longer stretch, so every family plays).
-    const render=async(seed,mood,mode,layer,index=0,space='speakers')=>{
-      const length=layer.startsWith('spots')?300:seconds,music=layer==='music';
+    // Layers: the music alone; the scene sounds at arrival or in the settled evening; their spots alone (over a longer
+    // stretch, so every family plays); or a minute from inside a planned event, with its mover or calls and the spots.
+    const render=async(seed,mood,mode,layer,index=0,space='speakers',listen)=>{
+      const length=layer.startsWith('spots')?300:layer==='events'?60:seconds,music=layer==='music';
       const context=new OfflineAudioContext(2,length*sampleRate,sampleRate);
       const graph=createGraph(context,bank,seed),track=composeSessionTrack(createSession(seed,mood,style),index);
       graph.output.gain.value=1;
@@ -35,7 +37,7 @@ try {
       if(!music) {
         // Places without recordings keep their synthesised bed, as live.
         if(await sounds.prepare(mood,seed)) {
-          sounds.start(mood,seed,0,layer.endsWith('evening')?3000:0,{spots:layer!=='atmosphere-beds',beds:!layer.startsWith('spots')});
+          sounds.start(mood,seed,0,listen??(layer.endsWith('evening')?3000:0),{spots:layer!=='atmosphere-beds',beds:!layer.startsWith('spots')&&layer!=='events'});
           sounds.schedule(0,length);
         }else if(!layer.startsWith('spots'))startAmbience(graph,mood,0);
       }
@@ -81,11 +83,15 @@ try {
     for(const mood of only){
       const seed=edition('2026-09-18',mood).seed;
       // Recorded places are measured at arrival and in the evening, through speakers and headphones; the louder counts.
-      const spaces=mood==='rain'?['speakers','headphones']:['speakers'];
+      const map=SOUND_MAPS[mood],spaces=map?['speakers','headphones']:['speakers'];
       const atmospheres=[];
-      for(const space of spaces)for(const layer of mood==='rain'?['atmosphere','atmosphere-evening']:['atmosphere'])atmospheres.push(await render(seed,mood,'beats',layer,0,space));
-      const spots=mood==='rain'?[]:undefined;
+      for(const space of spaces)for(const layer of map?['atmosphere','atmosphere-evening']:['atmosphere'])atmospheres.push(await render(seed,mood,'beats',layer,0,space));
+      const spots=map?[]:undefined;
       if(spots)for(const space of spaces)for(const layer of ['spots','spots-evening'])spots.push(await render(seed,mood,'beats',layer,0,space));
+      // The train, the boat and the birds: a minute from a quarter of the way into each event that has a voice here.
+      const voiced=new Set([...map?.movers??[],...map?.calls??[]].map(sound=>sound.kind));
+      if(spots)for(const event of createSession(seed,mood).events.filter(event=>voiced.has(event.kind)))
+        for(const space of spaces)spots.push(await render(seed,mood,'beats','events',0,space,event.start+event.duration*.25));
       const loudestSpot=spots?Math.max(...spots.map(s=>s.loudest)):0;
       for(const mode of ['beats','ambient']){
         for(const index of style==='synthwave'?[0,1,2,3,16,17,18]:[0,1,3,6,9,10,17]){
