@@ -9,9 +9,14 @@ export const DEFAULT_MIX = { music:0.65, ambience:0.38 } as const;
 const ambienceTrim:Record<Mood,number> = {rain:0.14,meadow:0.24,snow:0.45,coast:0.14};
 export type PianoBank = Map<number, AudioBuffer>;
 /** Firefox has no cancelAndHoldAtTime. Capture the current value before cancelling its automation. */
+/** Hold a parameter where it is at `time` (now), ready for a ramp from there. cancelAndHoldAtTime pins a value only
+ * while an automation is still running at `time`; once the last one has finished nothing marks `time`, and the next
+ * ramp would start back at that old event, so a fade would begin near its end. The explicit value marks it either way. */
 export function holdParameter(parameter:AudioParam,time:number):void {
+  const value=parameter.value;
   if(typeof parameter.cancelAndHoldAtTime==='function')parameter.cancelAndHoldAtTime(time);
-  else {const value=parameter.value;parameter.cancelScheduledValues(time);parameter.setValueAtTime(value,time);}
+  else parameter.cancelScheduledValues(time);
+  parameter.setValueAtTime(value,time);
 }
 export interface Voice { start: number; end: number; gain: GainNode; source: AudioScheduledSourceNode; auxiliary: AudioScheduledSourceNode[]; nodes: AudioNode[] }
 export interface SoundGraph {
